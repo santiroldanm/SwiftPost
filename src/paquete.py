@@ -70,5 +70,6 @@ class paquete:
         if estado in estados_validos:
             self.__estado = estado
         else:
-            raise ValueError("Estado inválido.")
+             print("Estado inválido.")
+             
     # Creo que hacer el set de id_propietario no es considerable
