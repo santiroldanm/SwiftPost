@@ -1,13 +1,13 @@
 from cliente import cliente 
 from paquete import paquete 
 
-class servicio_mensajeria:
+class servicioMensajeria:
  def __init__(self):
     self.paquetes = []
     self.clientes = []
     
     
- def crear_cliente(self) -> None:
+ def crearCliente(self) -> None:
   nombre = str(input("¿Cual es tu nombre? \n"))
   apellido = str(input("¿Cual es tu apellido ? \n"))
   while(True):
@@ -28,7 +28,7 @@ class servicio_mensajeria:
   
   
   
- def crear_paquete(self) -> str:
+ def crearPaquete(self) -> str:
   if(len(self.clientes) == 0):
    print ("No hay clientes registrados")
    return
@@ -97,7 +97,7 @@ class servicio_mensajeria:
   print(" REGISTRO EXITOSO \n")
   
   
-  def buscar_por_id(self,id:int) -> list:
+  def buscarPorId(self,id:int) -> list:
     for cliente in self.clientes:
       if cliente.id == id:
        return cliente
