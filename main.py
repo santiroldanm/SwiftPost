@@ -40,11 +40,18 @@ def main() -> None:
         
         elif opcion == "5":
             limpiarConsola()
+
             sistema.listarPaquetes()
+
+            for i in sistema.paquetes:
+             print(f" Id: {i.getId()} Id_dueño: {i.getId_propietario()} Origen: {i.getOrigen()} Destino:{i.getDestino()} Peso: {i.getPeso()} Estado: {i.getEstado()} Descripcion: {i.getDescripcion()} \n")        
+
         
         elif opcion == "6":
             limpiarConsola()
             sistema.actualizarEstadoPaquete()
+
+            print("Seleccionaste Actualizar Estado del Paquete")
         
         elif opcion == "7":
             limpiarConsola()
