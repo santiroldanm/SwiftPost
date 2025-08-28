@@ -1,5 +1,5 @@
 import os
-from servicio_mensajeria import servicio_mensajeria
+from src.servicio_mensajeria import servicioMensajeria
 
 def menu():
     print("\n" + "="*60)
@@ -16,7 +16,7 @@ def menu():
 
 
 def main() -> None:
-    sistema=servicio_mensajeria()
+    sistema = servicioMensajeria()
 
     while True:
         menu()
@@ -24,14 +24,15 @@ def main() -> None:
 #ACTUALIZAR EL MENÚ SEGÚN SE VAYAN CREANDO FUNCIONES
         if opcion == "1":
             limpiarConsola()
-            sistema.crear_cliente()
+            sistema.crearCliente()
         
         elif opcion == "2":
             limpiarConsola()
-            sistema.crear_paquete()        
+            sistema.crearPaquete()        
         
         elif opcion == "3":
             limpiarConsola()
+            sistema.calcularPrecioEnvio()
             
         elif opcion == "4":
             limpiarConsola()
@@ -39,8 +40,7 @@ def main() -> None:
         
         elif opcion == "5":
             limpiarConsola()
-            for i in sistema.paquetes:
-             print(f" Id: {i.getId()} Id_dueño: {i.getId_propietario()} Origen: {i.getOrigen()} Destino:{i.getDestino()} Peso: {i.getPeso()} Estado: {i.getEstado()} Descripcion: {i.getDescripcion()}")        
+            sistema.listarPaquetes
         
         elif opcion == "6":
             limpiarConsola()
