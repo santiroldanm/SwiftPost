@@ -14,10 +14,6 @@ def menu():
     print("| 7 | Salir")
     print("="*60)
 
-
-def main() -> None:
-    sistema = servicioMensajeria()
-
     while True:
         menu()
         opcion = input("Seleccione una opción: \n")
