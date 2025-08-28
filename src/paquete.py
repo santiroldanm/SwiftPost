@@ -1,29 +1,42 @@
-class Paquete:
-    def __init__(self, id: int, origen: str, destino: str, peso: float):
+class paquete:
+    def __init__(self, id: int, peso: float, tamaño: str, fragilidad: str, descripcion: str, origen: str, destino: str, id_propietario:int):
         self.__id = id
+        self.__id_propietario = id_propietario
+        self.__peso = peso
+        self.__tamaño = tamaño
+        self.__fragilidad = fragilidad
+        self.__descripcion = descripcion
         self.__origen = origen
         self.__destino = destino
-        self.__peso = peso
-        self.__estado = "Registrado" #REGISTRADO, EN TRÁNSITO, EN OFICINA DESTINO, EN ENTREGA, ENTREGADO, DEVUELTO
+        self.__estado = "Registrado"
 
     # GETTERS Y SETTERS (ENCAPSULAMIENTO)
-    def getId(self): 
+    def getId(self)-> (int): 
         return self.__id
+    
+    def getId_propietario(self)-> (int): 
+        return self.__id_propietario
 
-    def getOrigen(self):
+    def getOrigen(self) -> (str):
         return self.__origen
     
-    def getDestino(self):
+    def getDestino(self) -> (str):
         return self.__destino
     
-    def getPeso(self):
+    def getPeso(self) -> (int):
         return self.__peso
 
-    def getEstado(self): 
+    def getEstado(self) -> (str):
         return self.__estado
-
-    def setId(self, id: int):
-        #GENERAMOS ID RANDOM
+    
+    def getTamaño(self) -> (str):
+        return self.__tamaño
+    
+    def getFragilidad(self) -> (str):
+        return self.__fragilidad
+    
+    def getDescripcion(self) -> (str):
+        return self.__descripcion
     
     def setOrigen(self, origen: str):
         if origen.strip() != "":
@@ -42,5 +55,15 @@ class Paquete:
             self.__peso = peso
         else:
             print("El peso debe ser mayor que 0.")
+  
+    def setTamaño(self, tamaño:str):
+        self.__tamaño = tamaño
+ 
+    def setFragilidad(self, fragilidad:str):
+        self.__fragilidad = fragilidad
+    
+    def setDescripcion(self, descripcion: str):
+        self.__descripcion = descripcion
+    # Creo que hacer el set de id_propietario no es considerable
 
-    #FALTA HACER EL SET ESTADO, LA OPCIÓN 6 DEL MENÚ
+    #FALTA HACER EL SET ESTADO, LA OPCIÓN 6 DEL MENÚ 
