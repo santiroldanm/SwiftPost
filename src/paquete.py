@@ -64,6 +64,12 @@ class paquete:
     
     def setDescripcion(self, descripcion: str):
         self.__descripcion = descripcion
-    # Creo que hacer el set de id_propietario no es considerable
 
-    #FALTA HACER EL SET ESTADO, LA OPCIÓN 6 DEL MENÚ 
+    def setEstado(self, estado: str):
+        estados_validos = ["Registrado", "En tránsito", "Entregado"]
+        if estado in estados_validos:
+            self.__estado = estado
+        else:
+             print("Estado inválido.")
+             
+    # Creo que hacer el set de id_propietario no es considerable
