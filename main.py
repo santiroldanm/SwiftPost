@@ -20,7 +20,7 @@ def main() -> None:
 
     while True:
         menu()
-        opcion = input("Seleccione una opción: ")
+        opcion = input("Seleccione una opción: \n")
 #ACTUALIZAR EL MENÚ SEGÚN SE VAYAN CREANDO FUNCIONES
         if opcion == "1":
             limpiarConsola()
@@ -32,27 +32,27 @@ def main() -> None:
         
         elif opcion == "3":
             limpiarConsola()
-            sistema.calcularPrecioEnvio()
-            
+            print("Seleccionaste Rastrear Paquete \n")
+ 
         elif opcion == "4":
             limpiarConsola()
-            print("Seleccionaste Calcular Costo del Envío")
+            sistema.calcularPrecioEnvio()
         
         elif opcion == "5":
             limpiarConsola()
-            sistema.listarPaquetes
+            sistema.listarPaquetes()
         
         elif opcion == "6":
             limpiarConsola()
-            print("Seleccionaste Actualizar Estado del Paquete")
+            sistema.actualizarEstadoPaquete()
         
         elif opcion == "7":
             limpiarConsola()
-            print("Saliste del programa")
+            print("Saliste del programa \n")
             break
         
         else:
-            print("Opción no valida")
+            print("Opción no valida \n")
 
 def limpiarConsola():
     os.system("cls" if os.name == "nt" else "clear")

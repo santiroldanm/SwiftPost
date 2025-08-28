@@ -65,6 +65,13 @@ class paquete:
     def setFragilidad(self, fragilidad:str):
         self.__fragilidad = fragilidad
     
+    def setEstado(self, estado: str):
+        estados_validos = ["Registrado", "En transito", "Entregado", "Enviado"]
+        if estado in estados_validos:
+            self.__estado = estado
+        else:
+            print("Estado inválido \n")
+
     def setDescripcion(self, descripcion: str):
         self.__descripcion = descripcion
         
