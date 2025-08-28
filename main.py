@@ -1,5 +1,5 @@
 import os
-from servicio_mensajeria import servicio_mensajeria
+from src.servicio_mensajeria import servicioMensajeria
 
 def menu():
     print("\n" + "="*60)
@@ -16,43 +16,50 @@ def menu():
 
 
 def main() -> None:
-    sistema=servicio_mensajeria()
+    sistema = servicioMensajeria()
 
     while True:
         menu()
         opcion = input("Seleccione una opción: \n")
+#ACTUALIZAR EL MENÚ SEGÚN SE VAYAN CREANDO FUNCIONES
         if opcion == "1":
             limpiarConsola()
-            sistema.crear_cliente()
+            sistema.crearCliente()
         
         elif opcion == "2":
             limpiarConsola()
-            sistema.crear_paquete()        
+            sistema.crearPaquete()        
         
         elif opcion == "3":
             limpiarConsola()
-            sistema.rastrearPaquete()
-
+            print("Seleccionaste Rastrear Paquete \n")
+ 
         elif opcion == "4":
             limpiarConsola()
-            print("Seleccionaste Calcular Costo del Envío")
+            sistema.calcularPrecioEnvio()
         
         elif opcion == "5":
             limpiarConsola()
+
+            sistema.listarPaquetes()
+
             for i in sistema.paquetes:
              print(f" Id: {i.getId()} Id_dueño: {i.getId_propietario()} Origen: {i.getOrigen()} Destino:{i.getDestino()} Peso: {i.getPeso()} Estado: {i.getEstado()} Descripcion: {i.getDescripcion()} \n")        
+
         
         elif opcion == "6":
             limpiarConsola()
             sistema.actualizarEstadoPaquete()
+
+            print("Seleccionaste Actualizar Estado del Paquete")
         
         elif opcion == "7":
             limpiarConsola()
-            print("Saliste del programa")
+            print("Saliste del programa \n")
             break
         
         else:
-            print("Opción no valida")
+            print("Opción no valida \n")
 
 def limpiarConsola():
     os.system("cls" if os.name == "nt" else "clear")
