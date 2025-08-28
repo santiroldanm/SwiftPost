@@ -44,6 +44,7 @@ def main() -> None:
         
         elif opcion == "6":
             limpiarConsola()
+            sistema.actualizarEstadoPaquete()
             print("Seleccionaste Actualizar Estado del Paquete")
         
         elif opcion == "7":

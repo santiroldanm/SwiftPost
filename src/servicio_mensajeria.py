@@ -28,8 +28,7 @@ class servicioMensajeria:
     self.clientes.append(Cliente)
     print("REGISTRO EXITOSO \n")
   
-  
-  
+
   def crearPaquete(self) -> str:
     if(len(self.clientes) == 0):
       print ("No hay clientes registrados")
@@ -102,3 +101,20 @@ class servicioMensajeria:
     for cliente in self.clientes:
       if cliente.id == id:
         return cliente
+      
+  def actualizarEstadoPaquete(self, id_paquete: int, nuevo_estado: str):
+      estados_validos = ["Registrado", "En tránsito", "Entregado"]
+
+      # Validar que el estado sea permitido
+      if nuevo_estado not in estados_validos:
+          print("Estado no válido. Los estados permitidos son: Registrado, En tránsito, Entregado.")
+          return
+
+      # Buscar el paquete
+      for paquete in self.paquetes:
+          if paquete.getId() == id_paquete:
+              paquete.setEstado(nuevo_estado)   # aquí se usa el setter en paquete.py
+              print(f"Estado del paquete {id_paquete} actualizado a: {nuevo_estado}")
+              return
+      
+      print(f"No se encontró ningún paquete con ID {id_paquete}")
