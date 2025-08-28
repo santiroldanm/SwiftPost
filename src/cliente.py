@@ -1,6 +1,7 @@
-class Cliente:
-    def __init__(self, id: int, nombre: str, direccion: str, telefono: str, correo: str):
+class cliente:
+    def __init__(self, id: int, nombre: str, apellido: str, direccion: str, telefono: str, correo: str):
         self.__id = id
+        self.__apellido = apellido
         self.__nombre = nombre
         self.__direccion = direccion
         self.__telefono = telefono
@@ -13,7 +14,10 @@ class Cliente:
 
     def getNombre(self): 
         return self.__nombre
-
+    
+    def getApellido(self): 
+        return self.__apellido
+    
     def getDireccion(self): 
         return self.__direccion
 
