@@ -374,12 +374,47 @@ def actualizarEstadoPaquete(self):
     self.paquetes.append(Paquete)
     print(" REGISTRO EXITOSO \n")
   
-  
   def buscarPorId(self,id:int) -> list:
     for cliente in self.clientes:
-      if cliente.id == id:
+      if cliente.getId() == id:
         return cliente
+  
+  def rastrearPaquete(self):
+    if not self.paquetes:
+      print("No hay paquetes registrados para rastrear")
+      return
+
+    id_paquete = input("Ingrese el ID del paquete a rastrear: ").strip()
+    if not id_paquete.isdigit():
+        print("ID inválido, debe ser un número.")
+        return
+    id_paquete = int(id_paquete)
+    
+    for paquete in self.paquetes:
+      if paquete.getId() == id_paquete:
+        print("Información del paquete:")
+        print(f"ID: {paquete.getId()}")
+        print(f"Descripción: {paquete.getDescripcion()}")
+        print(f"Tamaño: {paquete.getTamaño()}")
+        print(f"Fragilidad: {paquete.getFragilidad()}")
+        print(f"Peso: {paquete.getPeso()} kg")
+        print(f"Origen: {paquete.getOrigen()}")
+        print(f"Destino: {paquete.getDestino()}")
+        print(f"Estado: {paquete.getEstado()}")
+        print(f"Costo de Envío: {paquete.getPrecioEnvio()}")
       
+      # Buscar el cliente dueño del paquete
+      cliente_id = paquete.getId_propietario()
+      cliente = self.buscarPorId(cliente_id)
+      if cliente:
+          print("Cliente remitente:")
+          print(f"ID: {cliente.getId()} - {cliente.getNombre()} {cliente.getApellido()}")
+          print(f"Teléfono: {cliente.getTelefono()}")
+          print(f"Correo: {cliente.getCorreo()}")
+      return
+
+    print(f"No se encontró ningún paquete con ID {id_paquete}.")
+
   def actualizarEstadoPaquete(self, id_paquete: int, nuevo_estado: str):
       estados_validos = ["Registrado", "En tránsito", "Entregado"]
 
