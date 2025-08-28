@@ -145,7 +145,6 @@ class servicioMensajeria:
       
 
   Paquete = paquete(len(self.clientes)+1, float(peso), tamaño, fragilidad, descripcion, origen, destino, int(seleccion), precio) 
-  self.actualizarEstadoPaquete(len(self.clientes)+1, "Enviado") 
   cliente.registrarPaquete(Paquete)
   self.paquetes.append(Paquete)
   print(" REGISTRO EXITOSO \n")
@@ -241,19 +240,44 @@ class servicioMensajeria:
    for i in self.paquetes:
     print(f" ---- Id: {i.getId()} Id_dueño: {i.getId_propietario()} Origen: {i.getOrigen()} Destino: {i.getDestino()} Peso: {i.getPeso()} Estado: {i.getEstado()} Descripcion: {i.getDescripcion()} \n")
    
- def actualizarEstadoPaquete(self, id_paquete: int, nuevo_estado: str):
-      estados_validos = ["Registrado", "En transito", "Entregado", "Enviado"]
-
-      # Validar que el estado sea permitido
-      if nuevo_estado not in estados_validos:
-          print("Estado no válido. Los estados permitidos son: Registrado, En tránsito, Entregado.")
-          return
-
-      # Buscar el paquete
-      for paquete in self.paquetes:
-          if paquete.getId() == id_paquete:
-              paquete.setEstado(nuevo_estado)   # aquí se usa el setter en paquete.py
-              print(f"Estado del paquete {id_paquete} actualizado a: {nuevo_estado}")
-              return
-      
-      print(f"No se encontró ningún paquete con ID {id_paquete}")    
+def actualizarEstadoPaquete(self):
+  
+    estados_validos = ["Registrado", "En transito", "Entregado", "Enviado"]
+    self.listarPaquetes()
+    
+    # Seleccionar ID válido
+    while True:
+        id_input = input("Selecciona el id del paquete que quiere modificar: ").strip()
+        
+        if id_input.isdigit():
+            id_paquete = int(id_input)
+            
+            # Verifica que el ID exista entre los paquetes
+            existe = any(paquete.id == id_paquete for paquete in self.paquetes)
+            if existe:
+                break  # ID válido, salimos del bucle
+            else:
+                print("Seleccionaste un ID que no existe. Intenta de nuevo.\n")
+        else:
+            print("Debes ingresar un número entero válido.\n")
+    
+    # Mostrar estados válidos
+    print("Estados permitidos:\n")
+    for estado in estados_validos:
+        print(f"- {estado} \n")
+    
+    # Seleccionar nuevo estado
+    nuevo_estado = input("¿A cuál estado se actualizó el envío? \n").strip()
+    
+    if nuevo_estado not in estados_validos:
+        print("Estado no válido. Los estados permitidos son: Registrado, En transito, Entregado, Enviado \n")
+        return
+    
+  
+    for paquete in self.paquetes:
+        if paquete.getId() == id_paquete:
+            paquete.setEstado(nuevo_estado)  # se usa el setter en paquete.py
+            print(f"Estado del paquete {id_paquete} actualizado a: {nuevo_estado}\n")
+            return
+    
+    print(f"No se encontró ningún paquete con ID {id_paquete} \n")
