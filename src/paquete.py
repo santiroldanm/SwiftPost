@@ -1,5 +1,5 @@
 class paquete:
-    def __init__(self, id: int, peso: float, tamaño: str, fragilidad: str, descripcion: str, origen: str, destino: str, id_propietario:int):
+    def __init__(self, id: int, peso: float, tamaño: str, fragilidad: str, descripcion: str, origen: str, destino: str, id_propietario:int, precioEnvio: int):
         self.__id = id
         self.__id_propietario = id_propietario
         self.__peso = peso
@@ -9,7 +9,7 @@ class paquete:
         self.__origen = origen
         self.__destino = destino
         self.__estado = "Registrado"
-
+        self.__precioEnvio = precioEnvio
     # GETTERS Y SETTERS (ENCAPSULAMIENTO)
     def getId(self)-> (int): 
         return self.__id
@@ -38,6 +38,9 @@ class paquete:
     def getDescripcion(self) -> (str):
         return self.__descripcion
     
+    def getPrecioEnvio(self)-> (int): 
+        return self.__precioEnvio
+    
     def setOrigen(self, origen: str):
         if origen.strip() != "":
             self.__origen = origen
@@ -62,8 +65,30 @@ class paquete:
     def setFragilidad(self, fragilidad:str):
         self.__fragilidad = fragilidad
     
+    def setEstado(self, estado: str):
+        estados_validos = ["Registrado", "En transito", "Entregado", "Enviado"]
+        if estado in estados_validos:
+            self.__estado = estado
+        else:
+            print("Estado inválido \n")
+
     def setDescripcion(self, descripcion: str):
         self.__descripcion = descripcion
-    # Creo que hacer el set de id_propietario no es considerable
 
-    #FALTA HACER EL SET ESTADO, LA OPCIÓN 6 DEL MENÚ 
+        
+    def setPrecioEnvio(self, precioEnvio):
+        self.__precioEnvio = precioEnvio
+    # Creo que hacer el set de id_propietario no es considerable
+    
+    def calcularExpress(self):
+        return self.getPrecioEnvio()
+
+#Herencia
+class paquete_express(paquete):
+    def __init__(self, id: int, peso: float, tamaño: str, fragilidad: str, descripcion: str, origen: str, destino: str, id_propietario:int, precioEnvio: int, recargo: float = 0.0):
+        super().__init__(id, peso, tamaño, fragilidad, descripcion, origen, destino, id_propietario, precioEnvio)
+        self.recargo = recargo
+
+    # Polimorfismo: redefine el cálculo de costo
+    def calcularExpress(self):
+        return self.getPrecioEnvio() * (1 + self.recargo)
