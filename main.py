@@ -15,7 +15,7 @@ def menu():
     print("="*60)
     
 def main() -> None:
-    sistema = servicioMensajeria()
+    sistema: servicioMensajeria = servicioMensajeria()
 
     while True:
         menu()
