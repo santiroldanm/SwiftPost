@@ -1,5 +1,5 @@
 import os
-from servicio_mensajeria import servicio_mensajeria
+from src.servicio_mensajeria import servicioMensajeria
 
 def menu():
     print("\n" + "="*60)
@@ -13,46 +13,47 @@ def menu():
     print("| 6 | Actualizar estado de paquete")
     print("| 7 | Salir")
     print("="*60)
-
-
+    
 def main() -> None:
-    sistema=servicio_mensajeria()
+    sistema = servicioMensajeria()
 
     while True:
         menu()
-        opcion = input("Seleccione una opción: ")
+        opcion = input("Seleccione una opción: \n")
 #ACTUALIZAR EL MENÚ SEGÚN SE VAYAN CREANDO FUNCIONES
         if opcion == "1":
             limpiarConsola()
-            sistema.crear_cliente()
+            sistema.crearCliente()
         
         elif opcion == "2":
             limpiarConsola()
-            sistema.crear_paquete()        
+            sistema.crearPaquete()        
         
         elif opcion == "3":
             limpiarConsola()
-            
+            sistema.rastrearPaquete()
+  
         elif opcion == "4":
             limpiarConsola()
-            print("Seleccionaste Calcular Costo del Envío")
+            sistema.calcularPrecioEnvio()
         
         elif opcion == "5":
             limpiarConsola()
-            for i in sistema.paquetes:
-             print(f" Id: {i.getId()} Id_dueño: {i.getId_propietario()} Origen: {i.getOrigen()} Destino:{i.getDestino()} Peso: {i.getPeso()} Estado: {i.getEstado()} Descripcion: {i.getDescripcion()} \n")        
+            sistema.listarPaquetes()
+
         
         elif opcion == "6":
             limpiarConsola()
-            print("Seleccionaste Actualizar Estado del Paquete")
-        
+            sistema.actualizarEstadoPaquete()
+
+         
         elif opcion == "7":
             limpiarConsola()
-            print("Saliste del programa")
+            print("¡Gracias por confiar en SwiftPost, nos vemos pronto! \n")
             break
         
         else:
-            print("Opción no valida")
+            print("Opción no valida. Selecciona una opción correcta. \n")
 
 def limpiarConsola():
     os.system("cls" if os.name == "nt" else "clear")
