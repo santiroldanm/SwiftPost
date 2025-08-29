@@ -1,4 +1,5 @@
 import math
+import re
 from src.cliente import cliente
 from src.cliente import cliente_vip
 from src.paquete import paquete
@@ -7,9 +8,9 @@ from src.paquete import paquete_express
 class servicioMensajeria:
   def __init__(self):
 
-    self.paquetes = []
-    self.clientes = []
-    self.ciudades =  {
+    self.paquetes: list[paquete] = []
+    self.clientes: list[cliente] = []
+    self.ciudades: dict =  {
     # Colombia
     "Bogota":      (4.711,   -74.072, 2582),
     "Medellin":    (6.244,   -75.581, 1495),
@@ -50,13 +51,31 @@ class servicioMensajeria:
   def crearCliente(self) -> None:
     print("\n=== REGISTRO DE CLIENTE ===\n")
 
-    nombre = input("Ingrese su nombre: ").strip()
-    apellido = input("Ingrese su apellido: ").strip()
+    while(True):
+ 
+      nombre = input("Ingrese su nombre: Juan \n")
+ 
+      patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$'
 
+      if re.match(patron, nombre):
+        break
+      else:
+          print("Nombre inválido   \n ")
+
+    while(True):
+      
+      apellido = input("Ingrese su apellido: Pérez \n").strip()
+      if re.match(patron, apellido):
+        break
+      else:
+          print("Apellido inválido   \n ")
+     
     while True:
         telefono: str = input("Ingrese su número telefónico: ").strip()
         if not telefono.isdigit():
-            print("Número telefónico no válido. Debe contener solo dígitos.\n")
+          print("Número telefónico no válido. Debe contener solo dígitos.\n")
+        elif len(telefono)<6:
+          print("Número telefónico no válido.  \n")
         else:
             break
 
@@ -75,7 +94,7 @@ class servicioMensajeria:
             len(self.clientes)+1,
             nombre, apellido, "",
             telefono, correo,
-            descuento=0.15
+            descuento = .15
         )
         print("\nCliente VIP registrado con éxito.")
         print(f"ID: {Cliente.getId()} | Nombre: {Cliente.getNombre()} {Cliente.getApellido()}")
@@ -251,12 +270,13 @@ class servicioMensajeria:
                     print("=============================\n")
                     break
 
-  def buscarPorId(self,id:int) -> list:
+  def buscarPorId(self,id:int) -> cliente | None:
     for cliente in self.clientes:
       if cliente.getId() == id:
         return cliente
+    return None
     
-  def rastrearPaquete(self):
+  def rastrearPaquete(self) -> None:
     print("\n=== RASTREO DE PAQUETE ===\n")
     if not self.paquetes:
         print("No hay paquetes registrados para rastrear.\n")
@@ -292,10 +312,10 @@ class servicioMensajeria:
 
                 # Desglose de precio
                 print("\n=== DETALLE DE COSTOS ===")
-                precio_base = paquete.getPrecioEnvio()
-                precio_con_recargo = paquete.calcularExpress()
-                recargo = precio_con_recargo - precio_base
-                descuento = cliente.descuentoVIP(precio_con_recargo)
+                precio_base: float = paquete.getPrecioEnvio()
+                precio_con_recargo: float = paquete.calcularExpress()
+                recargo: float = precio_con_recargo - precio_base
+                descuento: float = cliente.descuentoVIP(precio_con_recargo)
                 precio_total = precio_con_recargo - descuento
 
                 print(f"Precio base:   COP {round(precio_base, 2)}")
@@ -316,21 +336,21 @@ class servicioMensajeria:
     print("\n=== CALCULAR COSTO DE ENVIO ===\n")
     # Ingreso de peso
     while True:
-        peso_str = input("Ingrese el peso del paquete en kilos: ").strip()
+        peso_str:str = input("Ingrese el peso del paquete en kilos: ").strip()
         if peso_str.isdigit():
-            peso = int(peso_str)
+            peso:int = int(peso_str)
             break
         else:
             print("Por favor ingrese un valor numérico válido.\n")
 
     # Selección de fragilidad
-    fragilidad_factor = 1.0
+    fragilidad_factor:float = 1.0
     while True:
         print("\nSeleccione el nivel de fragilidad del paquete:")
         print("  1. Alta   (recargo 10%)")
         print("  2. Normal (sin recargo)")
         print("  3. Baja   (descuento 5%)")
-        opcion = input("Opción: ").strip()
+        opcion:str = input("Opción: ").strip()
 
         if opcion == "1":
             fragilidad_factor = 1.1
@@ -348,9 +368,9 @@ class servicioMensajeria:
             print("Opción inválida. Intente de nuevo.\n")
 
     # Selección de ciudades
-    ciudad_origen = self.escogerCiudad("origen")
-    ciudad_destino = self.escogerCiudad("destino")
-    distancia = self.calcularDistancia(ciudad_origen, ciudad_destino)
+    ciudad_origen:str = self.escogerCiudad("origen")
+    ciudad_destino: str = self.escogerCiudad("destino")
+    distancia: float = self.calcularDistancia(ciudad_origen, ciudad_destino)
 
     # Cálculo de precio
     if distancia < 1:
@@ -358,7 +378,7 @@ class servicioMensajeria:
         print("El precio exacto puede variar según la zona.")
         precio = peso * fragilidad_factor * 10000
     else:
-        precio = (distancia / 2) * peso * fragilidad_factor
+        precio = (distancia*100 / 2) * peso * fragilidad_factor
 
     # Resumen del cálculo
     print("\n=== RESUMEN DEL ENVÍO ===")
@@ -371,22 +391,22 @@ class servicioMensajeria:
     print(f"Precio estimado: COP {round(precio, 2)}\n")
 
 
-  def escogerCiudad(self, tipo: str):
+  def escogerCiudad(self, tipo: str) -> str:
     while True:
         print(f"\n=== Selección de ciudad de {tipo.upper()} === \n")
-        ciudades = list(self.ciudades.keys())
+        ciudades: list = list(self.ciudades.keys())
 
         # Ajustes de formato
-        columnas = 3   # número de columnas
-        ancho = 20     # ancho de cada columna (para alinear bonito)
+        columnas: int = 3   # número de columnas
+        ancho: int = 20     # ancho de cada columna (para alinear bonito)
 
         # Mostrar ciudades en filas y columnas
         for i in range(0, len(ciudades), columnas):
-            fila = ""
+            fila: str = ""
             for j in range(columnas):
                 if i + j < len(ciudades):
-                    num = i + j + 1
-                    nombre = ciudades[i + j]
+                    num:int = i + j + 1
+                    nombre:str = ciudades[i + j]
                     fila += f"{num}. {nombre}".ljust(ancho)
             print(fila)
 
@@ -404,33 +424,41 @@ class servicioMensajeria:
     return nombreNormalizado in self.ciudades      
  
   def calcularDistancia(self, origen: str, destino: str) -> float:
-    ciudad1 = self.ciudades[origen]
-    ciudad2 = self.ciudades[destino]
+    ciudad1: tuple = self.ciudades[origen]
+    ciudad2: tuple  = self.ciudades[destino]
 
-    R = 6371.0  # radio de la Tierra en km
-    lat1, lon1, alt1 = ciudad1
+    R: float = 6371.0  # radio de la Tierra en km
+    
+    lat1:float= 0
+    lat2:float= 0
+    lon1:float= 0
+    lon2:float= 0
+    alt1:float= 0
+    alt2:float= 0
+    
+    lat1,  lon1, alt1 = ciudad1
     lat2, lon2, alt2 = ciudad2
 
     # Pasar a radianes
     lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
 
     # Radio desde el centro de la Tierra hasta la ciudad (km)
-    r1 = R + alt1 / 1000.0
-    r2 = R + alt2 / 1000.0
+    r1:float = R + alt1 / 1000.0
+    r2:float = R + alt2 / 1000.0
 
     # Coordenadas cartesianas
-    x1 = r1 * math.cos(lat1) * math.cos(lon1)
-    y1 = r1 * math.cos(lat1) * math.sin(lon1)
-    z1 = r1 * math.sin(lat1)
+    x1:float = r1 * math.cos(lat1) * math.cos(lon1)
+    y1:float= r1 * math.cos(lat1) * math.sin(lon1)
+    z1:float = r1 * math.sin(lat1)
 
-    x2 = r2 * math.cos(lat2) * math.cos(lon2)
-    y2 = r2 * math.cos(lat2) * math.sin(lon2)
-    z2 = r2 * math.sin(lat2)
+    x2:float = r2 * math.cos(lat2) * math.cos(lon2)
+    y2:float = r2 * math.cos(lat2) * math.sin(lon2)
+    z2:float = r2 * math.sin(lat2)
 
     # Distancia Euclidiana
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
   
-  def listarPaquetes(self):
+  def listarPaquetes(self) -> None:
     print("\n=== LISTADO DE PAQUETES REGISTRADOS ===\n")
 
     if len(self.paquetes) == 0:
@@ -439,15 +467,15 @@ class servicioMensajeria:
 
     for p in self.paquetes:
         # Buscar cliente dueño del paquete
-        cliente = self.buscarPorId(p.getId_propietario())
+        cliente: list = self.buscarPorId(p.getId_propietario())
         if cliente:
-            duenio = f"{cliente.getId()} - {cliente.getNombre()} {cliente.getApellido()}"
+            dueño:str = f"{cliente.getId()} - {cliente.getNombre()} {cliente.getApellido()}"
         else:
-            duenio = f"{p.getId_propietario()} (Cliente no encontrado)"
+            dueño:str = f"{p.getId_propietario()} (Cliente no encontrado)"
 
         print(f"--------------------------------------------")
         print(f"ID Paquete   : {p.getId()}")
-        print(f"Dueño        : {duenio}")
+        print(f"Dueño        : {dueño}")
         print(f"Origen       : {p.getOrigen()}")
         print(f"Destino      : {p.getDestino()}")
         print(f"Peso         : {p.getPeso()} kg")
@@ -459,9 +487,9 @@ class servicioMensajeria:
     print("--------------------------------------------\n")
 
 
-  def actualizarEstadoPaquete(self):
+  def actualizarEstadoPaquete(self) -> None:
     print("\n=== ACTUALIZAR ESTADO DE PAQUETES ===")
-    estados_validos = ["Registrado", "Enviado", "En transito", "Entregado"]
+    estados_validos: list = ["Registrado", "Enviado", "En transito", "Entregado"]
 
     # Mostrar listado de paquetes
     if len(self.paquetes) == 0:
