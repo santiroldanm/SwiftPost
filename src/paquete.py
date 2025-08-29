@@ -79,13 +79,16 @@ class paquete:
     def setPrecioEnvio(self, precioEnvio):
         self.__precioEnvio = precioEnvio
     # Creo que hacer el set de id_propietario no es considerable
+    
+    def calcularExpress(self):
+        return self.getPrecioEnvio()
 
+#Herencia
+class paquete_express(paquete):
+    def __init__(self, id: int, peso: float, tamaño: str, fragilidad: str, descripcion: str, origen: str, destino: str, id_propietario:int, precioEnvio: int, recargo: float = 0.0):
+        super().__init__(id, peso, tamaño, fragilidad, descripcion, origen, destino, id_propietario, precioEnvio)
+        self.recargo = recargo
 
-    def setEstado(self, estado: str):
-        estados_validos = ["Registrado", "En tránsito", "Entregado"]
-        if estado in estados_validos:
-            self.__estado = estado
-        else:
-             print("Estado inválido.")
-             
-    # Creo que hacer el set de id_propietario no es considerable
+    # Polimorfismo: redefine el cálculo de costo
+    def calcularExpress(self):
+        return self.getPrecioEnvio() * (1 + self.recargo)

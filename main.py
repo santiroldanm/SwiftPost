@@ -13,6 +13,9 @@ def menu():
     print("| 6 | Actualizar estado de paquete")
     print("| 7 | Salir")
     print("="*60)
+    
+def main() -> None:
+    sistema = servicioMensajeria()
 
     while True:
         menu()
@@ -28,34 +31,29 @@ def menu():
         
         elif opcion == "3":
             limpiarConsola()
-            print("Seleccionaste Rastrear Paquete \n")
- 
+            sistema.rastrearPaquete()
+  
         elif opcion == "4":
             limpiarConsola()
             sistema.calcularPrecioEnvio()
         
         elif opcion == "5":
             limpiarConsola()
-
             sistema.listarPaquetes()
-
-            for i in sistema.paquetes:
-             print(f" Id: {i.getId()} Id_dueño: {i.getId_propietario()} Origen: {i.getOrigen()} Destino:{i.getDestino()} Peso: {i.getPeso()} Estado: {i.getEstado()} Descripcion: {i.getDescripcion()} \n")        
 
         
         elif opcion == "6":
             limpiarConsola()
             sistema.actualizarEstadoPaquete()
 
-            print("Seleccionaste Actualizar Estado del Paquete")
-        
+         
         elif opcion == "7":
             limpiarConsola()
-            print("Saliste del programa \n")
+            print("¡Gracias por confiar en SwiftPost, nos vemos pronto! \n")
             break
         
         else:
-            print("Opción no valida \n")
+            print("Opción no valida. Selecciona una opción correcta. \n")
 
 def limpiarConsola():
     os.system("cls" if os.name == "nt" else "clear")
