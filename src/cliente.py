@@ -49,3 +49,19 @@ class cliente:
 
     def verHistorial(self):
         return self.__paquetes
+    
+    def descuentoVIP(self, precio_base):
+        return 0
+
+class cliente_vip(cliente):
+    def __init__(self, id, nombre, apellido, direccion, telefono, correo, nivel: str = "VIP", descuento=0.1):
+        super().__init__(id, nombre, apellido, direccion, telefono, correo)
+        self.__nivel = nivel
+        self.descuento = descuento  # 10% por defecto
+
+    def getNivel(self) -> str:
+        return self.__nivel
+        
+    # Polimorfismo: mismo nombre de método, diferente comportamiento
+    def descuentoVIP(self, precio_base):
+        return precio_base * self.descuento
