@@ -15,7 +15,7 @@ def menu():
     print("="*60)
     
 def main() -> None:
-    sistema = servicioMensajeria()
+    sistema: servicioMensajeria = servicioMensajeria()
 
     while True:
         menu()
@@ -39,7 +39,7 @@ def main() -> None:
         
         elif opcion == "5":
             limpiarConsola()
-            sistema.listarPaquetes()
+            sistema.buscarPaquete()
 
         
         elif opcion == "6":
@@ -49,11 +49,11 @@ def main() -> None:
          
         elif opcion == "7":
             limpiarConsola()
-            print("Saliste del programa \n")
+            print("¡Gracias por confiar en SwiftPost, nos vemos pronto! \n")
             break
         
         else:
-            print("Opción no valida \n")
+            print("Opción no valida. Selecciona una opción correcta. \n")
 
 def limpiarConsola():
     os.system("cls" if os.name == "nt" else "clear")

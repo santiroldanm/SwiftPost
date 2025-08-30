@@ -1,3 +1,4 @@
+ 
 class paquete:
     def __init__(self, id: int, peso: float, tamaño: str, fragilidad: str, descripcion: str, origen: str, destino: str, id_propietario:int, precioEnvio: int):
         self.__id = id
@@ -10,7 +11,8 @@ class paquete:
         self.__destino = destino
         self.__estado = "Registrado"
         self.__precioEnvio = precioEnvio
-    # GETTERS Y SETTERS (ENCAPSULAMIENTO)
+        
+     # GETTERS Y SETTERS (ENCAPSULAMIENTO)
     def getId(self)-> (int): 
         return self.__id
     
@@ -23,7 +25,7 @@ class paquete:
     def getDestino(self) -> (str):
         return self.__destino
     
-    def getPeso(self) -> (int):
+    def getPeso(self) -> (float):
         return self.__peso
 
     def getEstado(self) -> (str):
@@ -47,45 +49,48 @@ class paquete:
         else:
             print("El origen no puede estar vacío.")
 
-    def setDestino(self, destino: str):
+    def setDestino(self, destino: str)-> None:
         if destino.strip() != "":
             self.__destino = destino
         else:
             print("El destino no puede estar vacío.")
 
-    def setPeso(self, peso: float):
+    def setPeso(self, peso: float)-> None:
         if peso > 0:
             self.__peso = peso
         else:
             print("El peso debe ser mayor que 0.")
   
-    def setTamaño(self, tamaño:str):
+    def setTamaño(self, tamaño:str)-> None:
         self.__tamaño = tamaño
  
-    def setFragilidad(self, fragilidad:str):
+    def setFragilidad(self, fragilidad:str)-> None:
         self.__fragilidad = fragilidad
     
-    def setEstado(self, estado: str):
+    def setEstado(self, estado: str)-> None:
         estados_validos = ["Registrado", "En transito", "Entregado", "Enviado"]
         if estado in estados_validos:
             self.__estado = estado
         else:
             print("Estado inválido \n")
 
-    def setDescripcion(self, descripcion: str):
+    def setDescripcion(self, descripcion: str)-> None:
         self.__descripcion = descripcion
 
         
-    def setPrecioEnvio(self, precioEnvio):
+    def setPrecioEnvio(self, precioEnvio)-> None:
         self.__precioEnvio = precioEnvio
     # Creo que hacer el set de id_propietario no es considerable
+    
+    def calcularExpress(self)-> None:
+        return self.getPrecioEnvio()
 
+#Herencia
+class paquete_express(paquete):
+    def __init__(self, id: int, peso: float, tamaño: str, fragilidad: str, descripcion: str, origen: str, destino: str, id_propietario:int, precioEnvio: int, recargo: float = 0.0):
+        super().__init__(id, peso, tamaño, fragilidad, descripcion, origen, destino, id_propietario, precioEnvio)
+        self.recargo = recargo
 
-    def setEstado(self, estado: str):
-        estados_validos = ["Registrado", "En tránsito", "Entregado"]
-        if estado in estados_validos:
-            self.__estado = estado
-        else:
-             print("Estado inválido.")
-             
-    # Creo que hacer el set de id_propietario no es considerable
+    # Polimorfismo: redefine el cálculo de costo
+    def calcularExpress(self):
+        return self.getPrecioEnvio() * (1 + self.recargo)
