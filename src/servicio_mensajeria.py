@@ -17,7 +17,7 @@ class servicioMensajeria:
     "Cali":        (3.452,   -76.532, 1018),
     "Cartagena":   (10.391,  -75.479, 2),
     "Barranquilla":(10.991,  -74.788, 10),
-    "Santa Marta": (11.241,  -74.199, 0),
+    "Santa marta": (11.241,  -74.199, 0),
     "Bucaramanga": (7.120,   -73.123, 960),
     "Cúcuta":      (7.889,   -72.496, 320),
     "Pereira":     (4.815,   -75.695, 1411),
@@ -38,8 +38,8 @@ class servicioMensajeria:
     "Dubái":          (25.277,   55.296, -2),
     "Pekin":          (39.904,  116.407, 44),
     "Moscu":          (55.756,   37.617, 156),
-    "Ciudad de Mexico":(19.433, -99.133, 2240),
-    "Buenos Aires":   (-34.604, -58.382, 25),
+    "Ciudad de mexico":(19.433, -99.133, 2240),
+    "Buenos aires":   (-34.604, -58.382, 25),
     "Toronto":        (43.653,  -79.383, 76),
     "Estambul":       (41.008,   28.978, 39),
     "Johannesburgo":  (-26.204,  28.047, 1753),
@@ -64,6 +64,7 @@ class servicioMensajeria:
 
     while(True):
       
+
       apellido = input("Ingrese su apellido: Pérez \n").strip()
       if re.match(patron, apellido):
         break
@@ -485,6 +486,7 @@ class servicioMensajeria:
     # Distancia Euclidiana
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
   
+
   def listarPaquetes(self, id_cliente: int = None, estado: str = None, id_paquete: int = None) -> None:
     print("\n=== LISTADO DE PAQUETES REGISTRADOS ===\n")
 
@@ -562,13 +564,17 @@ class servicioMensajeria:
         id_input = input("Selecciona el ID del paquete que deseas modificar: ").strip()
         if id_input.isdigit():
             id_paquete = int(id_input)
+
             paquete = next((p for p in self.__paquetes if p.getId() == id_paquete), None)
             if paquete:
                 break
+        
             else:
                 print("El ID no corresponde a ningún paquete. Intenta de nuevo.\n")
         else:
+
             print("Ingresa un número entero válido.\n")
+
 
     # Mostrar opciones de estado numeradas
     print("\n=== ESTADOS DISPONIBLES ===")
