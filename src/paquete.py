@@ -11,7 +11,8 @@ class paquete:
         self.__destino = destino
         self.__estado = "Registrado"
         self.__precioEnvio = precioEnvio
-    # GETTERS Y SETTERS (ENCAPSULAMIENTO)
+        
+     # GETTERS Y SETTERS (ENCAPSULAMIENTO)
     def getId(self)-> (int): 
         return self.__id
     
@@ -24,7 +25,7 @@ class paquete:
     def getDestino(self) -> (str):
         return self.__destino
     
-    def getPeso(self) -> (int):
+    def getPeso(self) -> (float):
         return self.__peso
 
     def getEstado(self) -> (str):
