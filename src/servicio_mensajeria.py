@@ -11,6 +11,7 @@ class servicioMensajeria:
     self.__paquetes: list[paquete] = []
     self.__clientes: list[cliente] = []
     self.__ciudades: dict =  {
+
     # Colombia
     "Bogota":      (4.711,   -74.072, 2582),
     "Medellin":    (6.244,   -75.581, 1495),
@@ -63,8 +64,6 @@ class servicioMensajeria:
           print("Nombre inválido   \n ")
 
     while(True):
-      
-
       apellido = input("Ingrese su apellido: Pérez \n").strip()
       if re.match(patron, apellido):
         break
@@ -485,7 +484,6 @@ class servicioMensajeria:
 
     # Distancia Euclidiana
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
-  
 
   def listarPaquetes(self, id_cliente: int = None, estado: str = None, id_paquete: int = None) -> None:
     print("\n=== LISTADO DE PAQUETES REGISTRADOS ===\n")
