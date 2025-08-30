@@ -39,7 +39,7 @@ def main() -> None:
         
         elif opcion == "5":
             limpiarConsola()
-            sistema.listarPaquetes()
+            sistema.buscarPaquete()
 
         
         elif opcion == "6":

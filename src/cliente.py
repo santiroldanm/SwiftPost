@@ -28,7 +28,8 @@ class cliente:
     def getCorreo(self)-> str:
         return self.__correo
 
-    def getPaquetes(self)-> object:
+    def getPaquetes(self)-> list[object]:
+
         return self.__paquetes
 
     def setNombre(self, nombre: str)-> None:
@@ -48,7 +49,8 @@ class cliente:
     def registrarPaquete(self, paquete) -> None:
         self.__paquetes.append(paquete)
 
-    def verHistorial(self) -> object:
+    def verHistorial(self) -> list[object]:
+
         return self.__paquetes
     
     def descuentoVIP(self, precio_base:float) -> int: # PRECIO BASE???
