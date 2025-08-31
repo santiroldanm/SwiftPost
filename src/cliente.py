@@ -1,3 +1,4 @@
+from typing import List
 class cliente:
     def __init__(self, id: int, nombre: str, apellido: str, direccion: str, telefono: int, correo: str):
         self.__id = id
@@ -28,6 +29,7 @@ class cliente:
         return self.__correo
 
     def getPaquetes(self)-> list[object]:
+
         return self.__paquetes
 
     def setNombre(self, nombre: str)-> None:
@@ -48,6 +50,7 @@ class cliente:
         self.__paquetes.append(paquete)
 
     def verHistorial(self) -> list[object]:
+
         return self.__paquetes
     
     def descuentoVIP(self, precio_base:float) -> int: # PRECIO BASE???
