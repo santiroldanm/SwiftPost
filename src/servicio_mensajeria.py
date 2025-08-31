@@ -75,7 +75,7 @@ class servicioMensajeria:
         if not telefono.isdigit():
           print("Número telefónico no válido. Debe contener solo dígitos.\n")
         elif len(telefono)<6:
-          print("Número telefónico no válido.  \n")
+          print("Número telefónico no válido. Mínimo debe contener 6 dígitos \n")
         else:
             break
 
@@ -209,9 +209,9 @@ class servicioMensajeria:
                     distancia: float = self.calcularDistancia(origen, destino)
                     if distancia < 1:
                         print("\nSu envío es local. Para conocer el precio exacto habría que especificar la zona.")
-                        precio = (peso * 3 )* indiceFragilidad * 3000
+                        precio = (peso * 2 )* indiceFragilidad * 1000
                     else:
-                        precio: float = distancia / 2 * (peso * 3) * indiceFragilidad
+                        precio: float = distancia / 2 * (peso ** 1.2) * indiceFragilidad
                         print(f"\nEl costo aproximado del envío es: COP {round(precio, 2)}")
 
                     # Express o normal
@@ -376,9 +376,9 @@ class servicioMensajeria:
     if distancia < 1:
         print("\n=== ENVÍO LOCAL ===")
         print("El precio exacto puede variar según la zona.")
-        precio = peso * fragilidad_factor * 10000
+        precio = (peso * 2 )* fragilidad_factor * 1000
     else:
-        precio = (distancia*100 / 2) * peso * fragilidad_factor
+        precio: float = distancia / 2 * (peso ** 1.2) * fragilidad_factor
 
     # Resumen del cálculo
     print("\n=== RESUMEN DEL ENVÍO ===")
