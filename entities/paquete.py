@@ -227,7 +227,7 @@ class PaqueteUpdate(BaseModel):
             raise ValueError('Activo debe ser un booleano')
         return v
     
-    class PaqueteResponse(PaqueteBase):
+class PaqueteResponse(PaqueteBase):
     """Esquema para respuesta de paquete"""
     id: int
     fecha_creacion: datetime
