@@ -38,7 +38,7 @@ class Paquete(Base):
     destino = Column(String(20), nullable=False)
     tipo = Column(String(10), nullable=False)
     estado = Column(String(10), nullable=False)
-    precioEnvio = Column(Integer, nullable=False)
+    precioEnvio = Column(Float, nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=datetime.now, nullable=False, onupdate=datetime.now)
@@ -79,7 +79,7 @@ class PaqueteBase(BaseModel):
     destino: str = Field(..., min_length=2, max_length=20, description="Ciudad o ubicación de destino del paquete")
     estado: str = Field(default="Registrado", min_length=1, max_length=10, description="Estado actual del paquete")
     tipo: str = Field(default="Normal", min_length=1, max_length=10, description="Tipo de paquete (Normal, Express)")
-    precioEnvio: int = Field(..., gt=0, description="Precio del envío en pesos")
+    precioEnvio: float = Field(..., gt=0, description="Precio del envío en pesos")
     activo: bool = Field(default=True, description="Estado del paquete (activo/inactivo)")
     
     @validator('peso')
@@ -138,7 +138,7 @@ class PaqueteBase(BaseModel):
     def validar_precioEnvio(cls, v):
         if v < 0:
             raise ValueError('Precio debe ser mayor o igual a 0')
-        return v
+        return round(v, 2)
     
     @validator('activo')
     def validar_activo(cls, v):
@@ -160,7 +160,7 @@ class PaqueteUpdate(BaseModel):
     destino: Optional[str] = Field(None, min_length=2, max_length=20)
     estado: Optional[str] = Field(None, min_length=1, max_length=10)
     tipo: Optional[str] = Field(None, min_length=1, max_length=10)
-    precioEnvio: Optional[int] = Field(None, gt=0)
+    precioEnvio: Optional[float] = Field(None, gt=0)
     activo: Optional[bool] = None
 
     @validator('peso')
@@ -219,7 +219,7 @@ class PaqueteUpdate(BaseModel):
     def validar_precioEnvio(cls, v):
         if v is not None and v < 0:
             raise ValueError('Precio debe ser mayor o igual a 0')
-        return v
+        return round(v, 2) if v is not None else v
     
     @validator('activo')
     def validar_activo(cls, v):
