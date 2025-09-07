@@ -46,7 +46,9 @@ class Cliente(Base):
     actualizado_por = Column(String(50), nullable=False)
 
     paquetes = relationship("Paquete", back_populates="clientes", cascade="all, delete-orphan")
-
+    cliente_remitente = relationship("DetalleEntrega", back_populates="clientes", foreign_keys="DetalleEntrega.id_cliente_remitente", cascade="all, delete-orphan")
+    cliente_receptor = relationship("DetalleEntrega", back_populates="clientes", foreign_keys="DetalleEntrega.id_cliente_receptor", cascade="all, delete-orphan")
+    
     def __repr__(self):
         """Representación en string del objeto Cliente"""
         return f"<Cliente(id={self.id_cliente}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, documento={self.documento}, telefono={self.telefono}, direccion={self.direccion}, correo={self.correo}, tipo={self.tipo})>"
