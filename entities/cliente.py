@@ -12,8 +12,10 @@ class Cliente(Base):
     Modelo de Cliente que representa la tabla 'clientes'
     Atributos:
         id: Identificador único del cliente
-        nombre: Nombre del cliente
-        apellido: Apellido del cliente
+        primer_nombre: Primer nombre del cliente
+        segundo_nombre: Segundo nombre del cliente (opcional)
+        primer_apellido: Primer apellido del cliente
+        segundo_apellido: Segundo apellido del cliente (opcional)
         documento: Documento del cliente
         direccion: Dirección del cliente
         telefono: Número de teléfono del cliente
