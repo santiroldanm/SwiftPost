@@ -31,9 +31,9 @@ class Cliente(Base):
     __tablename__ = "clientes"
     id_cliente = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     primer_nombre = Column(String(50), nullable=False)
-    segundo_nombre = Column(String(50))
+    segundo_nombre = Column(String(50), default=None, nullable=True)
     primer_apellido = Column(String(50), nullable=False)
-    segundo_apellido = Column(String(50))
+    segundo_apellido = Column(String(50), default=None, nullable=True)
     documento = Column(Integer, nullable=False)
     direccion = Column(String(200), nullable=False)
     telefono = Column(Integer, nullable=False)
@@ -69,9 +69,9 @@ class Cliente(Base):
 """Clase Pydantic para validación de clientes"""
 class ClienteBase(BaseModel):
     primer_nombre: str = Field(..., min_length=1, max_length=50, description="Nombre del cliente")
-    segundo_nombre: str = Field(..., min_length=1, max_length=50, description="Apellido del cliente")
+    segundo_nombre: Optional[str] = Field(min_length=1, max_length=50, description="Apellido del cliente")
     primer_apellido: str = Field(..., min_length=1, max_length=50, description="Apellido del cliente")
-    segundo_apellido: str = Field(..., min_length=1, max_length=50, description="Apellido del cliente")
+    segundo_apellido: Optional[str] = Field(min_length=1, max_length=50, description="Apellido del cliente")
     documento: int = Field(..., gt=0, description="Número de documento del cliente")
     direccion: str = Field(..., min_length=5, max_length=200, description="Dirección del cliente")
     telefono: int = Field(..., gt=0, description="Número de teléfono del cliente")
@@ -88,7 +88,9 @@ class ClienteBase(BaseModel):
     
     @validator('segundo_nombre')
     def validar_segundo_nombre(cls, v):
-        if not v or not v.strip():
+        if v is None:
+            return v
+        if not v.strip():
             raise ValueError('El segundo nombre no puede estar vacío')
         if not v.replace(' ', '').isalpha():
             raise ValueError('El segundo nombre solo puede contener letras')
@@ -104,7 +106,9 @@ class ClienteBase(BaseModel):
     
     @validator('segundo_apellido')
     def validar_segundo_apellido(cls, v):
-        if not v or not v.strip():
+        if v is None:
+            return v
+        if not v.strip():
             raise ValueError('El segundo apellido no puede estar vacío')
         if not v.replace(' ', '').isalpha():
             raise ValueError('El segundo apellido solo puede contener letras')
