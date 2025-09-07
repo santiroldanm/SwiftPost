@@ -68,10 +68,10 @@ class Cliente(Base):
 
 """Clase Pydantic para validación de clientes"""
 class ClienteBase(BaseModel):
-    primer_nombre: str = Field(..., min_length=1, max_length=50, description="Nombre del cliente")
-    segundo_nombre: Optional[str] = Field(min_length=1, max_length=50, description="Apellido del cliente")
-    primer_apellido: str = Field(..., min_length=1, max_length=50, description="Apellido del cliente")
-    segundo_apellido: Optional[str] = Field(min_length=1, max_length=50, description="Apellido del cliente")
+    primer_nombre: str = Field(..., min_length=1, max_length=50, description="Primer nombre del cliente")
+    segundo_nombre: Optional[str] = Field(min_length=1, max_length=50, description="Segundo nombre del cliente")
+    primer_apellido: str = Field(..., min_length=1, max_length=50, description="Primer apellido del cliente")
+    segundo_apellido: Optional[str] = Field(min_length=1, max_length=50, description="Segundo apellido del cliente")
     documento: int = Field(..., gt=0, description="Número de documento del cliente")
     direccion: str = Field(..., min_length=5, max_length=200, description="Dirección del cliente")
     telefono: int = Field(..., gt=0, description="Número de teléfono del cliente")
