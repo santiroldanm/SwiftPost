@@ -29,8 +29,8 @@ class Sede(Base):
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     
-    envios_remitente = relationship("DetalleEntrega", foreign_keys="DetalleEntrega.id_sede_remitente", back_populates="sede_remitente")
-    envios_receptor = relationship("DetalleEntrega", foreign_keys="DetalleEntrega.id_sede_receptora", back_populates="sede_receptora")
+    sede_remitente = relationship("DetalleEntrega", foreign_keys="DetalleEntrega.id_sede_remitente", back_populates="sede_remitente")
+    sede_receptora = relationship("DetalleEntrega", foreign_keys="DetalleEntrega.id_sede_receptora", back_populates="sede_receptora")
     
     def __repr__(self):
         return f"<Sede(id_sede={self.id_sede}, ciudad={self.ciudad}, direccion={self.direccion}, telefono={self.telefono})>"
