@@ -31,6 +31,8 @@ class Sede(Base):
     
     sede_remitente = relationship("DetalleEntrega", foreign_keys="DetalleEntrega.id_sede_remitente", back_populates="sede_remitente")
     sede_receptora = relationship("DetalleEntrega", foreign_keys="DetalleEntrega.id_sede_receptora", back_populates="sede_receptora")
+    transportes = relationship("Transporte", back_populates="sede")
+    empleados = relationship("Empleado", back_populates="sede")
     
     def __repr__(self):
         return f"<Sede(id_sede={self.id_sede}, ciudad={self.ciudad}, direccion={self.direccion}, telefono={self.telefono})>"
