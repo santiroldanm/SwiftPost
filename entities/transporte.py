@@ -29,10 +29,10 @@ class Transporte(Base):
     """
 
     __tablename__ = "transportes"
-    id_transporte = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id_transporte = Column(UUID, primary_key=True, default=uuid4)
     tipo_vehiculo = Column(String(50), nullable=False)
     capacidad_carga = Column(Float, nullable=False)
-    id_sede = Column(UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False)
+    id_sede = Column(UUID, ForeignKey("sedes.id_sede"), nullable=False)
     placa = Column(String(10), nullable=False, unique=True)
     modelo = Column(String(50), nullable=False)
     marca = Column(String(50), nullable=False)
