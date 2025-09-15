@@ -67,6 +67,23 @@ class DetalleEntrega(Base):
     def __repr__(self):
         return f"<DetalleEntrega(id_detalle={self.id_detalle}, estado={self.estado_envio}, paquete={self.id_paquete}), cliente_remitente={self.id_cliente_remitente}, cliente_receptor={self.id_cliente_receptor}), fecha_envio={self.fecha_envio}, fecha_entrega={self.fecha_entrega}, observaciones={self.observaciones}, id_sede_remitente={self.id_sede_remitente}, id_sede_receptora={self.id_sede_receptora})>"
 
+    def to_dict():
+        return {
+            "id_detalle": self.id_detalle,
+            "paquete": self.id_paquete,
+            "estado_envio": self.estado_envio,
+            "fecha_envio": self.fecha_envio,
+            "fecha_entrega": self.fecha_entrega,
+            "observaciones": self.observaciones,
+            "id_sede_remitente": self.id_sede_remitente,
+            "id_sede_receptora": self.id_sede_receptora,
+            "cliente_remitente": self.id_cliente_remitente,
+            "cliente_receptor": self.id_cliente_receptor,
+            "activo": self.activo,
+            "fecha_creacion": self.fecha_creacion,
+            "fecha_actualizacion": self.fecha_actualizacion,
+        }
+
 
 class DetalleEntregaBase(BaseModel):
     estado_envio: str = Field(..., description="Estado actual del envío")
