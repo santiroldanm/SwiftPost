@@ -41,10 +41,11 @@ class Transporte(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(String(50), nullable=False)
-    actualizado_por = Column(String(50), nullable=False)
+    creado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
+    actualizado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), default=None)
 
-    sede = relationship("Sede", back_populates="transportes")
+    sedes = relationship("Sede", back_populates="transportes")
+    usuarios = relationship("Usuario", back_populates="transportes")
 
     def __repr__(self):
         return f"<Transporte(id={self.id_transporte}, tipo={self.tipo_vehiculo}, placa={self.placa}, modelo={self.modelo}, marca={self.marca})>"

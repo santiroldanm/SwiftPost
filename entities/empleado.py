@@ -44,6 +44,7 @@ class Empleado(Base):
 
     __tablename__ = "empleados"
     id_empleado = Column(UUID, primary_key=True, default=uuid4)
+    usuario = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
     id_sede = Column(UUID, ForeignKey("sedes.id_sede"), nullable=False)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
@@ -64,8 +65,7 @@ class Empleado(Base):
     actualizado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
 
     tipo_documento = relationship("TipoDocumento", back_populates="empleados")
-    sede = relationship("Sede", back_populates="empleados")
-    documentos = relationship("Documento", back_populates="empleados")
+    sedes = relationship("Sede", back_populates="empleados")
     usuarios = relationship("Usuario", back_populates="empleados")
 
     def __repr__(self):

@@ -42,6 +42,9 @@ class Paquete(Base):
     clientes = relationship(
         "Cliente", back_populates="paquetes", cascade="all, delete-orphan"
     )
+    detalles_entrega = relationship(
+        "DetalleEntrega", back_populates="paquetes", cascade="all, delete-orphan"
+    )
     usuarios = relationship("Usuario", back_populates="paquetes")
 
     def __repr__(self):

@@ -38,7 +38,16 @@ class Usuario(Base):
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
 
+    clientes = relationship("Cliente", back_populates="usuarios")
+    detalles_entrega = relationship(
+        "DetalleEntrega", cascade="all, delete-orphan", back_populates="usuarios"
+    )
+    empleados = relationship("Empleado", back_populates="usuarios")
+    paquetes = relationship("Paquete", back_populates="usuarios")
     roles = relationship("Rol", back_populates="usuarios")
+    sedes = relationship("Sede", back_populates="usuarios")
+    tipos_documentos = relationship("TipoDocumento", back_populates="usuarios")
+    transportes = relationship("Transporte", back_populates="usuarios")
 
     def __repr__(self):
         return f"<Usuario(id_usuario={self.id_usuario}, rol={self.rol}, nombre_usuario={self.nombre_usuario}, nombre_completo={self.primer_nombre} {self.segundo_nombre or ''} {self.primer_apellido} {self.segundo_apellido or ''})>"

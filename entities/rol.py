@@ -30,7 +30,7 @@ class Rol(Base):
         DateTime, default=datetime.now, onupdate=datetime.now, nullable=False
     )
 
-    usuarios = relationship("Usuario", back_populates="rol")
+    usuarios = relationship("Usuario", back_populates="roles")
 
 
 class RolBase(BaseModel):

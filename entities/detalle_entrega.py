@@ -15,9 +15,9 @@ class DetalleEntrega(Base):
         id_sede_remitente: ID de la sede remitente
         id_sede_receptora: ID de la sede receptora
         id_paquete: ID del paquete asociado
-        estado_envio: Estado actual del envío (Entregado, En transito, Pendiente)
         id_cliente_remitente: ID del cliente que envía
         id_cliente_receptor: ID del cliente que recibe
+        estado_envio: Estado actual del envío (Entregado, En transito, Pendiente)
         fecha_envio: Fecha de envío
         fecha_entrega: Fecha de entrega
         observaciones: Observaciones adicionales
@@ -31,13 +31,13 @@ class DetalleEntrega(Base):
     id_sede_remitente = Column(UUID, ForeignKey("sedes.id_sede"), nullable=False)
     id_sede_receptora = Column(UUID, ForeignKey("sedes.id_sede"), nullable=False)
     id_paquete = Column(UUID, ForeignKey("paquetes.id"), nullable=False)
-    estado_envio = Column(String(20), default="Pendiente", nullable=False)
     id_cliente_remitente = Column(
         UUID, ForeignKey("clientes.id_cliente"), nullable=False
     )
     id_cliente_receptor = Column(
         UUID, ForeignKey("clientes.id_cliente"), nullable=False
     )
+    estado_envio = Column(String(20), default="Pendiente", nullable=False)
     fecha_envio = Column(DateTime, nullable=False)
     fecha_entrega = Column(DateTime, nullable=True)
     observaciones = Column(String(500), nullable=True)
@@ -53,7 +53,7 @@ class DetalleEntrega(Base):
     sede_receptora = relationship(
         "Sede", foreign_keys=[id_sede_receptora], back_populates="sede_receptora"
     )
-    paquete = relationship("Paquete", back_populates="detalles_entrega")
+    paquetes = relationship("Paquete", back_populates="detalles_entrega")
     cliente_remitente = relationship(
         "Cliente",
         foreign_keys=[id_cliente_remitente],

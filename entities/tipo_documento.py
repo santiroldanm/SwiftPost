@@ -30,11 +30,12 @@ class TipoDocumento(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(String(50), nullable=False)
-    actualizado_por = Column(String(50), nullable=False)
+    creado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
+    actualizado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
 
     clientes = relationship("Cliente", back_populates="tipo_documento")
     empleados = relationship("Empleado", back_populates="tipo_documento")
+    usuarios = relationship("Usuario", back_populates="tipo_documento")
 
     def __repr__(self):
         return f"<TipoDocumento(id={self.id_tipo_documento}, nombre={self.nombre}, codigo={self.codigo}, numero={self.numero})>"

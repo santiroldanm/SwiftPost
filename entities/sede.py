@@ -24,7 +24,7 @@ class Sede(Base):
     """
 
     __tablename__ = "sedes"
-    id_sede = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id_sede = Column(UUID, primary_key=True, default=uuid4)
     ciudad = Column(String(50), nullable=False)
     direccion = Column(String(200), nullable=False)
     telefono = Column(Integer, nullable=False)
@@ -46,8 +46,9 @@ class Sede(Base):
         foreign_keys="DetalleEntrega.id_sede_receptora",
         back_populates="sede_receptora",
     )
-    transportes = relationship("Transporte", back_populates="sede")
-    empleados = relationship("Empleado", back_populates="sede")
+    transportes = relationship("Transporte", back_populates="sedes")
+    empleados = relationship("Empleado", back_populates="sedes")
+    usuarios = relationship("Usuario", back_populates="sedes")
 
     def __repr__(self):
         return f"<Sede(id_sede={self.id_sede}, ciudad={self.ciudad}, direccion={self.direccion}, telefono={self.telefono})>"

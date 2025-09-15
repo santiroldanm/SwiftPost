@@ -13,11 +13,11 @@ class Cliente(Base):
     Modelo de Cliente que representa la tabla 'clientes'
     Atributos:
         id_cliente: Identificador único del cliente
+        documento: Documento del cliente
         primer_nombre: Primer nombre del cliente
         segundo_nombre: Segundo nombre del cliente (opcional)
         primer_apellido: Primer apellido del cliente
         segundo_apellido: Segundo apellido del cliente (opcional)
-        documento: Documento del cliente
         direccion: Dirección del cliente
         telefono: Número de teléfono del cliente
         correo: Correo electrónico del cliente
@@ -31,13 +31,14 @@ class Cliente(Base):
 
     __tablename__ = "clientes"
     id_cliente = Column(UUID, primary_key=True, default=uuid4)
+    usuario = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
+    documento = Column(
+        UUID, ForeignKey("tipos_documentos.id_tipo_documento"), nullable=False
+    )
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), default=None, nullable=True)
     primer_apellido = Column(String(50), nullable=False)
     segundo_apellido = Column(String(50), default=None, nullable=True)
-    documento = Column(
-        UUID, ForeignKey("tipos_documentos.id_tipo_documento"), nullable=False
-    )
     direccion = Column(String(200), nullable=False)
     telefono = Column(Integer, nullable=False)
     correo = Column(String(100), nullable=False, unique=True)
@@ -53,20 +54,19 @@ class Cliente(Base):
     )
     cliente_remitente = relationship(
         "DetalleEntrega",
-        back_populates="clientes",
+        back_populates="cliente_remitente",
         foreign_keys="DetalleEntrega.id_cliente_remitente",
         cascade="all, delete-orphan",
     )
     cliente_receptor = relationship(
         "DetalleEntrega",
-        back_populates="clientes",
+        back_populates="cliente_receptor",
         foreign_keys="DetalleEntrega.id_cliente_receptor",
         cascade="all, delete-orphan",
     )
     tipo_documento = relationship(
         "TipoDocumento", back_populates="clientes", cascade="all, delete-orphan"
     )
-
     usuarios = relationship("Usuario", back_populates="clientes")
 
     def __repr__(self):
