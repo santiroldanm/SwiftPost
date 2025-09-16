@@ -45,13 +45,19 @@ class Empleado(Base):
 
     __tablename__ = "empleados"
     id_empleado = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    usuario = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
+    usuario = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
     id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
     primer_apellido = Column(String(50), nullable=False)
     segundo_apellido = Column(String(50), nullable=True)
-    tipo_documento = Column(PG_UUID(as_uuid=True), ForeignKey("tipos_documentos.id_tipo_documento"), nullable=False)
+    tipo_documento = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tipos_documentos.id_tipo_documento"),
+        nullable=False,
+    )
     documento = Column(String(20), nullable=False)
     fecha_nacimiento = Column(Date, nullable=False)
     telefono = Column(String(15), nullable=False)
@@ -63,12 +69,18 @@ class Empleado(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
+    actualizado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
 
     tipo_documento_rel = relationship("TipoDocumento", back_populates="empleados")
     sedes = relationship("Sede", back_populates="empleados")
-    usuarios = relationship("Usuario", back_populates="empleados", foreign_keys=[creado_por])
+    usuarios = relationship(
+        "Usuario", back_populates="empleados", foreign_keys=[creado_por]
+    )
 
     def __repr__(self):
         return f"<Empleado(id={self.id_empleado}, sede={self.id_sede}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, tipo={self.tipo_empleado}, documento={self.documento}, fecha_nacimiento={self.fecha_nacimiento}, telefono={self.telefono}, correo={self.correo}, direccion={self.direccion}, salario={self.salario}, fecha_ingreso={self.fecha_ingreso})>"

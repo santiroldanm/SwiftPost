@@ -24,19 +24,29 @@ class TipoDocumento(Base):
     """
 
     __tablename__ = "tipos_documentos"
-    id_tipo_documento = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id_tipo_documento = Column(
+        PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     nombre = Column(String(50), nullable=False, unique=True)
     codigo = Column(String(5), nullable=False, unique=True)
     numero = Column(Integer, nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
+    actualizado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
 
     clientes = relationship("Cliente", back_populates="tipo_documento")
     empleados = relationship("Empleado", back_populates="tipo_documento_rel")
-    usuarios = relationship("Usuario", back_populates="tipos_documentos", foreign_keys="TipoDocumento.creado_por")
+    usuarios = relationship(
+        "Usuario",
+        back_populates="tipos_documentos",
+        foreign_keys="TipoDocumento.creado_por",
+    )
 
     def __repr__(self):
         return f"<TipoDocumento(id={self.id_tipo_documento}, nombre={self.nombre}, codigo={self.codigo}, numero={self.numero})>"

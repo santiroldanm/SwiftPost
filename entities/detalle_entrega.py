@@ -29,9 +29,15 @@ class DetalleEntrega(Base):
 
     __tablename__ = "detalles_entrega"
     id_detalle = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    id_sede_remitente = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False)
-    id_sede_receptora = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False)
-    id_paquete = Column(PG_UUID(as_uuid=True), ForeignKey("paquetes.id_paquete"), nullable=False)
+    id_sede_remitente = Column(
+        PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False
+    )
+    id_sede_receptora = Column(
+        PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False
+    )
+    id_paquete = Column(
+        PG_UUID(as_uuid=True), ForeignKey("paquetes.id_paquete"), nullable=False
+    )
     id_cliente_remitente = Column(
         PG_UUID(as_uuid=True), ForeignKey("clientes.id_cliente"), nullable=False
     )
@@ -45,8 +51,12 @@ class DetalleEntrega(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
+    actualizado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
 
     sede_remitente = relationship(
         "Sede", foreign_keys=[id_sede_remitente], back_populates="sede_remitente"
@@ -63,7 +73,9 @@ class DetalleEntrega(Base):
     cliente_receptor = relationship(
         "Cliente", foreign_keys=[id_cliente_receptor], back_populates="cliente_receptor"
     )
-    usuarios = relationship("Usuario", back_populates="detalles_entrega", foreign_keys=[creado_por])
+    usuarios = relationship(
+        "Usuario", back_populates="detalles_entrega", foreign_keys=[creado_por]
+    )
 
     def __repr__(self):
         return f"<DetalleEntrega(id_detalle={self.id_detalle}, estado={self.estado_envio}, paquete={self.id_paquete}), cliente_remitente={self.id_cliente_remitente}, cliente_receptor={self.id_cliente_receptor}), fecha_envio={self.fecha_envio}, fecha_entrega={self.fecha_entrega}, observaciones={self.observaciones}, id_sede_remitente={self.id_sede_remitente}, id_sede_receptora={self.id_sede_receptora})>"

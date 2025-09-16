@@ -7,7 +7,7 @@ from datetime import datetime
 
 from database.config import DATABASE_URL, engine
 from sqlalchemy import text
- 
+
 
 def test_connection():
     """Probar la conexión a la base de datos"""
@@ -96,14 +96,14 @@ def create_admin_user():
 
         # Verificar si ya existe un admin
         admin_rol = db.query(Rol).filter(Rol.nombre_rol == "administrador").first()
-        
+
         if not admin_rol:
             # Crear rol de administrador si no existe
             admin_rol = Rol(
                 nombre_rol="administrador",
                 activo=True,
                 fecha_creacion=datetime.now(),
-                fecha_actualizacion=datetime.now()
+                fecha_actualizacion=datetime.now(),
             )
             db.add(admin_rol)
             db.commit()
@@ -114,7 +114,9 @@ def create_admin_user():
         admin_exists = db.query(Usuario).filter(Usuario.rol == admin_rol.id_rol).first()
 
         if admin_exists:
-            print(f"[OK] Usuario administrador ya existe: {admin_exists.nombre_usuario}")
+            print(
+                f"[OK] Usuario administrador ya existe: {admin_exists.nombre_usuario}"
+            )
             db.close()
             return True
 
@@ -133,7 +135,7 @@ def create_admin_user():
             password=hashed_password,
             activo=True,
             fecha_creacion=datetime.now(),
-            fecha_actualizacion=datetime.now()
+            fecha_actualizacion=datetime.now(),
         )
 
         db.add(admin_user)
@@ -144,7 +146,7 @@ def create_admin_user():
         print(f"     ID: {admin_user.id_usuario}")
         print(f"     Usuario: {admin_user.nombre_usuario}")
         print(f"     Nombre: {admin_user.primer_nombre} {admin_user.primer_apellido}")
-        
+
         db.close()
         return True
 
@@ -154,26 +156,30 @@ def create_admin_user():
         print(f"[DEBUG] Modulo del error: {type(e).__module__}")
         print(f"[DEBUG] Traceback completo:")
         import traceback
+
         traceback.print_exc()
-        
+
         # Debug adicional para errores de importación
         if "UUID" in str(e) or "SchemaItem" in str(e):
             print(f"[DEBUG] Error relacionado con UUID detectado")
             print(f"[DEBUG] Verificando imports en entidades...")
-            
+
             import os
-            entities_dir = os.path.join(os.path.dirname(__file__), '..', 'entities')
+
+            entities_dir = os.path.join(os.path.dirname(__file__), "..", "entities")
             for file in os.listdir(entities_dir):
-                if file.endswith('.py') and file != '__init__.py':
+                if file.endswith(".py") and file != "__init__.py":
                     print(f"[DEBUG] Archivo: {file}")
                     try:
-                        with open(os.path.join(entities_dir, file), 'r', encoding='utf-8') as f:
+                        with open(
+                            os.path.join(entities_dir, file), "r", encoding="utf-8"
+                        ) as f:
                             content = f.read()
-                            if 'from uuid import' in content:
+                            if "from uuid import" in content:
                                 print(f"[DEBUG]   - Usa 'from uuid import' (PROBLEMA)")
-                            if 'Column(UUID' in content:
+                            if "Column(UUID" in content:
                                 print(f"[DEBUG]   - Usa 'Column(UUID' (PROBLEMA)")
-                            if 'PG_UUID' in content:
+                            if "PG_UUID" in content:
                                 print(f"[DEBUG]   - Usa 'PG_UUID' (CORRECTO)")
                     except Exception as file_err:
                         print(f"[DEBUG]   - Error leyendo archivo: {file_err}")

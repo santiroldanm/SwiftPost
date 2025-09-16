@@ -33,6 +33,7 @@ if not DATABASE_URL:
             "Se requiere DATABASE_URL o las credenciales individuales de la base de datos"
         )
 
+
 def get_engine():
     """Create and configure the SQLAlchemy engine with UUID support"""
     engine = create_engine(
@@ -41,13 +42,14 @@ def get_engine():
         pool_pre_ping=True,  # Verificar conexión antes de usar
         pool_recycle=300,  # Reciclar conexiones cada 5 minutos
     )
-    
+
     # Asegurarse de que la extensión UUID esté habilitada
     with engine.connect() as conn:
         conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
         conn.commit()
-    
+
     return engine
+
 
 # Crear el motor de SQLAlchemy
 engine = get_engine()
@@ -76,8 +78,15 @@ def create_tables():
     """
     # Import all models to register them with Base
     from entities import (
-        usuario, rol, cliente, empleado, sede, tipo_documento,
-        paquete, detalle_entrega, transporte
+        usuario,
+        rol,
+        cliente,
+        empleado,
+        sede,
+        tipo_documento,
+        paquete,
+        detalle_entrega,
+        transporte,
     )
-    
+
     Base.metadata.create_all(bind=engine)

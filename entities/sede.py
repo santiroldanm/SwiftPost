@@ -34,8 +34,12 @@ class Sede(Base):
     fecha_actualizacion = Column(
         DateTime, default=datetime.now, onupdate=datetime.now, nullable=False
     )
-    creado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), default=None)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
+    actualizado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), default=None
+    )
 
     sede_remitente = relationship(
         "DetalleEntrega",
@@ -49,7 +53,9 @@ class Sede(Base):
     )
     transportes = relationship("Transporte", back_populates="sedes")
     empleados = relationship("Empleado", back_populates="sedes")
-    usuarios = relationship("Usuario", back_populates="sedes", foreign_keys="Sede.creado_por")
+    usuarios = relationship(
+        "Usuario", back_populates="sedes", foreign_keys="Sede.creado_por"
+    )
 
     def __repr__(self):
         return f"<Sede(id_sede={self.id_sede}, ciudad={self.ciudad}, direccion={self.direccion}, telefono={self.telefono})>"

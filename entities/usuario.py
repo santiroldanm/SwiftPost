@@ -40,16 +40,33 @@ class Usuario(Base):
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
 
-    clientes = relationship("Cliente", back_populates="usuarios", foreign_keys="Cliente.creado_por")
-    detalles_entrega = relationship(
-        "DetalleEntrega", cascade="all, delete-orphan", back_populates="usuarios", foreign_keys="DetalleEntrega.creado_por"
+    clientes = relationship(
+        "Cliente", back_populates="usuarios", foreign_keys="Cliente.creado_por"
     )
-    empleados = relationship("Empleado", back_populates="usuarios", foreign_keys="Empleado.creado_por")
-    paquetes = relationship("Paquete", back_populates="usuarios", foreign_keys="Paquete.creado_por")
+    detalles_entrega = relationship(
+        "DetalleEntrega",
+        cascade="all, delete-orphan",
+        back_populates="usuarios",
+        foreign_keys="DetalleEntrega.creado_por",
+    )
+    empleados = relationship(
+        "Empleado", back_populates="usuarios", foreign_keys="Empleado.creado_por"
+    )
+    paquetes = relationship(
+        "Paquete", back_populates="usuarios", foreign_keys="Paquete.creado_por"
+    )
     roles = relationship("Rol", back_populates="usuarios")
-    sedes = relationship("Sede", back_populates="usuarios", foreign_keys="Sede.creado_por")
-    tipos_documentos = relationship("TipoDocumento", back_populates="usuarios", foreign_keys="TipoDocumento.creado_por")
-    transportes = relationship("Transporte", back_populates="usuarios", foreign_keys="Transporte.creado_por")
+    sedes = relationship(
+        "Sede", back_populates="usuarios", foreign_keys="Sede.creado_por"
+    )
+    tipos_documentos = relationship(
+        "TipoDocumento",
+        back_populates="usuarios",
+        foreign_keys="TipoDocumento.creado_por",
+    )
+    transportes = relationship(
+        "Transporte", back_populates="usuarios", foreign_keys="Transporte.creado_por"
+    )
 
     def __repr__(self):
         return f"<Usuario(id_usuario={self.id_usuario}, rol={self.rol}, nombre_usuario={self.nombre_usuario}, nombre_completo={self.primer_nombre} {self.segundo_nombre or ''} {self.primer_apellido} {self.segundo_apellido or ''})>"
