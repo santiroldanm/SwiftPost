@@ -2,9 +2,10 @@ from sqlalchemy import Column, String, Float, Boolean, DateTime, ForeignKey, Tex
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-from ..database.database import Base
+from database.config import Base
 from datetime import datetime
-from uuid import UUID, uuid4
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+import uuid
 
 
 class Paquete(Base):
@@ -26,8 +27,8 @@ class Paquete(Base):
     """
 
     __tablename__ = "paquetes"
-    id_paquete = Column(UUID, primary_key=True, default=uuid4)
-    id_cliente = Column(UUID, ForeignKey("clientes.id"), nullable=False)
+    id_paquete = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id_cliente = Column(PG_UUID(as_uuid=True), ForeignKey("clientes.id_cliente"), nullable=False)
     peso = Column(Float, nullable=False)
     tamaño = Column(String(10), nullable=False)
     fragilidad = Column(String(8), nullable=False)
@@ -36,16 +37,16 @@ class Paquete(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
+    creado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
+    actualizado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
 
     clientes = relationship(
-        "Cliente", back_populates="paquetes", cascade="all, delete-orphan"
+        "Cliente", back_populates="paquetes"
     )
     detalles_entrega = relationship(
         "DetalleEntrega", back_populates="paquetes", cascade="all, delete-orphan"
     )
-    usuarios = relationship("Usuario", back_populates="paquetes")
+    usuarios = relationship("Usuario", back_populates="paquetes", foreign_keys=[creado_por])
 
     def __repr__(self):
         return f"<Paquete(id_paquete={self.id_paquete}, cliente={self.id_cliente}, peso={self.peso}, tamaño={self.tamaño}, fragilidad={self.fragilidad}, contenido={self.contenido}, tipo={self.tipo})>"
@@ -173,7 +174,7 @@ class PaqueteUpdate(BaseModel):
 
 
 class PaqueteResponse(PaqueteBase):
-    id_paquete: UUID
+    id_paquete: uuid.UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     creado_por: str

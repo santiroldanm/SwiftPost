@@ -1,10 +1,11 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-from ..database.database import Base
+from database.config import Base
 from datetime import datetime
-from uuid import UUID, uuid4
+import uuid
 
 
 class TipoDocumento(Base):
@@ -23,19 +24,19 @@ class TipoDocumento(Base):
     """
 
     __tablename__ = "tipos_documentos"
-    id_tipo_documento = Column(UUID, primary_key=True, default=uuid4)
+    id_tipo_documento = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nombre = Column(String(50), nullable=False, unique=True)
     codigo = Column(String(5), nullable=False, unique=True)
     numero = Column(Integer, nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
+    creado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
+    actualizado_por = Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False)
 
     clientes = relationship("Cliente", back_populates="tipo_documento")
-    empleados = relationship("Empleado", back_populates="tipo_documento")
-    usuarios = relationship("Usuario", back_populates="tipo_documento")
+    empleados = relationship("Empleado", back_populates="tipo_documento_rel")
+    usuarios = relationship("Usuario", back_populates="tipos_documentos", foreign_keys="TipoDocumento.creado_por")
 
     def __repr__(self):
         return f"<TipoDocumento(id={self.id_tipo_documento}, nombre={self.nombre}, codigo={self.codigo}, numero={self.numero})>"
@@ -236,7 +237,7 @@ class TipoDocumentoUpdate(BaseModel):
 class TipoDocumentoResponse(TipoDocumentoBase):
     """Esquema para respuesta de tipo de documento"""
 
-    id_tipo_documento: UUID
+    id_tipo_documento: uuid.UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     creado_por: str
