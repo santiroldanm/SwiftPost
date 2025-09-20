@@ -1,10 +1,11 @@
 from sqlalchemy import Column, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-from ..database.database import Base
+from database.config import Base
 from datetime import datetime
-from uuid import UUID, uuid4
+import uuid
 
 
 class Rol(Base):
@@ -22,7 +23,7 @@ class Rol(Base):
 
     __tablename__ = "roles"
 
-    id_rol = Column(UUID, primary_key=True, default=uuid4)
+    id_rol = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nombre_rol = Column(String(50), unique=True, nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
@@ -92,7 +93,7 @@ class RolResponse(RolBase):
     Esquema para respuesta de rol
     """
 
-    id_rol: UUID
+    id_rol: uuid.UUID
     activo: bool
     fecha_creacion: datetime
     fecha_actualizacion: datetime

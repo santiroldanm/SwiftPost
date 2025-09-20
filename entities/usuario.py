@@ -1,9 +1,11 @@
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-from ..database.database import Base
+from database.config import Base
 from datetime import datetime
-from uuid import UUID, uuid4
+import uuid
 import string
 import re
 
@@ -26,8 +28,8 @@ class Usuario(Base):
     """
 
     __tablename__ = "usuarios"
-    id_usuario = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    rol = Column(UUID, ForeignKey("roles.id_rol"), nullable=False)
+    id_usuario = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    rol = Column(PG_UUID(as_uuid=True), ForeignKey("roles.id_rol"), nullable=False)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
     primer_apellido = Column(String(50), nullable=False)
@@ -38,16 +40,33 @@ class Usuario(Base):
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
 
-    clientes = relationship("Cliente", back_populates="usuarios")
-    detalles_entrega = relationship(
-        "DetalleEntrega", cascade="all, delete-orphan", back_populates="usuarios"
+    clientes = relationship(
+        "Cliente", back_populates="usuarios", foreign_keys="Cliente.creado_por"
     )
-    empleados = relationship("Empleado", back_populates="usuarios")
-    paquetes = relationship("Paquete", back_populates="usuarios")
+    detalles_entrega = relationship(
+        "DetalleEntrega",
+        cascade="all, delete-orphan",
+        back_populates="usuarios",
+        foreign_keys="DetalleEntrega.creado_por",
+    )
+    empleados = relationship(
+        "Empleado", back_populates="usuarios", foreign_keys="Empleado.creado_por"
+    )
+    paquetes = relationship(
+        "Paquete", back_populates="usuarios", foreign_keys="Paquete.creado_por"
+    )
     roles = relationship("Rol", back_populates="usuarios")
-    sedes = relationship("Sede", back_populates="usuarios")
-    tipos_documentos = relationship("TipoDocumento", back_populates="usuarios")
-    transportes = relationship("Transporte", back_populates="usuarios")
+    sedes = relationship(
+        "Sede", back_populates="usuarios", foreign_keys="Sede.creado_por"
+    )
+    tipos_documentos = relationship(
+        "TipoDocumento",
+        back_populates="usuarios",
+        foreign_keys="TipoDocumento.creado_por",
+    )
+    transportes = relationship(
+        "Transporte", back_populates="usuarios", foreign_keys="Transporte.creado_por"
+    )
 
     def __repr__(self):
         return f"<Usuario(id_usuario={self.id_usuario}, rol={self.rol}, nombre_usuario={self.nombre_usuario}, nombre_completo={self.primer_nombre} {self.segundo_nombre or ''} {self.primer_apellido} {self.segundo_apellido or ''})>"
@@ -241,7 +260,7 @@ class UsuarioUpdate(BaseModel):
 
 
 class UsuarioResponse(UsuarioBase):
-    id_usuario: UUID
+    id_usuario: uuid.UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
 
