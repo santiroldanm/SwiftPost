@@ -1,10 +1,11 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Integer
+from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-from ..database.database import Base
+from database.config import Base
 from datetime import datetime
-from uuid import UUID, uuid4
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+import uuid
 import re
 
 
@@ -24,7 +25,7 @@ class Sede(Base):
     """
 
     __tablename__ = "sedes"
-    id_sede = Column(UUID, primary_key=True, default=uuid4)
+    id_sede = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     ciudad = Column(String(50), nullable=False)
     direccion = Column(String(200), nullable=False)
     telefono = Column(Integer, nullable=False)
@@ -33,8 +34,12 @@ class Sede(Base):
     fecha_actualizacion = Column(
         DateTime, default=datetime.now, onupdate=datetime.now, nullable=False
     )
-    creado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), default=None)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
+    actualizado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), default=None
+    )
 
     sede_remitente = relationship(
         "DetalleEntrega",
@@ -48,7 +53,9 @@ class Sede(Base):
     )
     transportes = relationship("Transporte", back_populates="sedes")
     empleados = relationship("Empleado", back_populates="sedes")
-    usuarios = relationship("Usuario", back_populates="sedes")
+    usuarios = relationship(
+        "Usuario", back_populates="sedes", foreign_keys="Sede.creado_por"
+    )
 
     def __repr__(self):
         return f"<Sede(id_sede={self.id_sede}, ciudad={self.ciudad}, direccion={self.direccion}, telefono={self.telefono})>"

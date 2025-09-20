@@ -1,10 +1,11 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-from ..database.database import Base
+from database.config import Base
 from datetime import datetime
-from uuid import UUID, uuid4
+import uuid
 import re
 
 
@@ -30,10 +31,14 @@ class Cliente(Base):
     """
 
     __tablename__ = "clientes"
-    id_cliente = Column(UUID, primary_key=True, default=uuid4)
-    usuario = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
+    id_cliente = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
     documento = Column(
-        UUID, ForeignKey("tipos_documentos.id_tipo_documento"), nullable=False
+        PG_UUID(as_uuid=True),
+        ForeignKey("tipos_documentos.id_tipo_documento"),
+        nullable=False,
     )
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), default=None, nullable=True)
@@ -46,8 +51,12 @@ class Cliente(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), default=None)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
+    actualizado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), default=None
+    )
 
     paquetes = relationship(
         "Paquete", back_populates="clientes", cascade="all, delete-orphan"
@@ -64,10 +73,10 @@ class Cliente(Base):
         foreign_keys="DetalleEntrega.id_cliente_receptor",
         cascade="all, delete-orphan",
     )
-    tipo_documento = relationship(
-        "TipoDocumento", back_populates="clientes", cascade="all, delete-orphan"
+    tipo_documento = relationship("TipoDocumento", back_populates="clientes")
+    usuarios = relationship(
+        "Usuario", back_populates="clientes", foreign_keys=[creado_por]
     )
-    usuarios = relationship("Usuario", back_populates="clientes")
 
     def __repr__(self):
         return f"<Cliente(id={self.id_cliente}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, documento={self.documento}, telefono={self.telefono}, direccion={self.direccion}, correo={self.correo}, tipo={self.tipo})>"
@@ -291,7 +300,7 @@ class ClienteUpdate(BaseModel):
 
 class ClienteResponse(ClienteBase):
 
-    id_cliente: UUID
+    id_cliente: uuid.UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     creado_por: str
