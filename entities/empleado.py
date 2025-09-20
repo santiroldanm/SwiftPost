@@ -11,9 +11,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-from ..database.database import Base
+from database.config import Base
 from datetime import datetime, date
-from uuid import UUID, uuid4
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+import uuid
 import re
 
 
@@ -43,14 +44,21 @@ class Empleado(Base):
     """
 
     __tablename__ = "empleados"
-    id_empleado = Column(UUID, primary_key=True, default=uuid4)
-    usuario = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
-    id_sede = Column(UUID, ForeignKey("sedes.id_sede"), nullable=False)
+    id_empleado = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
+    id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
     primer_apellido = Column(String(50), nullable=False)
     segundo_apellido = Column(String(50), nullable=True)
-    documento = Column(UUID, ForeignKey("documentos.id_documento"), nullable=False)
+    tipo_documento = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tipos_documentos.id_tipo_documento"),
+        nullable=False,
+    )
+    documento = Column(String(20), nullable=False)
     fecha_nacimiento = Column(Date, nullable=False)
     telefono = Column(String(15), nullable=False)
     correo = Column(String(100), nullable=False, unique=True)
@@ -61,12 +69,18 @@ class Empleado(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
+    actualizado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
 
-    tipo_documento = relationship("TipoDocumento", back_populates="empleados")
+    tipo_documento_rel = relationship("TipoDocumento", back_populates="empleados")
     sedes = relationship("Sede", back_populates="empleados")
-    usuarios = relationship("Usuario", back_populates="empleados")
+    usuarios = relationship(
+        "Usuario", back_populates="empleados", foreign_keys=[creado_por]
+    )
 
     def __repr__(self):
         return f"<Empleado(id={self.id_empleado}, sede={self.id_sede}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, tipo={self.tipo_empleado}, documento={self.documento}, fecha_nacimiento={self.fecha_nacimiento}, telefono={self.telefono}, correo={self.correo}, direccion={self.direccion}, salario={self.salario}, fecha_ingreso={self.fecha_ingreso})>"
@@ -159,13 +173,7 @@ class EmpleadoBase(BaseModel):
             return v.strip().title()
         return v
 
-    @validator("numero_documento")
-    def validar_numero_documento(cls, v):
-        if not v or not v.strip():
-            raise ValueError("El número de documento no puede estar vacío")
-        if not re.match(r"^[A-Z0-9\-]+$", v.upper().replace(" ", "")):
-            raise ValueError("Formato de documento no válido")
-        return v.strip().upper()
+    # Validator removed - numero_documento field doesn't exist in this model
 
     @validator("fecha_nacimiento")
     def validar_fecha_nacimiento(cls, v):
@@ -247,14 +255,14 @@ class EmpleadoUpdate(BaseModel):
     segundo_nombre: Optional[str] = Field(None, min_length=1, max_length=50)
     primer_apellido: Optional[str] = Field(None, min_length=1, max_length=50)
     segundo_apellido: Optional[str] = Field(None, min_length=1, max_length=50)
-    id_tipo_documento: Optional[UUID] = None
+    id_tipo_documento: Optional[uuid.UUID] = None
     numero_documento: Optional[str] = Field(None, min_length=1, max_length=20)
     fecha_nacimiento: Optional[date] = None
     telefono: Optional[str] = Field(None, min_length=7, max_length=15)
     correo: Optional[str] = Field(None, min_length=5, max_length=100)
     direccion: Optional[str] = Field(None, min_length=5, max_length=200)
     tipo_empleado: Optional[str] = Field(None, min_length=1, max_length=20)
-    id_sede: Optional[UUID] = None
+    id_sede: Optional[uuid.UUID] = None
     salario: Optional[float] = Field(None, gt=0)
     fecha_ingreso: Optional[date] = None
     activo: Optional[bool] = None
@@ -390,7 +398,7 @@ class EmpleadoUpdate(BaseModel):
 
 
 class EmpleadoResponse(EmpleadoBase):
-    id_empleado: UUID
+    id_empleado: uuid.UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     creado_por: str

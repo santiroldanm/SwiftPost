@@ -1,10 +1,11 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-from ..database.database import Base
+from database.config import Base
 from datetime import datetime
-from uuid import UUID, uuid4
+import uuid
 import re
 
 
@@ -29,10 +30,10 @@ class Transporte(Base):
     """
 
     __tablename__ = "transportes"
-    id_transporte = Column(UUID, primary_key=True, default=uuid4)
+    id_transporte = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tipo_vehiculo = Column(String(50), nullable=False)
     capacidad_carga = Column(Float, nullable=False)
-    id_sede = Column(UUID, ForeignKey("sedes.id_sede"), nullable=False)
+    id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False)
     placa = Column(String(10), nullable=False, unique=True)
     modelo = Column(String(50), nullable=False)
     marca = Column(String(50), nullable=False)
@@ -41,11 +42,17 @@ class Transporte(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(UUID, ForeignKey("usuarios.id_usuario"), default=None)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
+    actualizado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), default=None
+    )
 
     sedes = relationship("Sede", back_populates="transportes")
-    usuarios = relationship("Usuario", back_populates="transportes")
+    usuarios = relationship(
+        "Usuario", back_populates="transportes", foreign_keys=[creado_por]
+    )
 
     def __repr__(self):
         return f"<Transporte(id={self.id_transporte}, tipo={self.tipo_vehiculo}, placa={self.placa}, modelo={self.modelo}, marca={self.marca})>"
@@ -72,7 +79,7 @@ class TransporteBase(BaseModel):
     capacidad_carga: float = Field(
         ..., gt=0, description="Capacidad de carga en kilogramos"
     )
-    id_sede: UUID = Field(..., description="ID de la sede a la que pertenece")
+    id_sede: uuid.UUID = Field(..., description="ID de la sede a la que pertenece")
     placa: str = Field(
         ..., min_length=6, max_length=10, description="Placa del vehículo"
     )
@@ -150,7 +157,7 @@ class TransporteCreate(TransporteBase):
 class TransporteUpdate(BaseModel):
     tipo_vehiculo: Optional[str] = Field(None, min_length=1, max_length=50)
     capacidad_carga: Optional[float] = Field(None, gt=0)
-    id_sede: Optional[UUID] = None
+    id_sede: Optional[uuid.UUID] = None
     placa: Optional[str] = Field(None, min_length=6, max_length=10)
     modelo: Optional[str] = Field(None, min_length=1, max_length=50)
     marca: Optional[str] = Field(None, min_length=1, max_length=50)
@@ -234,7 +241,7 @@ class TransporteUpdate(BaseModel):
 
 
 class TransporteResponse(TransporteBase):
-    id_transporte: UUID
+    id_transporte: uuid.UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     creado_por: str
