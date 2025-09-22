@@ -3,11 +3,17 @@ Configuración de la base de datos PostgreSQL con Neon
 """
 
 import os
-
+import logging
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+logging.basicConfig(level=logging.WARNING)
+logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.orm").setLevel(logging.WARNING)
+
 
 # Cargar variables de entorno
 load_dotenv()
@@ -38,7 +44,7 @@ def get_engine():
     """Create and configure the SQLAlchemy engine with UUID support"""
     engine = create_engine(
         DATABASE_URL,
-        echo=True,  # Mostrar las consultas SQL en consola
+        echo=False,  # No mostrar las consultas SQL en consola
         pool_pre_ping=True,  # Verificar conexión antes de usar
         pool_recycle=300,  # Reciclar conexiones cada 5 minutos
     )

@@ -1,115 +1,164 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Type
 from uuid import UUID
-
+from auth.security import Security
 from sqlalchemy.orm import Session
-
 from entities.usuario import Usuario, UsuarioCreate, UsuarioUpdate
 from .base_crud import CRUDBase
+from entities.rol import Rol
 
 
 class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
-    """CRUD operations for Usuario."""
-    
-    def get_by_username(self, db: Session, username: str) -> Optional[Usuario]:
-        """Get a user by username."""
-        return db.query(Usuario).filter(Usuario.username == username).first()
-    
-    def get_by_email(self, db: Session, correo: str) -> Optional[Usuario]:
-        """Get a user by email."""
-        return db.query(Usuario).filter(Usuario.correo == correo).first()
-    
-    def get_by_rol(self, db: Session, id_rol: UUID, skip: int = 0, limit: int = 100) -> List[Usuario]:
-        """Get users by role."""
+    """Operaciones CRUD para la entidad Usuario."""
+
+    def __init__(self, db: Session):
+        super().__init__(Usuario)
+        self.db = db
+
+    def obtener_por_nombre_usuario(self, nombre_usuario: str) -> Optional[Usuario]:
+        """Obtiene un usuario por su nombre de usuario."""
         return (
-            db.query(Usuario)
+            self.db.query(Usuario)
+            .filter(Usuario.nombre_usuario == nombre_usuario)
+            .first()
+        )
+
+    def obtener_por_correo(self, correo: str) -> Optional[Usuario]:
+        """Obtiene un usuario por su correo electrónico."""
+        return self.db.query(Usuario).filter(Usuario.correo == correo).first()
+
+    def obtener_por_rol(
+        self, id_rol: UUID, desde: int = 0, limite: int = 100
+    ) -> List[Usuario]:
+        """Obtiene usuarios por rol con paginación."""
+        return (
+            self.db.query(Usuario)
             .filter(Usuario.id_rol == id_rol)
-            .offset(skip)
-            .limit(limit)
+            .offset(desde)
+            .limit(limite)
             .all()
         )
-    
-    def get_activos(self, db: Session, skip: int = 0, limit: int = 100) -> List[Usuario]:
-        """Get active users."""
+
+    def obtener_activos(self, desde: int = 0, limite: int = 100) -> List[Usuario]:
+        """Obtiene usuarios activos con paginación."""
         return (
-            db.query(Usuario)
+            self.db.query(Usuario)
             .filter(Usuario.activo == True)  # noqa: E712
-            .offset(skip)
-            .limit(limit)
+            .offset(desde)
+            .limit(limite)
             .all()
         )
-    
-    def authenticate(self, db: Session, username: str, password: str) -> Optional[Usuario]:
-        """Authenticate a user."""
-        user = self.get_by_username(db, username=username)
-        if not user:
-            return None
-        if not user.verificar_contrasena(password):
-            return None
-        return user
-    
-    def create(self, db: Session, *, obj_in: UsuarioCreate, creado_por: UUID) -> Usuario:
-        """Create a new user."""
-        db_obj = Usuario(
-            **obj_in.dict(exclude={"contrasena"}),
-            contrasena=Usuario.generar_hash_contrasena(obj_in.contrasena),
-            creado_por=creado_por
+
+    def obtener_por_id(self, id_usuario: UUID) -> Optional[Usuario]:
+        return self.db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+
+    def autenticar(self, nombre_usuario: str, contrasena: str) -> Optional[Usuario]:
+        """
+        Autentica un usuario con su nombre de usuario y contraseña.
+
+        Args:
+            nombre_usuario: Nombre de usuario
+            contrasena: Contraseña en texto plano
+
+        Returns:
+            Usuario: Si las credenciales son válidas
+            None: Si la autenticación falla
+        """
+        # Cargar el usuario con la relación de rol
+        usuario = (
+            self.db.query(Usuario)
+            .filter(Usuario.nombre_usuario == nombre_usuario)
+            .first()
         )
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+
+        if not usuario:
+            return None
+
+        if not Security.verificar_contrasena(contrasena, usuario.password):
+            return None
+
+        # Forzar la carga del rol si no está cargado
+        if not hasattr(usuario, "_rol_cargado") or not usuario._rol_cargado:
+            self.db.refresh(usuario)
+
+        return usuario
+
+    def crear(self, *, datos_entrada: UsuarioCreate, creado_por: UUID) -> Usuario:
+        """Crea un nuevo usuario en el sistema."""
+        # Extraer los datos del usuario
+        datos_usuario = datos_entrada.model_dump()
+
+        # Crear el objeto de usuario con la contraseña en texto plano
+        db_obj = Usuario(**datos_usuario, creado_por=creado_por)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
         return db_obj
-    
-    def update(
+
+    def actualizar(
         self,
-        db: Session,
         *,
         db_obj: Usuario,
-        obj_in: Union[UsuarioUpdate, Dict[str, Any]],
-        actualizado_por: UUID
+        datos_actualizacion: Union[UsuarioUpdate, Dict[str, Any]],
+        actualizado_por: UUID,
     ) -> Usuario:
-        """Update a user."""
-        if isinstance(obj_in, dict):
-            update_data = obj_in
+        """Actualiza la información de un usuario existente."""
+        if isinstance(datos_actualizacion, dict):
+            datos_actualizados = datos_actualizacion
         else:
-            update_data = obj_in.dict(exclude_unset=True)
-        
-        if "contrasena" in update_data:
-            update_data["contrasena"] = Usuario.generar_hash_contrasena(update_data["contrasena"])
-        
-        update_data["actualizado_por"] = actualizado_por
-        return super().update(db, db_obj=db_obj, obj_in=update_data)
-    
-    def update_password(
-        self, db: Session, *, db_obj: Usuario, nueva_contrasena: str, actualizado_por: UUID
+            datos_actualizados = datos_actualizacion.dict(exclude_unset=True)
+
+        if "contrasena" in datos_actualizados:
+            datos_actualizados["contrasena"] = Usuario.generar_hash_contrasena(
+                datos_actualizados["contrasena"]
+            )
+
+        datos_actualizados["actualizado_por"] = actualizado_por
+        return super().actualizar(
+            objeto_db=db_obj, datos_actualizacion=datos_actualizados
+        )
+
+    def actualizar_contrasena(
+        self, *, db_obj: Usuario, nueva_contrasena: str, actualizado_por: UUID
     ) -> Usuario:
-        """Update user password."""
+        """Actualiza la contraseña de un usuario."""
         db_obj.contrasena = Usuario.generar_hash_contrasena(nueva_contrasena)
         db_obj.actualizado_por = actualizado_por
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
         return db_obj
-    
-    def deactivate(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Usuario:
-        """Deactivate a user."""
-        usuario = self.get(db, id)
+
+    def desactivar(self, *, id: UUID, actualizado_por: UUID) -> Usuario:
+        """Desactiva un usuario en el sistema."""
+        usuario = self.obtener_por_id(id)
         if usuario:
             usuario.activo = False
             usuario.actualizado_por = actualizado_por
-            db.add(usuario)
-            db.commit()
-            db.refresh(usuario)
+            self.db.add(usuario)
+            self.db.commit()
+            self.db.refresh(usuario)
         return usuario
-    
-    def is_active(self, usuario: Usuario) -> bool:
-        """Check if user is active."""
+
+    def esta_activo(self, usuario: Usuario) -> bool:
+        """Verifica si un usuario está activo."""
         return usuario.activo
-    
-    def is_superuser(self, usuario: Usuario) -> bool:
-        """Check if user is superuser."""
-        # Assuming there's a way to check if the user has admin role
-        # You might need to adjust this based on your role/permission system
-        return usuario.rol.nombre.lower() == "admin" if hasattr(usuario, "rol") and usuario.rol else False
 
+    def es_admin(self, usuario: Usuario) -> bool:
+        """
+        Verifica si un usuario es administrador.
 
-usuario = UsuarioCRUD(Usuario)
+        Args:
+            usuario: Instancia del usuario a verificar
+
+        Returns:
+            bool: True si el usuario es administrador, False en caso contrario
+        """
+        if not usuario.rol:
+            return False
+
+        rol = self.db.query(Rol).filter(Rol.id_rol == usuario.rol).first()
+
+        if not rol or not rol.nombre_rol:
+            return False
+
+        return rol.nombre_rol.lower() == "administrador"

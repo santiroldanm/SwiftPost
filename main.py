@@ -1,63 +1,112 @@
 import os
-from src.servicio_mensajeria import servicioMensajeria
+import getpass
+from cruds.usuario_crud import UsuarioCRUD
+from entities.usuario import Usuario
+from typing import Optional
+from database.config import SessionLocal
 
 
-def menu():
-    print("\n" + "=" * 60)
-    print("              SWIFTPOST - SISTEMA DE MENSAJERÍA              ")
-    print("=" * 60)
-    print("| 1 | Registrar cliente")
-    print("| 2 | Enviar paquete")
-    print("| 3 | Rastrear paquete")
-    print("| 4 | Calcular costo de envío")
-    print("| 5 | Listar paquetes")
-    print("| 6 | Actualizar estado de paquete")
-    print("| 7 | Salir")
-    print("=" * 60)
+class SwiftPost:
+    def __init__(self):
+        self.db = SessionLocal()
+        self.usuario_crud = UsuarioCRUD(self.db)
+        self.usuario_actual: Optional[Usuario] = None
+
+    def login(self):
+        self.limpiarConsola()
+        print("\n" + "=" * 50)
+        print("\033[1;34m" + "SWIFTPOST".center(50) + "\033[0m")
+        print("El Sistema de Mensajería #1 a nivel mundial".center(50))
+        print("=" * 50)
+        print("\n" + "INICIO DE SESIÓN".center(50) + "\n")
+        print("-" * 50)
+
+        intentos = 0
+        max_intentos = 3
+
+        while intentos < max_intentos:
+            try:
+                self.mostrar_mensaje(
+                    f"Intento {intentos + 1} de {max_intentos}", "info"
+                )
+
+                nombre_usuario = input("Usuario: ").strip()
+
+                if not nombre_usuario:
+                    self.mostrar_mensaje(
+                        "ERROR: El nombre de usuario es obligatorio", "error"
+                    )
+                    intentos += 1
+                    continue
+
+                contrasena = getpass.getpass("Contrasena: ")
+
+                if not contrasena:
+                    self.mostrar_mensaje("ERROR: La contrasena es obligatoria", "error")
+                    intentos += 1
+                    continue
+
+                usuario = self.usuario_crud.autenticar(nombre_usuario, contrasena)
+
+                if usuario is not None:
+                    self.usuario_actual = usuario
+                    self.mostrar_mensaje(
+                        f"\nEXITO: ¡Bienvenido, {usuario.primer_nombre} {usuario.primer_apellido}!",
+                        "exito",
+                    )
+                    if self.usuario_crud.es_admin(self.usuario_actual):
+                        self.mostrar_mensaje(
+                            "INFO: Tienes privilegios de administrador", "info"
+                        )
+                    return True
+                else:
+                    self.mostrar_mensaje(
+                        "ERROR: Credenciales incorrectas o usuario inactivo", "error"
+                    )
+                    intentos += 1
+
+            except KeyboardInterrupt:
+                self.mostrar_mensaje(
+                    "\n\nINFO: Operacion cancelada por el usuario", "info"
+                )
+                return False
+            except Exception as e:
+                self.mostrar_mensaje(f"ERROR: Error durante el login: {e}", "error")
+                intentos += 1
+
+        self.mostrar_mensaje(
+            f"\nERROR: Maximo de intentos ({max_intentos}) excedido. Acceso denegado.",
+            "error",
+        )
+        return False
+
+    def mostrar_mensaje(self, mensaje, tipo="info"):
+        """Muestra un mensaje formateado según su tipo
+
+        Args:
+            mensaje: El mensaje a mostrar
+            tipo: El tipo de mensaje (info(azul), exito(verde), advertencia(amarillo), error(rojo))
+        """
+        colores = {
+            "info": "\033[94m",
+            "exito": "\033[92m",
+            "advertencia": "\033[93m",
+            "error": "\033[91m",
+            "reset": "\033[0m",
+        }
+        print(f"{colores.get(tipo, '')}{mensaje}{colores['reset']}")
+
+    @staticmethod
+    def limpiarConsola():
+        os.system("cls" if os.name == "nt" else "clear")
 
 
-def main() -> None:
-    sistema: servicioMensajeria = servicioMensajeria()
-
-    while True:
-        menu()
-        opcion = input("Seleccione una opción: \n")
-        # ACTUALIZAR EL MENÚ SEGÚN SE VAYAN CREANDO FUNCIONES
-        if opcion == "1":
-            limpiarConsola()
-            sistema.crearCliente()
-
-        elif opcion == "2":
-            limpiarConsola()
-            sistema.crearPaquete()
-
-        elif opcion == "3":
-            limpiarConsola()
-            sistema.rastrearPaquete()
-
-        elif opcion == "4":
-            limpiarConsola()
-            sistema.calcularPrecioEnvio()
-
-        elif opcion == "5":
-            limpiarConsola()
-            sistema.buscarPaquete()
-
-        elif opcion == "6":
-            limpiarConsola()
-            sistema.actualizarEstadoPaquete()
-
-        elif opcion == "7":
-            limpiarConsola()
-            print("¡Gracias por confiar en SwiftPost, nos vemos pronto! \n")
-            break
-
-        else:
-            print("Opción no valida. Selecciona una opción correcta. \n")
-
-
-def limpiarConsola():
-    os.system("cls" if os.name == "nt" else "clear")
+def main():
+    app = SwiftPost()
+    try:
+        app.login()
+    finally:
+        app.db.close()
 
 
 if __name__ == "__main__":
