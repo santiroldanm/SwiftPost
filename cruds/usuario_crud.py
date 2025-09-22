@@ -82,17 +82,78 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
 
         return usuario
 
-    def crear(self, *, datos_entrada: UsuarioCreate, creado_por: UUID) -> Usuario:
-        """Crea un nuevo usuario en el sistema."""
-        # Extraer los datos del usuario
-        datos_usuario = datos_entrada.model_dump()
+    def crear(self, *, datos_entrada: UsuarioCreate) -> Optional[Usuario]:
+        """Crea un nuevo usuario en el sistema.
 
-        # Crear el objeto de usuario con la contraseña en texto plano
-        db_obj = Usuario(**datos_usuario, creado_por=creado_por)
-        self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
-        return db_obj
+        Args:
+            datos_entrada: Datos del usuario a crear
+
+        Returns:
+            Usuario: El usuario creado
+            None: Si ocurre un error al crear el usuario
+        """
+        print("\n[DEBUG] Iniciando creación de usuario...")
+        try:
+            # Extraer los datos del usuario
+            datos_usuario = datos_entrada.model_dump()
+            print(f"[DEBUG] Datos de entrada: {datos_usuario}")
+
+            # Verificar campos requeridos
+            campos_requeridos = [
+                "nombre_usuario",
+                "password",
+                "primer_nombre",
+                "primer_apellido",
+                "rol",
+            ]
+            for campo in campos_requeridos:
+                if campo not in datos_usuario or not datos_usuario[campo]:
+                    print(f"[ERROR] Campo requerido faltante o vacío: {campo}")
+                    return None
+
+            # Hashear la contraseña
+            if "password" in datos_usuario and datos_usuario["password"]:
+                print("[DEBUG] Hasheando contraseña...")
+                try:
+                    datos_usuario["password"] = Security.hash_password(
+                        datos_usuario["password"]
+                    )
+                    print("[DEBUG] Contraseña hasheada correctamente")
+                except Exception as hash_error:
+                    print(f"[ERROR] Error al hashear la contraseña: {str(hash_error)}")
+                    return None
+
+            # Crear el objeto de usuario
+            print("[DEBUG] Creando objeto Usuario...")
+            try:
+                db_obj = Usuario(**datos_usuario)
+                print(f"[DEBUG] Objeto Usuario creado: {db_obj}")
+            except Exception as create_error:
+                print(f"[ERROR] Error al crear objeto Usuario: {str(create_error)}")
+                return None
+
+            # Guardar en la base de datos
+            try:
+                print("[DEBUG] Guardando en la base de datos...")
+                self.db.add(db_obj)
+                self.db.commit()
+                self.db.refresh(db_obj)
+                print(
+                    f"[DEBUG] Usuario guardado exitosamente con ID: {db_obj.id_usuario}"
+                )
+                return db_obj
+            except Exception as db_error:
+                self.db.rollback()
+                print(f"[ERROR] Error al guardar en la base de datos: {str(db_error)}")
+                return None
+
+        except Exception as e:
+            self.db.rollback()
+            print(f"[ERROR] Error inesperado al crear usuario: {str(e)}")
+            import traceback
+
+            traceback.print_exc()
+            return None
 
     def actualizar(
         self,
@@ -117,6 +178,23 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
             objeto_db=db_obj, datos_actualizacion=datos_actualizados
         )
 
+    def eliminar(self, usuario_id: UUID) -> bool:
+        """
+        Eliminar un usuario
+
+        Args:
+            usuario_id: UUID del usuario
+
+        Returns:
+            True si se eliminó, False si no existe
+        """
+        usuario = self.obtener_por_id(usuario_id)
+        if usuario:
+            self.db.delete(usuario)
+            self.db.commit()
+            return True
+        return False
+
     def actualizar_contrasena(
         self, *, db_obj: Usuario, nueva_contrasena: str, actualizado_por: UUID
     ) -> Usuario:
@@ -128,7 +206,7 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
         self.db.refresh(db_obj)
         return db_obj
 
-    def desactivar(self, *, id: UUID, actualizado_por: UUID) -> Usuario:
+    def desactivar(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Usuario:
         """Desactiva un usuario en el sistema."""
         usuario = self.obtener_por_id(id)
         if usuario:
@@ -162,3 +240,43 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
             return False
 
         return rol.nombre_rol.lower() == "administrador"
+
+    def es_empleado(self, usuario: Usuario) -> bool:
+        """
+        Verifica si un usuario es empleado.
+
+        Args:
+            usuario: Instancia del usuario a verificar
+
+        Returns:
+            bool: True si el usuario es empleado, False en caso contrario
+        """
+        if not usuario.rol:
+            return False
+
+        rol = self.db.query(Rol).filter(Rol.id_rol == usuario.rol).first()
+
+        if not rol or not rol.nombre_rol:
+            return False
+
+        return rol.nombre_rol.lower() == "empleado"
+
+    def es_cliente(self, usuario: Usuario) -> bool:
+        """
+        Verifica si un usuario es cliente.
+
+        Args:
+            usuario: Instancia del usuario a verificar
+
+        Returns:
+            bool: True si el usuario es cliente, False en caso contrario
+        """
+        if not usuario.rol:
+            return False
+
+        rol = self.db.query(Rol).filter(Rol.id_rol == usuario.rol).first()
+
+        if not rol or not rol.nombre_rol:
+            return False
+
+        return rol.nombre_rol.lower() == "cliente"

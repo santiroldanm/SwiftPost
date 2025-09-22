@@ -50,7 +50,10 @@ class Usuario(Base):
         foreign_keys="DetalleEntrega.creado_por",
     )
     empleados = relationship(
-        "Empleado", back_populates="usuarios", foreign_keys="Empleado.creado_por"
+        "Empleado",
+        back_populates="usuarios",
+        foreign_keys="Empleado.creado_por",
+        cascade="all, delete-orphan"
     )
     paquetes = relationship(
         "Paquete", back_populates="usuarios", foreign_keys="Paquete.creado_por"
@@ -173,7 +176,10 @@ class UsuarioBase(BaseModel):
 
 
 class UsuarioCreate(UsuarioBase):
-    pass
+    rol: Optional[uuid.UUID] = Field(
+        None,
+        description="ID del rol del usuario"
+    )
 
 
 class UsuarioUpdate(BaseModel):

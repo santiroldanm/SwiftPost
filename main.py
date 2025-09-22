@@ -3,14 +3,26 @@ import getpass
 from cruds.usuario_crud import UsuarioCRUD
 from entities.usuario import Usuario
 from typing import Optional
-from database.config import SessionLocal
+from database.config import SessionLocal, create_tables
+from menus.admin_menu import AdminMenu
+from menus.empleado_menu import EmpleadoMenu
+from menus.cliente_menu import ClienteMenu
 
 
 class SwiftPost:
     def __init__(self):
+        self.db = None
+        self.usuario_crud = None
+        self.usuario_actual: Optional[Usuario] = None
+
+    def __enter__(self):
         self.db = SessionLocal()
         self.usuario_crud = UsuarioCRUD(self.db)
-        self.usuario_actual: Optional[Usuario] = None
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.db:
+            self.db.close()
 
     def login(self):
         self.limpiarConsola()
@@ -34,7 +46,8 @@ class SwiftPost:
 
                 if not nombre_usuario:
                     self.mostrar_mensaje(
-                        "ERROR: El nombre de usuario es obligatorio", "error"
+                        "ADVERTENCIA: El nombre de usuario es obligatorio",
+                        "advertencia",
                     )
                     intentos += 1
                     continue
@@ -42,7 +55,9 @@ class SwiftPost:
                 contrasena = getpass.getpass("Contrasena: ")
 
                 if not contrasena:
-                    self.mostrar_mensaje("ERROR: La contrasena es obligatoria", "error")
+                    self.mostrar_mensaje(
+                        "ADVERTENCIA: La contrasena es obligatoria", "advertencia"
+                    )
                     intentos += 1
                     continue
 
@@ -75,10 +90,46 @@ class SwiftPost:
                 intentos += 1
 
         self.mostrar_mensaje(
-            f"\nERROR: Maximo de intentos ({max_intentos}) excedido. Acceso denegado.",
+            f"\nERROR: Maximo de intentos ({max_intentos}) excedido.",
             "error",
         )
         return False
+
+    def ejecutar(self) -> None:
+        try:
+            self.mostrar_mensaje("INICIANDO SWIFTPOST...", "info")
+            self.mostrar_mensaje("Conectando y configurando base de datos...", "info")
+
+            if not self.db:
+                self.db = SessionLocal()
+                self.usuario_crud = UsuarioCRUD(self.db)
+
+            create_tables()
+            self.mostrar_mensaje("SWIFTPOST LISTO PARA USAR", "exito")
+
+            if not self.login():
+                self.mostrar_mensaje("ERROR: Acceso denegado", "error")
+                return
+
+            if not hasattr(self, "usuario_actual") or not self.usuario_actual:
+                self.mostrar_mensaje(
+                    "ERROR: No se pudo obtener la información del usuario.", "error"
+                )
+                return
+
+            if self.usuario_crud.es_admin(self.usuario_actual):
+                menu = AdminMenu(db=self.db, usuario_actual=self.usuario_actual)
+            elif self.usuario_crud.es_empleado(self.usuario_actual):
+                menu = EmpleadoMenu(self.db)
+            else:
+                menu = ClienteMenu(self.db)
+
+            menu.mostrar_menu()
+
+        except KeyboardInterrupt:
+            self.mostrar_mensaje("\n\nSistema interrumpido por el usuario.", "error")
+        except Exception as e:
+            self.mostrar_mensaje(f"\nError crítico: {e}", "error")
 
     def mostrar_mensaje(self, mensaje, tipo="info"):
         """Muestra un mensaje formateado según su tipo
@@ -102,11 +153,8 @@ class SwiftPost:
 
 
 def main():
-    app = SwiftPost()
-    try:
-        app.login()
-    finally:
-        app.db.close()
+    with SwiftPost() as sistema:
+        sistema.ejecutar()
 
 
 if __name__ == "__main__":

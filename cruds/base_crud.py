@@ -16,9 +16,17 @@ TipoActualizacion = TypeVar("TipoActualizacion", bound=BaseModel)
 class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
     """Clase base para operaciones CRUD con validaciones básicas."""
 
-    def __init__(self, modelo: Type[TipoModelo]):
-        """Inicializa CRUDBase con el modelo de base de datos."""
-        self.modelo = modelo
+    def __init__(self, db: Session, modelo: Type[TipoModelo] = None):
+        """
+        Inicializa CRUDBase con la sesión de base de datos y el modelo.
+        
+        Args:
+            db: Sesión de base de datos
+            modelo: Clase del modelo de base de datos
+        """
+        self.db = db
+        if modelo:
+            self.modelo = modelo
         self.longitud_minima_texto = 3
         self.longitud_maxima_texto = 100
         self.longitud_maxima_email = 255

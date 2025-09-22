@@ -79,7 +79,10 @@ class Empleado(Base):
     tipo_documento_rel = relationship("TipoDocumento", back_populates="empleados")
     sedes = relationship("Sede", back_populates="empleados")
     usuarios = relationship(
-        "Usuario", back_populates="empleados", foreign_keys=[creado_por]
+        "Usuario",
+        back_populates="empleados",
+        foreign_keys=[creado_por],
+        single_parent=True
     )
 
     def __repr__(self):
