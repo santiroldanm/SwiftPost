@@ -35,27 +35,32 @@ class Sede(Base):
         DateTime, default=datetime.now, onupdate=datetime.now, nullable=False
     )
     creado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
     actualizado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), default=None
+        String(36), ForeignKey("usuarios.id_usuario"), default=None
     )
 
-    sede_remitente = relationship(
+    # Relaciones con DetalleEntrega (sin back_populates para evitar dependencias circulares)
+    detalles_remitente = relationship(
         "DetalleEntrega",
         foreign_keys="DetalleEntrega.id_sede_remitente",
-        back_populates="sede_remitente",
+        viewonly=True
     )
-    sede_receptora = relationship(
+    detalles_receptor = relationship(
         "DetalleEntrega",
         foreign_keys="DetalleEntrega.id_sede_receptora",
-        back_populates="sede_receptora",
+        viewonly=True
     )
-    transportes = relationship("Transporte", back_populates="sedes")
-    empleados = relationship("Empleado", back_populates="sedes")
-    usuarios = relationship(
-        "Usuario", back_populates="sedes", foreign_keys="Sede.creado_por"
-    )
+    
+    # Relación con Transporte (sin back_populates para evitar dependencias circulares)
+    transportes = relationship("Transporte", foreign_keys="Transporte.id_sede", viewonly=True)
+    
+    # Relación con Empleado (sin back_populates para evitar dependencias circulares)
+    empleados = relationship("Empleado", foreign_keys="Empleado.id_sede", viewonly=True)
+    # Relaciones con Usuario para auditoría (sin back_populates en Usuario)
+    creador = relationship("Usuario", foreign_keys=[creado_por])
+    actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 
     def __repr__(self):
         return f"<Sede(id_sede={self.id_sede}, ciudad={self.ciudad}, direccion={self.direccion}, telefono={self.telefono})>"

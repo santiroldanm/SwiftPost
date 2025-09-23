@@ -14,7 +14,9 @@ class Cliente(Base):
     Modelo de Cliente que representa la tabla 'clientes'
     Atributos:
         id_cliente: Identificador único del cliente
-        documento: Documento del cliente
+        usuario_id: Referencia al usuario asociado (opcional, para clientes que son usuarios)
+        id_tipo_documento: Tipo de documento de identidad
+        numero_documento: Número de documento
         primer_nombre: Primer nombre del cliente
         segundo_nombre: Segundo nombre del cliente (opcional)
         primer_apellido: Primer apellido del cliente
@@ -26,20 +28,26 @@ class Cliente(Base):
         activo: Estado del cliente (activo/inactivo)
         fecha_creacion: Fecha y hora de creación
         fecha_actualizacion: Fecha y hora de última actualización
-        creado_por: Usuario que creó el cliente
         actualizado_por: Usuario que actualizó el cliente
     """
 
     __tablename__ = "clientes"
-    id_cliente = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    usuario = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    id_cliente = Column(
+        String(36),
+        ForeignKey("usuarios.id_usuario"),
+        primary_key=True,
+        comment="ID del cliente, igual al ID del usuario asociado"
     )
-    documento = Column(
+    
+    # Relación con Usuario (uno a uno, donde el id_cliente es el mismo que id_usuario)
+    usuario = relationship("Usuario", back_populates="cliente", foreign_keys=[id_cliente], uselist=False)
+    
+    id_tipo_documento = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("tipos_documentos.id_tipo_documento"),
         nullable=False,
     )
+    numero_documento = Column(String(20), nullable=False, unique=True)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), default=None, nullable=True)
     primer_apellido = Column(String(50), nullable=False)
@@ -51,35 +59,30 @@ class Cliente(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
-    )
-    actualizado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), default=None
-    )
 
-    paquetes = relationship(
-        "Paquete", back_populates="clientes", cascade="all, delete-orphan"
-    )
-    cliente_remitente = relationship(
+    # Relación con TipoDocumento
+    tipo_documento_rel = relationship("TipoDocumento", back_populates="clientes")
+    
+    # Relaciones con otros modelos
+    paquetes = relationship("Paquete", back_populates="cliente", cascade="all, delete-orphan")
+    
+    # Relaciones con DetalleEntrega (sin back_populates para evitar dependencias circulares)
+    envios_como_remitente = relationship(
         "DetalleEntrega",
-        back_populates="cliente_remitente",
         foreign_keys="DetalleEntrega.id_cliente_remitente",
-        cascade="all, delete-orphan",
+        viewonly=True
     )
-    cliente_receptor = relationship(
+    envios_como_receptor = relationship(
         "DetalleEntrega",
-        back_populates="cliente_receptor",
         foreign_keys="DetalleEntrega.id_cliente_receptor",
-        cascade="all, delete-orphan",
+        viewonly=True
     )
-    tipo_documento = relationship("TipoDocumento", back_populates="clientes")
-    usuarios = relationship(
-        "Usuario", back_populates="clientes", foreign_keys=[creado_por]
-    )
+    
+    # Relaciones de auditoría (usando backref desde Usuario)
+    # creador y actualizador están definidos por los backref en Usuario
 
     def __repr__(self):
-        return f"<Cliente(id={self.id_cliente}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, documento={self.documento}, telefono={self.telefono}, direccion={self.direccion}, correo={self.correo}, tipo={self.tipo})>"
+        return f"<Cliente(id={self.id_cliente}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, numero_documento={self.numero_documento}, telefono={self.telefono}, direccion={self.direccion}, correo={self.correo}, tipo={self.tipo})>"
 
     def to_dict(self):
         return {
@@ -88,7 +91,7 @@ class Cliente(Base):
             "segundo_nombre": self.segundo_nombre,
             "primer_apellido": self.primer_apellido,
             "segundo_apellido": self.segundo_apellido,
-            "documento": self.documento,
+            "numero_documento": self.numero_documento,
             "direccion": self.direccion,
             "telefono": self.telefono,
             "correo": self.correo,
@@ -109,7 +112,7 @@ class ClienteBase(BaseModel):
     segundo_apellido: Optional[str] = Field(
         min_length=1, max_length=50, description="Segundo apellido del cliente"
     )
-    documento: int = Field(..., gt=0, description="Número de documento del cliente")
+    numero_documento: str = Field(..., min_length=3, max_length=20, description="Número de documento del cliente")
     direccion: str = Field(
         ..., min_length=5, max_length=200, description="Dirección del cliente"
     )
@@ -160,34 +163,23 @@ class ClienteBase(BaseModel):
             raise ValueError("El segundo apellido solo puede contener letras")
         return v.strip().title()
 
-    @validator("documento")
-    def validar_documento(cls, v):
-        if v < 0 and len(str(v)) < 7:
-            raise ValueError(
-                "El documento debe ser un número positivo y tener al menos 7 dígitos"
-            )
-        return v
+    @validator("numero_documento")
+    def validar_numero_documento(cls, v):
+        if not v or not v.strip():
+            raise ValueError("El número de documento no puede estar vacío")
+        if len(v.strip()) < 3:
+            raise ValueError("El número de documento debe tener al menos 3 caracteres")
+        return v.strip()
 
     @validator("direccion")
     def validar_direccion(cls, v):
-        if not v or not v.strip():
-            raise ValueError("La dirección no puede estar vacía")
-        if len(v.strip()) < 5:
-            raise ValueError("La dirección debe tener al menos 5 caracteres")
-        return v.strip().title()
-
-    @validator("telefono")
-    def validar_telefono(cls, v):
-        if v < 0 and len(str(v)) < 7 or len(str(v)) > 15:
-            raise ValueError(
-                "El teléfono debe ser un número positivo y tener entre 7 y 15 dígitos"
-            )
+        if v is not None:
+            if not v.strip():
+                raise ValueError("La dirección no puede estar vacía")
+            if len(v.strip()) < 5:
+                raise ValueError("La dirección debe tener al menos 5 caracteres")
+            return v.strip().title()
         return v
-
-    @validator("correo")
-    def validar_correo(cls, v):
-        if not v or not v.strip():
-            raise ValueError("El correo no puede estar vacío")
         patron_email = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         if not re.match(patron_email, v.strip()):
             raise ValueError("Formato de correo electrónico no válido")
@@ -212,7 +204,7 @@ class ClienteUpdate(BaseModel):
     segundo_nombre: Optional[str] = Field(None, min_length=1, max_length=50)
     primer_apellido: Optional[str] = Field(None, min_length=1, max_length=50)
     segundo_apellido: Optional[str] = Field(None, min_length=1, max_length=50)
-    documento: Optional[int] = Field(None, gt=0)
+    numero_documento: Optional[str] = Field(None, min_length=3, max_length=20)
     direccion: Optional[str] = Field(None, min_length=5, max_length=200)
     telefono: Optional[int] = Field(None, gt=0)
     correo: Optional[str] = Field(None, min_length=5, max_length=100)
@@ -303,7 +295,6 @@ class ClienteResponse(ClienteBase):
     id_cliente: uuid.UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
-    creado_por: str
     actualizado_por: Optional[str] = None
 
     class Config:

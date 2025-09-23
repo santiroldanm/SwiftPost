@@ -8,24 +8,45 @@ from .base_crud import CRUDBase
 
 
 class TipoDocumentoCRUD(CRUDBase[TipoDocumento, TipoDocumentoCreate, TipoDocumentoUpdate]):
-    """CRUD operations for TipoDocumento."""
+    """Operaciones CRUD para TipoDocumento."""
     
     def get_by_nombre(self, db: Session, nombre: str) -> Optional[TipoDocumento]:
-        """Get a tipo documento by nombre."""
+        """Obtiene un tipo de documento por nombre."""
         return db.query(TipoDocumento).filter(TipoDocumento.nombre == nombre).first()
     
     def get_activos(self, db: Session, skip: int = 0, limit: int = 100) -> List[TipoDocumento]:
-        """Get active tipos de documento."""
-        return (
-            db.query(TipoDocumento)
-            .filter(TipoDocumento.activo == True)  # noqa: E712
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        """Obtiene tipos de documento activos."""
+        print("\n=== DEBUG: Iniciando get_activos ===")
+        print(f"Tipo de db: {type(db)}")
+        
+        # Verificar si la sesión es válida
+        try:
+            # Hacer una consulta simple para verificar la conexión
+            test = db.query(TipoDocumento).first()
+            print(f"Test query result: {test}")
+        except Exception as e:
+            print(f"Error al ejecutar consulta de prueba: {e}")
+            return []
+        
+        # Obtener los tipos de documento activos
+        try:
+            tipos = db.query(TipoDocumento)\
+                .filter(TipoDocumento.activo == True)\
+                .offset(skip)\
+                .limit(limit)\
+                .all()
+            
+            print(f"=== DEBUG: Tipos de documento encontrados: {len(tipos)} ===")
+            for i, t in enumerate(tipos, 1):
+                print(f"{i}. ID: {t.id_tipo_documento}, Nombre: {t.nombre}, Código: {t.codigo}")
+            
+            return tipos
+        except Exception as e:
+            print(f"Error en get_activos: {e}")
+            return []
     
     def create(self, db: Session, *, obj_in: TipoDocumentoCreate, creado_por: UUID) -> TipoDocumento:
-        """Create a new tipo documento."""
+        """Crea un nuevo tipo de documento."""
         db_obj = TipoDocumento(
             **obj_in.dict(),
             creado_por=creado_por
@@ -43,7 +64,7 @@ class TipoDocumentoCRUD(CRUDBase[TipoDocumento, TipoDocumentoCreate, TipoDocumen
         obj_in: Union[TipoDocumentoUpdate, Dict[str, Any]],
         actualizado_por: UUID
     ) -> TipoDocumento:
-        """Update a tipo documento."""
+        """Actualiza un tipo de documento."""
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -53,7 +74,7 @@ class TipoDocumentoCRUD(CRUDBase[TipoDocumento, TipoDocumentoCreate, TipoDocumen
         return super().update(db, db_obj=db_obj, obj_in=update_data)
     
     def deactivate(self, db: Session, *, id: UUID, actualizado_por: UUID) -> TipoDocumento:
-        """Deactivate a tipo documento."""
+        """Desactiva un tipo de documento."""
         tipo_documento = self.get(db, id)
         if tipo_documento:
             tipo_documento.activo = False
