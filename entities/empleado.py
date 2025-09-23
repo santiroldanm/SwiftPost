@@ -39,15 +39,19 @@ class Empleado(Base):
         activo: Estado del empleado (activo/inactivo)
         fecha_creacion: Fecha y hora de creación
         fecha_actualizacion: Fecha y hora de última actualización
-        creado_por: Usuario que creó el empleado
         actualizado_por: Usuario que actualizó el empleado
     """
 
     __tablename__ = "empleados"
-    id_empleado = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    usuario = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    id_empleado = Column(
+        String(36),
+        ForeignKey("usuarios.id_usuario"),
+        primary_key=True,
+        comment="ID del empleado, igual al ID del usuario asociado"
     )
+    
+    # Relación con Usuario
+    usuario = relationship("Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False)
     id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
@@ -69,18 +73,9 @@ class Empleado(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
-    )
-    actualizado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
-    )
 
     tipo_documento_rel = relationship("TipoDocumento", back_populates="empleados")
     sedes = relationship("Sede", back_populates="empleados")
-    usuarios = relationship(
-        "Usuario", back_populates="empleados", foreign_keys=[creado_por]
-    )
 
     def __repr__(self):
         return f"<Empleado(id={self.id_empleado}, sede={self.id_sede}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, tipo={self.tipo_empleado}, documento={self.documento}, fecha_nacimiento={self.fecha_nacimiento}, telefono={self.telefono}, correo={self.correo}, direccion={self.direccion}, salario={self.salario}, fecha_ingreso={self.fecha_ingreso})>"
@@ -401,7 +396,6 @@ class EmpleadoResponse(EmpleadoBase):
     id_empleado: uuid.UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
-    creado_por: str
     actualizado_por: Optional[str] = None
 
     class Config:

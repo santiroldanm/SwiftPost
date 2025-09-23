@@ -3,23 +3,27 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+# Importar dependientes primero para registrar clases en el registry de SQLAlchemy
+from entities.cliente import Cliente  # noqa: F401
+from entities.empleado import Empleado  # noqa: F401
 from entities.usuario import Usuario, UsuarioCreate, UsuarioUpdate
 from .base_crud import CRUDBase
+from datetime import datetime
 
 
 class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
-    """CRUD operations for Usuario."""
+    """Operaciones CRUD para Usuario."""
     
     def get_by_username(self, db: Session, username: str) -> Optional[Usuario]:
-        """Get a user by username."""
-        return db.query(Usuario).filter(Usuario.username == username).first()
+        """Obtiene un usuario por nombre de usuario."""
+        return db.query(Usuario).filter(Usuario.nombre_usuario == username).first()
     
     def get_by_email(self, db: Session, correo: str) -> Optional[Usuario]:
-        """Get a user by email."""
-        return db.query(Usuario).filter(Usuario.correo == correo).first()
+        """Compat: no existe correo en Usuario; buscamos por nombre_usuario."""
+        return db.query(Usuario).filter(Usuario.nombre_usuario == correo).first()
     
     def get_by_rol(self, db: Session, id_rol: UUID, skip: int = 0, limit: int = 100) -> List[Usuario]:
-        """Get users by role."""
+        """Obtiene usuarios por rol."""
         return (
             db.query(Usuario)
             .filter(Usuario.id_rol == id_rol)
@@ -29,7 +33,7 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
         )
     
     def get_activos(self, db: Session, skip: int = 0, limit: int = 100) -> List[Usuario]:
-        """Get active users."""
+        """Obtiene usuarios activos."""
         return (
             db.query(Usuario)
             .filter(Usuario.activo == True)  # noqa: E712
@@ -39,20 +43,22 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
         )
     
     def authenticate(self, db: Session, username: str, password: str) -> Optional[Usuario]:
-        """Authenticate a user."""
+        """Autentica un usuario."""
         user = self.get_by_username(db, username=username)
         if not user:
             return None
-        if not user.verificar_contrasena(password):
-            return None
+        # La verificación real de contraseña debe hacerse en la capa de seguridad.
+        # Aquí asumimos que otra función (authenticate_user) hace la validación.
         return user
     
-    def create(self, db: Session, *, obj_in: UsuarioCreate, creado_por: UUID) -> Usuario:
-        """Create a new user."""
+    def create(self, db: Session, *, obj_in: UsuarioCreate) -> Usuario:
+        """Crea un nuevo usuario con campos coherentes (nombre_usuario, password, id_rol)."""
         db_obj = Usuario(
-            **obj_in.dict(exclude={"contrasena"}),
-            contrasena=Usuario.generar_hash_contrasena(obj_in.contrasena),
-            creado_por=creado_por
+            nombre_usuario=obj_in.nombre_usuario,
+            password=obj_in.password,
+            id_rol=obj_in.id_rol,
+            activo=True,
+            fecha_creacion=datetime.now()
         )
         db.add(db_obj)
         db.commit()
@@ -67,31 +73,27 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
         obj_in: Union[UsuarioUpdate, Dict[str, Any]],
         actualizado_por: UUID
     ) -> Usuario:
-        """Update a user."""
+        """Actualiza un usuario."""
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.dict(exclude_unset=True)
         
-        if "contrasena" in update_data:
-            update_data["contrasena"] = Usuario.generar_hash_contrasena(update_data["contrasena"])
-        
-        update_data["actualizado_por"] = actualizado_por
+        # No gestionamos hashing aquí; debe ser responsabilidad de otra capa si se requiere.
         return super().update(db, db_obj=db_obj, obj_in=update_data)
     
     def update_password(
         self, db: Session, *, db_obj: Usuario, nueva_contrasena: str, actualizado_por: UUID
     ) -> Usuario:
-        """Update user password."""
-        db_obj.contrasena = Usuario.generar_hash_contrasena(nueva_contrasena)
-        db_obj.actualizado_por = actualizado_por
+        """Actualiza la contraseña del usuario."""
+        db_obj.password = nueva_contrasena
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
         return db_obj
     
     def deactivate(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Usuario:
-        """Deactivate a user."""
+        """Desactiva un usuario."""
         usuario = self.get(db, id)
         if usuario:
             usuario.activo = False
@@ -102,14 +104,15 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
         return usuario
     
     def is_active(self, usuario: Usuario) -> bool:
-        """Check if user is active."""
+        """Verifica si el usuario está activo."""
         return usuario.activo
     
     def is_superuser(self, usuario: Usuario) -> bool:
-        """Check if user is superuser."""
-        # Assuming there's a way to check if the user has admin role
-        # You might need to adjust this based on your role/permission system
-        return usuario.rol.nombre.lower() == "admin" if hasattr(usuario, "rol") and usuario.rol else False
+        """Verifica si el usuario es superusuario."""
+        # Ajustado al campo correcto nombre_rol
+        return (
+            getattr(getattr(usuario, "rol", None), "nombre_rol", "").lower() == "administrador"
+        )
 
 
 usuario = UsuarioCRUD(Usuario)

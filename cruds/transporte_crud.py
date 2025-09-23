@@ -8,16 +8,16 @@ from .base_crud import CRUDBase
 
 
 class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
-    """CRUD operations for Transporte."""
+    """Operaciones CRUD para Transporte."""
     
     def get_by_placa(self, db: Session, placa: str) -> Optional[Transporte]:
-        """Get a transporte by placa."""
+        """Obtiene un transporte por placa."""
         return db.query(Transporte).filter(Transporte.placa == placa).first()
     
     def get_by_estado(
         self, db: Session, estado: str, skip: int = 0, limit: int = 100
     ) -> List[Transporte]:
-        """Get transportes by estado."""
+        """Obtiene transportes por estado."""
         return (
             db.query(Transporte)
             .filter(Transporte.estado == estado)
@@ -29,7 +29,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
     def get_by_tipo(
         self, db: Session, tipo: str, skip: int = 0, limit: int = 100
     ) -> List[Transporte]:
-        """Get transportes by tipo."""
+        """Obtiene transportes por tipo."""
         return (
             db.query(Transporte)
             .filter(Transporte.tipo == tipo)
@@ -39,7 +39,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         )
     
     def get_activos(self, db: Session, skip: int = 0, limit: int = 100) -> List[Transporte]:
-        """Get active transportes."""
+        """Obtiene transportes activos."""
         return (
             db.query(Transporte)
             .filter(Transporte.activo == True)  # noqa: E712
@@ -49,7 +49,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         )
     
     def create(self, db: Session, *, obj_in: TransporteCreate, creado_por: UUID) -> Transporte:
-        """Create a new transporte."""
+        """Crea un nuevo transporte."""
         db_obj = Transporte(
             **obj_in.dict(),
             creado_por=creado_por
@@ -67,7 +67,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         nuevo_estado: str,
         actualizado_por: UUID
     ) -> Transporte:
-        """Update transporte estado."""
+        """Actualiza el estado de un transporte."""
         db_obj.estado = nuevo_estado
         db_obj.actualizado_por = actualizado_por
         db.add(db_obj)
@@ -83,7 +83,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         obj_in: Union[TransporteUpdate, Dict[str, Any]],
         actualizado_por: UUID
     ) -> Transporte:
-        """Update a transporte."""
+        """Actualiza un transporte."""
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -93,7 +93,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         return super().update(db, db_obj=db_obj, obj_in=update_data)
     
     def deactivate(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Transporte:
-        """Deactivate a transporte."""
+        """Desactiva un transporte."""
         transporte = self.get(db, id)
         if transporte:
             transporte.activo = False

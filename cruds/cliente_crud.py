@@ -41,8 +41,12 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
         if 'telefono' in datos and not self._validar_telefono(str(datos['telefono'])):
             return False
             
-        # Validar documento
-        if not self._validar_documento(datos.get('documento', '')):
+        # Validar número de documento
+        if not self._validar_documento(datos.get('numero_documento', '')):
+            return False
+            
+        # Validar ID de tipo de documento
+        if 'id_tipo_documento' not in datos:
             return False
             
         # Validar dirección
@@ -58,11 +62,20 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
             
         return True
     
-    def obtener_por_documento(self, db: Session, documento: str) -> Optional[Cliente]:
+    def obtener_por_documento(self, db: Session, numero_documento: str) -> Optional[Cliente]:
         """Obtiene un cliente por su número de documento."""
-        if not documento or not self._validar_documento(documento):
+        if not numero_documento or not self._validar_documento(numero_documento):
             return None
-        return db.query(Cliente).filter(Cliente.documento == documento).first()
+        return db.query(Cliente).filter(Cliente.numero_documento == numero_documento).first()
+
+    # Alias para compatibilidad con el main existente
+    def get_activos(
+        self, 
+        db: Session, 
+        saltar: int = 0, 
+        limite: int = 100
+    ):
+        return self.obtener_activos(db, saltar=saltar, limite=limite)
     
     def obtener_por_email(self, db: Session, correo: str) -> Optional[Cliente]:
         """Obtiene un cliente por su correo electrónico."""
@@ -103,35 +116,73 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
         db: Session, 
         *, 
         datos_entrada: ClienteCreate, 
-        creado_por: UUID
+        usuario_id: UUID,
     ) -> Optional[Cliente]:
         """Crea un nuevo cliente con validación de datos."""
-        datos = datos_entrada.dict()
-        
-        # Validar datos
-        if not self._validar_datos_cliente(datos):
-            return None
-            
-        # Verificar duplicados
-        if self.obtener_por_documento(db, datos['documento']):
-            return None
-            
-        if self.obtener_por_email(db, datos['correo']):
-            return None
-        
-        # Crear el cliente
         try:
-            cliente = Cliente(
-                **datos,
-                creado_por=creado_por,
-                fecha_creacion=datetime.utcnow(),
-                activo=True
-            )
+            print("\n=== DEBUG: Iniciando creación de cliente ===")
+            print(f"Datos de entrada: {datos_entrada}")
+            
+            # Convertir a diccionario si es necesario
+            if isinstance(datos_entrada, dict):
+                datos = datos_entrada.copy()
+            else:
+                datos = datos_entrada.dict()
+            
+            print(f"Datos convertidos a diccionario: {datos}")
+            
+            # Validar datos
+            if not self._validar_datos_cliente(datos):
+                print("Error: Validación de datos fallida")
+                return None
+                
+            # Verificar duplicados
+            if self.obtener_por_documento(db, datos['numero_documento']):
+                print(f"Error: Ya existe un cliente con el documento {datos['numero_documento']}")
+                return None
+                
+            if self.obtener_por_email(db, datos['correo']):
+                print(f"Error: Ya existe un cliente con el correo {datos['correo']}")
+                return None
+            
+            # Asegurarse de que los campos requeridos estén presentes
+            datos_creacion = {
+                'primer_nombre': datos['primer_nombre'],
+                'primer_apellido': datos['primer_apellido'],
+                'numero_documento': datos['numero_documento'],
+                'id_tipo_documento': datos['id_tipo_documento'],
+                'correo': datos['correo'].lower(),
+                'telefono': datos['telefono'],
+                'direccion': datos['direccion'],
+                'tipo': datos['tipo'],
+                'usuario_id': usuario_id,
+                'activo': True,
+                'fecha_creacion': datetime.utcnow()
+            }
+            
+            # Agregar campos opcionales si existen
+            if 'segundo_nombre' in datos and datos['segundo_nombre']:
+                datos_creacion['segundo_nombre'] = datos['segundo_nombre']
+                
+            if 'segundo_apellido' in datos and datos['segundo_apellido']:
+                datos_creacion['segundo_apellido'] = datos['segundo_apellido']
+            
+            print(f"Datos para crear el cliente: {datos_creacion}")
+            
+            # Crear el cliente
+            cliente = Cliente(**datos_creacion)
+            
             db.add(cliente)
             db.commit()
             db.refresh(cliente)
+            
+            print(f"Cliente creado exitosamente con ID: {cliente.id_cliente}")
             return cliente
-        except Exception:
+            
+        except Exception as e:
+            print(f"Error al crear el cliente: {e}")
+            import traceback
+            traceback.print_exc()
             db.rollback()
             return None
     
