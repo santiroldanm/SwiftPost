@@ -8,14 +8,14 @@ from .base_crud import CRUDBase
 
 
 class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
-    """CRUD operations for Sede."""
+    """Operaciones CRUD para Sede."""
     
     def get_by_nombre(self, db: Session, nombre: str) -> Optional[Sede]:
-        """Get a sede by nombre."""
+        """Obtiene una sede por nombre."""
         return db.query(Sede).filter(Sede.nombre == nombre).first()
     
     def get_by_ciudad(self, db: Session, ciudad: str, skip: int = 0, limit: int = 100) -> List[Sede]:
-        """Get sedes by ciudad."""
+        """Obtiene sedes por ciudad."""
         return (
             db.query(Sede)
             .filter(Sede.ciudad == ciudad)
@@ -25,7 +25,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
         )
     
     def get_activas(self, db: Session, skip: int = 0, limit: int = 100) -> List[Sede]:
-        """Get active sedes."""
+        """Obtiene sedes activas."""
         return (
             db.query(Sede)
             .filter(Sede.activa == True)  # noqa: E712
@@ -35,7 +35,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
         )
     
     def create(self, db: Session, *, obj_in: SedeCreate, creado_por: UUID) -> Sede:
-        """Create a new sede."""
+        """Crea una nueva sede."""
         db_obj = Sede(
             **obj_in.dict(),
             creado_por=creado_por
@@ -53,7 +53,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
         obj_in: Union[SedeUpdate, Dict[str, Any]],
         actualizado_por: UUID
     ) -> Sede:
-        """Update a sede."""
+        """Actualiza una sede."""
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -63,7 +63,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
         return super().update(db, db_obj=db_obj, obj_in=update_data)
     
     def deactivate(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Sede:
-        """Deactivate a sede."""
+        """Desactiva una sede."""
         sede = self.get(db, id)
         if sede:
             sede.activa = False

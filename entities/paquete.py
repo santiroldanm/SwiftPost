@@ -40,19 +40,20 @@ class Paquete(Base):
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
     creado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
     actualizado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
 
-    clientes = relationship("Cliente", back_populates="paquetes")
-    detalles_entrega = relationship(
-        "DetalleEntrega", back_populates="paquetes", cascade="all, delete-orphan"
-    )
-    usuarios = relationship(
-        "Usuario", back_populates="paquetes", foreign_keys=[creado_por]
-    )
+    # Relación con Cliente (bidireccional)
+    cliente = relationship("Cliente", back_populates="paquetes", foreign_keys=[id_cliente])
+    
+    # Relación con DetalleEntrega (unidireccional)
+    detalle_entrega = relationship("DetalleEntrega", back_populates="paquete", uselist=False)
+    # Relaciones con Usuario para auditoría (sin back_populates en Usuario)
+    creador = relationship("Usuario", foreign_keys=[creado_por])
+    actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 
     def __repr__(self):
         return f"<Paquete(id_paquete={self.id_paquete}, cliente={self.id_cliente}, peso={self.peso}, tamaño={self.tamaño}, fragilidad={self.fragilidad}, contenido={self.contenido}, tipo={self.tipo})>"

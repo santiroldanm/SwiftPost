@@ -52,30 +52,25 @@ class DetalleEntrega(Base):
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
     creado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
     actualizado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
 
-    sede_remitente = relationship(
-        "Sede", foreign_keys=[id_sede_remitente], back_populates="sede_remitente"
-    )
-    sede_receptora = relationship(
-        "Sede", foreign_keys=[id_sede_receptora], back_populates="sede_receptora"
-    )
-    paquetes = relationship("Paquete", back_populates="detalles_entrega")
-    cliente_remitente = relationship(
-        "Cliente",
-        foreign_keys=[id_cliente_remitente],
-        back_populates="cliente_remitente",
-    )
-    cliente_receptor = relationship(
-        "Cliente", foreign_keys=[id_cliente_receptor], back_populates="cliente_receptor"
-    )
-    usuarios = relationship(
-        "Usuario", back_populates="detalles_entrega", foreign_keys=[creado_por]
-    )
+    # Relaciones con Sede (sin back_populates para evitar dependencias circulares)
+    sede_remitente_rel = relationship("Sede", foreign_keys=[id_sede_remitente])
+    sede_receptora_rel = relationship("Sede", foreign_keys=[id_sede_receptora])
+    # Relación con Paquete (unidireccional)
+    paquete = relationship("Paquete", back_populates="detalle_entrega", foreign_keys=[id_paquete], uselist=False)
+    
+    # Relaciones con Cliente (sin back_populates para evitar dependencias circulares)
+    cliente_remitente = relationship("Cliente", foreign_keys=[id_cliente_remitente])
+    cliente_receptor = relationship("Cliente", foreign_keys=[id_cliente_receptor])
+    
+    # Relaciones con Usuario para auditoría (sin back_populates)
+    creador = relationship("Usuario", foreign_keys=[creado_por])
+    actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 
     def __repr__(self):
         return f"<DetalleEntrega(id_detalle={self.id_detalle}, estado={self.estado_envio}, paquete={self.id_paquete}), cliente_remitente={self.id_cliente_remitente}, cliente_receptor={self.id_cliente_receptor}), fecha_envio={self.fecha_envio}, fecha_entrega={self.fecha_entrega}, observaciones={self.observaciones}, id_sede_remitente={self.id_sede_remitente}, id_sede_receptora={self.id_sede_receptora})>"

@@ -45,8 +45,8 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
         if not self._validar_documento(datos.get('documento', '')):
             return False
             
-        # Validar cargo
-        if datos.get('cargo') not in self.cargos_permitidos:
+        # Validar tipo_empleado
+        if datos.get('tipo_empleado') not in self.cargos_permitidos:
             return False
             
         return True
@@ -85,7 +85,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
         if cargo not in self.cargos_permitidos:
             return [], 0
             
-        consulta = db.query(Empleado).filter(Empleado.cargo == cargo, Empleado.activo == True)
+        consulta = db.query(Empleado).filter(Empleado.tipo_empleado == cargo, Empleado.activo == True)
         total = consulta.count()
         resultados = consulta.offset(saltar).limit(limite).all()
         return resultados, total
@@ -144,7 +144,8 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
         db: Session, 
         *, 
         datos_entrada: EmpleadoCreate, 
-        creado_por: UUID
+        creado_por: UUID,
+        usuario_id: UUID,
     ) -> Optional[Empleado]:
         """
         Crea un nuevo empleado con validación de datos.
@@ -174,6 +175,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
         try:
             empleado = Empleado(
                 **datos,
+                usuario_id=usuario_id,
                 creado_por=creado_por,
                 fecha_creacion=datetime.utcnow(),
                 activo=True
