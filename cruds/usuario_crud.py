@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 # Importar dependientes primero para registrar clases en el registry de SQLAlchemy
 from entities.cliente import Cliente  # noqa: F401
@@ -13,16 +13,40 @@ from datetime import datetime
 
 class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
     """Operaciones CRUD para Usuario."""
-    
+
     def get_by_username(self, db: Session, username: str) -> Optional[Usuario]:
         """Obtiene un usuario por nombre de usuario."""
-        return db.query(Usuario).filter(Usuario.nombre_usuario == username).first()
-    
+        return (
+            db.query(Usuario)
+            .options(joinedload(Usuario.rol))
+            .filter(Usuario.nombre_usuario == username)
+            .first()
+        )
+
+    def obtener_por_id(self, db: Session, id_usuario: str) -> Optional[Usuario]:
+        """
+        Obtiene un usuario por su ID.
+
+        Args:
+            db: Sesión de base de datos
+            id_usuario: ID del usuario a buscar
+
+        Returns:
+            Usuario si se encuentra, None en caso contrario
+        """
+        try:
+            return db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+        except Exception as e:
+            print(f"Error al buscar el usuario: {e}")
+            return None
+
     def get_by_email(self, db: Session, correo: str) -> Optional[Usuario]:
         """Compat: no existe correo en Usuario; buscamos por nombre_usuario."""
         return db.query(Usuario).filter(Usuario.nombre_usuario == correo).first()
-    
-    def get_by_rol(self, db: Session, id_rol: UUID, skip: int = 0, limit: int = 100) -> List[Usuario]:
+
+    def get_by_rol(
+        self, db: Session, id_rol: UUID, skip: int = 0, limit: int = 100
+    ) -> List[Usuario]:
         """Obtiene usuarios por rol."""
         return (
             db.query(Usuario)
@@ -31,8 +55,10 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
             .limit(limit)
             .all()
         )
-    
-    def get_activos(self, db: Session, skip: int = 0, limit: int = 100) -> List[Usuario]:
+
+    def get_activos(
+        self, db: Session, skip: int = 0, limit: int = 100
+    ) -> List[Usuario]:
         """Obtiene usuarios activos."""
         return (
             db.query(Usuario)
@@ -41,16 +67,19 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
             .limit(limit)
             .all()
         )
-    
-    def authenticate(self, db: Session, username: str, password: str) -> Optional[Usuario]:
+
+    def authenticate(
+        self, db: Session, username: str, password: str
+    ) -> Optional[Usuario]:
         """Autentica un usuario."""
+        # get_by_username ya carga la relación rol con joinedload
         user = self.get_by_username(db, username=username)
         if not user:
             return None
         # La verificación real de contraseña debe hacerse en la capa de seguridad.
         # Aquí asumimos que otra función (authenticate_user) hace la validación.
         return user
-    
+
     def create(self, db: Session, *, obj_in: UsuarioCreate) -> Usuario:
         """Crea un nuevo usuario con campos coherentes (nombre_usuario, password, id_rol)."""
         db_obj = Usuario(
@@ -58,40 +87,46 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
             password=obj_in.password,
             id_rol=obj_in.id_rol,
             activo=True,
-            fecha_creacion=datetime.now()
+            fecha_creacion=datetime.now(),
         )
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
         return db_obj
-    
+
     def update(
         self,
         db: Session,
         *,
         db_obj: Usuario,
         obj_in: Union[UsuarioUpdate, Dict[str, Any]],
-        actualizado_por: UUID
+        fecha_actualizacion: datetime,
     ) -> Usuario:
         """Actualiza un usuario."""
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.dict(exclude_unset=True)
-        
+
         # No gestionamos hashing aquí; debe ser responsabilidad de otra capa si se requiere.
         return super().update(db, db_obj=db_obj, obj_in=update_data)
-    
+
     def update_password(
-        self, db: Session, *, db_obj: Usuario, nueva_contrasena: str, actualizado_por: UUID
+        self,
+        db: Session,
+        *,
+        db_obj: Usuario,
+        nueva_contrasena: str,
+        fecha_actualizacion: datetime,
     ) -> Usuario:
         """Actualiza la contraseña del usuario."""
         db_obj.password = nueva_contrasena
+        db_obj.fecha_actualizacion = fecha_actualizacion
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
         return db_obj
-    
+
     def deactivate(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Usuario:
         """Desactiva un usuario."""
         usuario = self.get(db, id)
@@ -102,16 +137,17 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
             db.commit()
             db.refresh(usuario)
         return usuario
-    
+
     def is_active(self, usuario: Usuario) -> bool:
         """Verifica si el usuario está activo."""
         return usuario.activo
-    
+
     def is_superuser(self, usuario: Usuario) -> bool:
         """Verifica si el usuario es superusuario."""
         # Ajustado al campo correcto nombre_rol
         return (
-            getattr(getattr(usuario, "rol", None), "nombre_rol", "").lower() == "administrador"
+            getattr(getattr(usuario, "rol", None), "nombre_rol", "").lower()
+            == "administrador"
         )
 
 

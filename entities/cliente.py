@@ -36,12 +36,14 @@ class Cliente(Base):
         String(36),
         ForeignKey("usuarios.id_usuario"),
         primary_key=True,
-        comment="ID del cliente, igual al ID del usuario asociado"
+        comment="ID del cliente, igual al ID del usuario asociado",
     )
-    
+
     # Relación con Usuario (uno a uno, donde el id_cliente es el mismo que id_usuario)
-    usuario = relationship("Usuario", back_populates="cliente", foreign_keys=[id_cliente], uselist=False)
-    
+    usuario = relationship(
+        "Usuario", back_populates="cliente", foreign_keys=[id_cliente], uselist=False
+    )
+
     id_tipo_documento = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("tipos_documentos.id_tipo_documento"),
@@ -62,31 +64,34 @@ class Cliente(Base):
 
     # Relación con TipoDocumento
     tipo_documento_rel = relationship("TipoDocumento", back_populates="clientes")
-    
+
     # Relaciones con otros modelos
-    paquetes = relationship("Paquete", back_populates="cliente", cascade="all, delete-orphan")
-    
+    paquetes = relationship(
+        "Paquete", back_populates="cliente", cascade="all, delete-orphan"
+    )
+
     # Relaciones con DetalleEntrega (sin back_populates para evitar dependencias circulares)
     envios_como_remitente = relationship(
         "DetalleEntrega",
         foreign_keys="DetalleEntrega.id_cliente_remitente",
-        viewonly=True
+        viewonly=True,
     )
     envios_como_receptor = relationship(
         "DetalleEntrega",
         foreign_keys="DetalleEntrega.id_cliente_receptor",
-        viewonly=True
+        viewonly=True,
     )
-    
+
     # Relaciones de auditoría (usando backref desde Usuario)
     # creador y actualizador están definidos por los backref en Usuario
 
     def __repr__(self):
-        return f"<Cliente(id={self.id_cliente}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, numero_documento={self.numero_documento}, telefono={self.telefono}, direccion={self.direccion}, correo={self.correo}, tipo={self.tipo})>"
+        return f"<Cliente(id={self.id_cliente},id_tipo_documento={self.id_tipo_documento}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, numero_documento={self.numero_documento}, telefono={self.telefono}, direccion={self.direccion}, correo={self.correo}, tipo={self.tipo})>"
 
     def to_dict(self):
         return {
             "id": self.id_cliente,
+            "id_tipo_documento": self.id_tipo_documento,
             "primer_nombre": self.primer_nombre,
             "segundo_nombre": self.segundo_nombre,
             "primer_apellido": self.primer_apellido,
@@ -100,6 +105,7 @@ class Cliente(Base):
 
 
 class ClienteBase(BaseModel):
+    id_tipo_documento: uuid.UUID = Field(..., description="ID del tipo de documento")
     primer_nombre: str = Field(
         ..., min_length=1, max_length=50, description="Primer nombre del cliente"
     )
@@ -112,7 +118,9 @@ class ClienteBase(BaseModel):
     segundo_apellido: Optional[str] = Field(
         min_length=1, max_length=50, description="Segundo apellido del cliente"
     )
-    numero_documento: str = Field(..., min_length=3, max_length=20, description="Número de documento del cliente")
+    numero_documento: str = Field(
+        ..., min_length=3, max_length=20, description="Número de documento del cliente"
+    )
     direccion: str = Field(
         ..., min_length=5, max_length=200, description="Dirección del cliente"
     )

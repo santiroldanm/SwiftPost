@@ -10,6 +10,22 @@ from .base_crud import CRUDBase
 class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
     """Operaciones CRUD para Sede."""
     
+    def get_multi(
+        self, db: Session, skip: int = 0, limit: int = 100
+    ) -> List[Sede]:
+        """
+        Obtiene múltiples sedes con paginación.
+
+        Args:
+            db: Sesión de base de datos
+            skip: Número de registros a omitir (para paginación)
+            limit: Número máximo de registros a devolver
+
+        Returns:
+            Lista de sedes
+        """
+        return db.query(self.modelo).offset(skip).limit(limit).all()
+    
     def get_by_nombre(self, db: Session, nombre: str) -> Optional[Sede]:
         """Obtiene una sede por nombre."""
         return db.query(Sede).filter(Sede.nombre == nombre).first()
@@ -28,7 +44,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
         """Obtiene sedes activas."""
         return (
             db.query(Sede)
-            .filter(Sede.activa == True)  # noqa: E712
+            .filter(Sede.activo == True)  # noqa: E712
             .offset(skip)
             .limit(limit)
             .all()

@@ -36,7 +36,7 @@ if not DATABASE_URL:
 # Configurar el motor de SQLAlchemy
 engine = create_engine(
     DATABASE_URL,
-    echo=True,  # Mostrar consultas SQL en la consola (útil para desarrollo)
+    echo=False,  # Desactivar logs de consultas SQL
     pool_pre_ping=True,  # Verificar la conexión antes de usarla
     pool_recycle=300,  # Reciclar conexiones cada 5 minutos
 )

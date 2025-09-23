@@ -10,6 +10,22 @@ from .base_crud import CRUDBase
 class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
     """Operaciones CRUD para Transporte."""
     
+    def get_multi(
+        self, db: Session, skip: int = 0, limit: int = 100
+    ) -> List[Transporte]:
+        """
+        Obtiene múltiples transportes con paginación.
+
+        Args:
+            db: Sesión de base de datos
+            skip: Número de registros a omitir (para paginación)
+            limit: Número máximo de registros a devolver
+
+        Returns:
+            Lista de transportes
+        """
+        return db.query(self.modelo).offset(skip).limit(limit).all()
+    
     def get_by_placa(self, db: Session, placa: str) -> Optional[Transporte]:
         """Obtiene un transporte por placa."""
         return db.query(Transporte).filter(Transporte.placa == placa).first()

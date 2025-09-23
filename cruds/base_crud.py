@@ -22,8 +22,8 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
         self.longitud_minima_texto = 3
         self.longitud_maxima_texto = 100
         self.longitud_maxima_email = 255
-        self.formato_telefono = r'^\+?[0-9\s-]{8,15}$'
-        self.formato_documento = r'^[0-9]{8,15}$'
+        self.formato_telefono = r"^\+?[0-9\s-]{8,15}$"
+        self.formato_documento = r"^[0-9]{8,15}$"
 
     def _validar_longitud_texto(self, campo: str, valor: str) -> bool:
         """Valida que el texto cumpla con la longitud requerida."""
@@ -33,10 +33,16 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
 
     def _validar_email(self, email: str) -> bool:
         """Valida el formato del correo electrónico."""
-        if not email or not isinstance(email, str) or len(email) > self.longitud_maxima_email:
+        if (
+            not email
+            or not isinstance(email, str)
+            or len(email) > self.longitud_maxima_email
+        ):
             return False
         try:
-            return bool(re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email))
+            return bool(
+                re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email)
+            )
         except re.error:
             return False
 
@@ -67,7 +73,9 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
         resultados = consulta.offset(saltar).limit(limite).all()
         return resultados, total
 
-    def crear(self, db: Session, *, datos_entrada: TipoCreacion) -> Optional[TipoModelo]:
+    def crear(
+        self, db: Session, *, datos_entrada: TipoCreacion
+    ) -> Optional[TipoModelo]:
         """Crea un nuevo registro con validación básica."""
         try:
             datos = datos_entrada.dict()
@@ -85,25 +93,42 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
         db: Session,
         *,
         objeto_db: TipoModelo,
-        datos_entrada: Union[TipoActualizacion, Dict[str, Any]]
+        datos_entrada: Union[TipoActualizacion, Dict[str, Any]],
+        fecha_actualizacion: Optional[datetime] = None,
     ) -> Optional[TipoModelo]:
-        """Actualiza un registro existente."""
+        """Actualiza un registro existente.
+
+        Args:
+            db: Sesión de base de datos
+            objeto_db: Instancia del modelo a actualizar
+            datos_entrada: Datos para actualizar (pueden ser un diccionario o un modelo Pydantic)
+            fecha_actualizacion: Fecha de actualización (opcional)
+
+        Returns:
+            El objeto actualizado o None si ocurre un error
+        """
         try:
             if isinstance(datos_entrada, dict):
                 datos_actualizados = datos_entrada
             else:
                 datos_actualizados = datos_entrada.dict(exclude_unset=True)
 
+            # Actualizar campos de auditoría
+            if hasattr(objeto_db, "fecha_actualizacion"):
+                setattr(objeto_db, "fecha_actualizacion", fecha_actualizacion)
+
+            # Actualizar los campos del objeto
             for campo, valor in datos_actualizados.items():
                 if hasattr(objeto_db, campo):
                     setattr(objeto_db, campo, valor)
-            
+
             db.add(objeto_db)
             db.commit()
             db.refresh(objeto_db)
             return objeto_db
-        except Exception:
+        except Exception as e:
             db.rollback()
+            print(f"Error al actualizar el registro: {str(e)}")
             return None
 
     def eliminar(self, db: Session, *, id: UUID) -> bool:
@@ -118,14 +143,16 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
         except Exception:
             db.rollback()
             return False
-        
+
     def obtener_por_campo(
         self, db: Session, *, campo: str, valor: Any
     ) -> Optional[TipoModelo]:
         """Obtiene un registro por un campo específico."""
         if not hasattr(self.modelo, campo):
             return None
-        return db.query(self.modelo).filter(getattr(self.modelo, campo) == valor).first()
+        return (
+            db.query(self.modelo).filter(getattr(self.modelo, campo) == valor).first()
+        )
 
     def obtener_varios_por_campo(
         self, db: Session, *, campo: str, valor: Any, saltar: int = 0, limite: int = 100
@@ -133,7 +160,7 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
         """Obtiene múltiples registros filtrados por un campo específico."""
         if not hasattr(self.modelo, campo):
             return [], 0
-            
+
         consulta = db.query(self.modelo).filter(getattr(self.modelo, campo) == valor)
         total = consulta.count()
         resultados = consulta.offset(saltar).limit(limite).all()

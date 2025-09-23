@@ -47,11 +47,13 @@ class Empleado(Base):
         String(36),
         ForeignKey("usuarios.id_usuario"),
         primary_key=True,
-        comment="ID del empleado, igual al ID del usuario asociado"
+        comment="ID del empleado, igual al ID del usuario asociado",
     )
-    
+
     # Relación con Usuario
-    usuario = relationship("Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False)
+    usuario = relationship(
+        "Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False
+    )
     id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
@@ -62,7 +64,7 @@ class Empleado(Base):
         ForeignKey("tipos_documentos.id_tipo_documento"),
         nullable=False,
     )
-    documento = Column(String(20), nullable=False)
+    numero_documento = Column(Integer, nullable=False, unique=True)
     fecha_nacimiento = Column(Date, nullable=False)
     telefono = Column(String(15), nullable=False)
     correo = Column(String(100), nullable=False, unique=True)
@@ -78,7 +80,7 @@ class Empleado(Base):
     sedes = relationship("Sede", back_populates="empleados")
 
     def __repr__(self):
-        return f"<Empleado(id={self.id_empleado}, sede={self.id_sede}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, tipo={self.tipo_empleado}, documento={self.documento}, fecha_nacimiento={self.fecha_nacimiento}, telefono={self.telefono}, correo={self.correo}, direccion={self.direccion}, salario={self.salario}, fecha_ingreso={self.fecha_ingreso})>"
+        return f"<Empleado(id={self.id_empleado}, sede={self.id_sede}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, tipo={self.tipo_empleado}, numero_documento={self.numero_documento}, fecha_nacimiento={self.fecha_nacimiento}, telefono={self.telefono}, correo={self.correo}, direccion={self.direccion}, salario={self.salario}, fecha_ingreso={self.fecha_ingreso})>"
 
     def to_dict(self):
         return {
@@ -110,6 +112,13 @@ class EmpleadoBase(BaseModel):
     segundo_apellido: Optional[str] = Field(
         None, min_length=1, max_length=50, description="Segundo apellido del empleado"
     )
+    id_sede: uuid.UUID = Field(
+        ..., description="ID de la sede donde trabaja el empleado"
+    )
+    tipo_documento: uuid.UUID = Field(
+        ..., description="ID del tipo de documento de identidad"
+    )
+    numero_documento: int = Field(..., description="Número de documento de identidad")
     fecha_nacimiento: date = Field(..., description="Fecha de nacimiento del empleado")
     telefono: str = Field(
         ..., min_length=7, max_length=15, description="Número de teléfono del empleado"
@@ -131,6 +140,7 @@ class EmpleadoBase(BaseModel):
     )
     salario: float = Field(..., gt=0, description="Salario del empleado")
     fecha_ingreso: date = Field(..., description="Fecha de ingreso a la empresa")
+    activo: bool = Field(default=True, description="Indica si el empleado está activo")
 
     @validator("primer_nombre")
     def validar_primer_nombre(cls, v):

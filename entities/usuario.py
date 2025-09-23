@@ -34,7 +34,7 @@ class Usuario(Base):
     __tablename__ = "usuarios"
     # ID del usuario (UUID como string de 36 caracteres)
     id_usuario = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    
+
     # FK al rol (tipo de usuario): cliente, empleado, administrador
     id_rol = Column(String(36), ForeignKey("roles.id_rol"), nullable=False, index=True)
     # Credenciales y estado
@@ -42,16 +42,27 @@ class Usuario(Base):
     password = Column(String(255), nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
-    fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
+    fecha_actualizacion = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     # Relación con el rol
     rol = relationship("Rol", back_populates="usuarios", foreign_keys=[id_rol])
 
     # Relaciones uno a uno con perfiles específicos
-    cliente = relationship("Cliente", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Cliente.id_cliente")
-    empleado = relationship("Empleado", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Empleado.id_empleado")
-     
-  
+    cliente = relationship(
+        "Cliente",
+        back_populates="usuario",
+        uselist=False,
+        cascade="all, delete-orphan",
+        foreign_keys="Cliente.id_cliente",
+    )
+    empleado = relationship(
+        "Empleado",
+        back_populates="usuario",
+        uselist=False,
+        cascade="all, delete-orphan",
+        foreign_keys="Empleado.id_empleado",
+    )
+
     # Otras relaciones (comentadas hasta que sean necesarias)
     # sedes = relationship("Sede", back_populates="usuario")
     # empleados = relationship("Empleado", back_populates="usuario")

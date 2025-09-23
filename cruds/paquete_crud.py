@@ -21,6 +21,22 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         self.valor_minimo = 0.0
         self.valor_maximo = 1000000.0  # Valor máximo declarado
     
+    def get_multi(
+        self, db: Session, skip: int = 0, limit: int = 100
+    ) -> List[Paquete]:
+        """
+        Obtiene múltiples paquetes con paginación.
+
+        Args:
+            db: Sesión de base de datos
+            skip: Número de registros a omitir (para paginación)
+            limit: Número máximo de registros a devolver
+
+        Returns:
+            Lista de paquetes
+        """
+        return db.query(self.modelo).offset(skip).limit(limit).all()
+
     def _validar_datos_paquete(self, datos: Dict[str, Any]) -> bool:
         """Valida los datos básicos de un paquete."""
         # Validar descripción
