@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 
-# Importaciones para anotaciones de tipo y evitar importaciones circulares
 if False:
     from .cliente import Cliente
     from .empleado import Empleado
@@ -20,11 +19,6 @@ class Usuario(Base):
     Atributos:
         id_usuario: Identificador único del usuario
         rol: Rol del usuario
-        primer_nombre: Primer nombre del usuario
-        segundo_nombre: Segundo nombre del usuario (opcional)
-        primer_apellido: Primer apellido del usuario
-        segundo_apellido: Segundo apellido del usuario (opcional)
-        nombre_usuario: Nombre de usuario único para autenticación
         password: Contraseña del usuario
         activo: Estado del usuario (activo/inactivo)
         fecha_creacion: Fecha y hora de creación
@@ -32,32 +26,21 @@ class Usuario(Base):
     """
 
     __tablename__ = "usuarios"
-    # ID del usuario (UUID como string de 36 caracteres)
     id_usuario = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     
-    # FK al rol (tipo de usuario): cliente, empleado, administrador
     id_rol = Column(String(36), ForeignKey("roles.id_rol"), nullable=False, index=True)
-    # Credenciales y estado
     nombre_usuario = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
 
-    # Relación con el rol
     rol = relationship("Rol", back_populates="usuarios", foreign_keys=[id_rol])
 
-    # Relaciones uno a uno con perfiles específicos
-    cliente = relationship("Cliente", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Cliente.id_cliente")
+    cliente = relationship("Cliente", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Cliente.usuario_id")
     empleado = relationship("Empleado", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Empleado.id_empleado")
      
   
-    # Otras relaciones (comentadas hasta que sean necesarias)
-    # sedes = relationship("Sede", back_populates="usuario")
-    # empleados = relationship("Empleado", back_populates="usuario")
-    # paquetes = relationship("Paquete", back_populates="usuario")
-    # tipos_documentos = relationship("TipoDocumento", back_populates="usuario")
-    # transportes = relationship("Transporte", back_populates="usuario")
     def __repr__(self):
         return f"<Usuario(id_usuario={self.id_usuario}, id_rol={self.id_rol}, nombre_usuario={self.nombre_usuario})>"
 

@@ -9,14 +9,10 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Cargar variables de entorno
 load_dotenv()
 
-# Configuración de la base de datos Neon PostgreSQL
-# Obtener la URL completa de conexión desde las variables de entorno
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Si no hay DATABASE_URL, construir desde variables individuales
 if not DATABASE_URL:
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "5432")
@@ -38,12 +34,11 @@ def get_engine():
     """Create and configure the SQLAlchemy engine with UUID support"""
     engine = create_engine(
         DATABASE_URL,
-        echo=True,  # Mostrar las consultas SQL en consola
-        pool_pre_ping=True,  # Verificar conexión antes de usar
-        pool_recycle=300,  # Reciclar conexiones cada 5 minutos
+        echo=False,  
+        pool_pre_ping=True,  
+        pool_recycle=300,  
     )
 
-    # Asegurarse de que la extensión UUID esté habilitada
     with engine.connect() as conn:
         conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
         conn.commit()
@@ -51,24 +46,13 @@ def get_engine():
     return engine
 
 
-# Crear el motor de SQLAlchemy
 engine = get_engine()
 
-# Crear la sesión
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base para los modelos
 Base = declarative_base()
 
-# Asegurarse de que todas las variables necesarias estén disponibles
-__all__ = [
-    'DATABASE_URL',
-    'engine',
-    'Base',
-    'SessionLocal',
-    'get_db',
-    'create_tables'
-]
+__all__ = ["DATABASE_URL", "engine", "Base", "SessionLocal", "get_db", "create_tables"]
 
 
 def get_db():
@@ -86,7 +70,6 @@ def create_tables():
     """
     Crear todas las tablas definidas en los modelos
     """
-    # Import all models to register them with Base
     from entities import (
         usuario,
         rol,

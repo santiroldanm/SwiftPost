@@ -12,7 +12,6 @@ class servicioMensajeria:
         self.__paquetes: list[paquete] = []
         self.__clientes: list[cliente] = []
         self.__ciudades: dict = {
-            # Colombia
             "Bogota": (4.711, -74.072, 2582),
             "Medellin": (6.244, -75.581, 1495),
             "Cali": (3.452, -76.532, 1018),
@@ -27,7 +26,6 @@ class servicioMensajeria:
             "Ibague": (4.439, -75.232, 1285),
             "Villavicencio": (4.142, -73.626, 467),
             "Armenia": (4.534, -75.681, 1480),
-            # Mundo
             "Nueva York": (40.713, -74.006, 10),
             "Paris": (48.857, 2.352, 35),
             "Londres": (51.507, -0.128, 11),
@@ -140,7 +138,6 @@ class servicioMensajeria:
                             break
 
                     if cliente_seleccionado:
-                        # Tamaño del paquete
                         tamaño: str = ""
                         while True:
                             opcion = input(
@@ -166,7 +163,6 @@ class servicioMensajeria:
                             else:
                                 print("Opción no válida. Intente nuevamente.\n")
 
-                        # Fragilidad
                         fragilidad: str = ""
                         indiceFragilidad: float = 0
                         while True:
@@ -192,7 +188,6 @@ class servicioMensajeria:
                             else:
                                 print("Opción no válida. Intente nuevamente.\n")
 
-                        # Peso
                         peso: float = 0
                         while True:
                             Peso = input(
@@ -204,16 +199,13 @@ class servicioMensajeria:
                             else:
                                 print("Por favor, ingrese un valor numérico válido.\n")
 
-                        # Descripción
                         descripcion = input(
                             "\nAgregue una breve descripción del paquete: "
                         ).strip()
 
-                        # Ciudades
                         origen: str = self.escogerCiudad("origen")
                         destino: str = self.escogerCiudad("destino")
 
-                        # Distancia y precio
                         distancia: float = self.calcularDistancia(origen, destino)
                         if distancia < 1:
                             print(
@@ -228,7 +220,6 @@ class servicioMensajeria:
                                 f"\nEl costo aproximado del envío es: COP {round(precio, 2)}"
                             )
 
-                        # Express o normal
                         tipo = (
                             input("\n¿El paquete es express? (s/n): ").strip().lower()
                         )
@@ -258,7 +249,6 @@ class servicioMensajeria:
                                 precio,
                             )
 
-                        # Registro
                         cliente_seleccionado.registrarPaquete(Paquete)
                         self.__paquetes.append(Paquete)
 
@@ -271,7 +261,6 @@ class servicioMensajeria:
                         )
                         print(f"Origen: {origen} -> Destino: {destino}")
 
-                        # Cálculo de precio según tipo de paquete
                         precio_base = Paquete.getPrecioEnvio()
                         recargo_express = 0
                         precio_con_recargo = precio_base
@@ -280,15 +269,12 @@ class servicioMensajeria:
                             recargo_express = Paquete.calcularExpress() - precio_base
                             precio_con_recargo = Paquete.calcularExpress()
 
-                        # Calcular descuento según el cliente
                         descuento = cliente_seleccionado.descuentoVIP(
                             precio_con_recargo
                         )
 
-                        # Precio final
                         precio_final = precio_con_recargo - descuento
 
-                        # Mostrar desglose
                         print("\n=== RESUMEN DEL PRECIO ===")
                         print(f"Precio base: COP {round(precio_base, 2)}")
 
@@ -332,7 +318,6 @@ class servicioMensajeria:
                 print(f"Destino:       {paquete.getDestino()}")
                 print(f"Estado:        {paquete.getEstado()}")
 
-                # Buscar cliente dueño del paquete
                 cliente_id = paquete.getId_propietario()
                 cliente = self.buscarPorId(cliente_id)
                 if cliente:
@@ -344,7 +329,6 @@ class servicioMensajeria:
                     print(f"Teléfono:      {cliente.getTelefono()}")
                     print(f"Correo:        {cliente.getCorreo()}")
 
-                    # Desglose de precio
                     print("\n=== DETALLE DE COSTOS ===")
                     precio_base: float = paquete.getPrecioEnvio()
                     precio_con_recargo: float = paquete.calcularExpress()
@@ -367,7 +351,6 @@ class servicioMensajeria:
 
     def calcularPrecioEnvio(self) -> None:
         print("\n=== CALCULAR COSTO DE ENVIO ===\n")
-        # Ingreso de peso
         while True:
             peso_str: str = input("Ingrese el peso del paquete en kilos: ").strip()
             if peso_str.isdigit():
@@ -376,7 +359,6 @@ class servicioMensajeria:
             else:
                 print("Por favor ingrese un valor numérico válido.\n")
 
-        # Selección de fragilidad
         fragilidad_factor: float = 1.0
         while True:
             print("\nSeleccione el nivel de fragilidad del paquete:")
@@ -400,12 +382,10 @@ class servicioMensajeria:
             else:
                 print("Opción inválida. Intente de nuevo.\n")
 
-        # Selección de ciudades
         ciudad_origen: str = self.escogerCiudad("origen")
         ciudad_destino: str = self.escogerCiudad("destino")
         distancia: float = self.calcularDistancia(ciudad_origen, ciudad_destino)
 
-        # Cálculo de precio
         if distancia < 1:
             print("\n=== ENVÍO LOCAL ===")
             print("El precio exacto puede variar según la zona.")
@@ -413,7 +393,6 @@ class servicioMensajeria:
         else:
             precio: float = distancia / 2 * (peso**1.2) * fragilidad_factor
 
-        # Resumen del cálculo
         print("\n=== RESUMEN DEL ENVÍO ===")
         print(f"Peso:         {peso} kg")
         print(f"Fragilidad:   {fragilidad_txt} (factor {fragilidad_factor})")
@@ -462,11 +441,9 @@ class servicioMensajeria:
             print(f"\n=== Selección de ciudad de {tipo.upper()} === \n")
             ciudades: list = list(self.__ciudades.keys())
 
-            # Ajustes de formato
-            columnas: int = 3  # número de columnas
-            ancho: int = 20  # ancho de cada columna (para alinear bonito)
+            columnas: int = 3
+            ancho: int = 20
 
-            # Mostrar ciudades en filas y columnas
             for i in range(0, len(ciudades), columnas):
                 fila: str = ""
                 for j in range(columnas):
@@ -493,7 +470,7 @@ class servicioMensajeria:
         ciudad1: tuple = self.__ciudades[origen]
         ciudad2: tuple = self.__ciudades[destino]
 
-        R: float = 6371.0  # radio de la Tierra en km
+        R: float = 6371.0
 
         lat1: float = 0
         lat2: float = 0
@@ -505,14 +482,11 @@ class servicioMensajeria:
         lat1, lon1, alt1 = ciudad1
         lat2, lon2, alt2 = ciudad2
 
-        # Pasar a radianes
         lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
 
-        # Radio desde el centro de la Tierra hasta la ciudad (km)
         r1: float = R + alt1 / 1000.0
         r2: float = R + alt2 / 1000.0
 
-        # Coordenadas cartesianas
         x1: float = r1 * math.cos(lat1) * math.cos(lon1)
         y1: float = r1 * math.cos(lat1) * math.sin(lon1)
         z1: float = r1 * math.sin(lat1)
@@ -521,7 +495,6 @@ class servicioMensajeria:
         y2: float = r2 * math.cos(lat2) * math.sin(lon2)
         z2: float = r2 * math.sin(lat2)
 
-        # Distancia Euclidiana
         return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
 
     def listarPaquetes(
@@ -533,7 +506,6 @@ class servicioMensajeria:
             print("=== No hay paquetes registrados ===\n")
             return
 
-        # 🔹 Buscar por ID de paquete
         if id_paquete is not None:
             paquete = next(
                 (p for p in self.__paquetes if p.getId() == id_paquete), None
@@ -544,7 +516,6 @@ class servicioMensajeria:
             self._imprimirPaquete(paquete)
             return
 
-        # 🔹 Buscar por cliente
         if id_cliente is not None:
             cliente = self.buscarPorId(id_cliente)
             if not cliente:
@@ -557,7 +528,6 @@ class servicioMensajeria:
                 self._imprimirPaquete(p)
             return
 
-        # 🔹 Buscar por estado
         if estado is not None:
             encontrados = [
                 p
@@ -571,7 +541,6 @@ class servicioMensajeria:
                 self._imprimirPaquete(p)
             return
 
-        # 🔹 Listar todos
         for p in self.__paquetes:
             cliente = self.buscarPorId(p.getId_propietario())
             if cliente:
