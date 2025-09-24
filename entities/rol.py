@@ -28,7 +28,6 @@ class Rol(Base):
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now, nullable=True)
 
-    # Relación con usuarios
     usuarios = relationship("Usuario", back_populates="rol", cascade="all, delete-orphan")
 
 

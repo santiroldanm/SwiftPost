@@ -40,11 +40,9 @@ class TipoDocumento(Base):
         String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
 
-    # Relaciones con otras entidades
     clientes = relationship("Cliente", back_populates="tipo_documento_rel" )
     empleados = relationship("Empleado", back_populates="tipo_documento_rel", foreign_keys="[Empleado.tipo_documento]")
     
-    # Relaciones con Usuario
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 
