@@ -14,34 +14,34 @@ El objetivo del proyecto es proporcionar una solución integral para la gestión
 
 ## Instalación
 
+## Instalación
 1. Clonar el repositorio:
-   bash
+   ```bash
    git clone https://github.com/santiroldanm/SwiftPost
-   cd SwiftPost
+   ```
    
-
-2. Crear un entorno virtual (recomendado):
-   bash
-   python -m venv venv
-   source venv/bin/activate  # En Windows: venv\Scripts\activate
+  2. Acceder al directorio del proyecto:
+     ```bash
+      cd SwiftPost
+      ```
    
 
 3. Instalar dependencias:
-   bash
+   ```bash
    pip install -r requirements.txt
-   
+   ```
 
 4. Configurar la base de datos:
-   bash
+   ```bash
    alembic upgrade head
-   
+   ```
 
 ##  Ejecución
 
 Para iniciar la aplicación:
-bash
-py main.py
-
+```bash
+   py main.py
+```
 
 ##  Estructura del Proyecto
 SwiftPost/
