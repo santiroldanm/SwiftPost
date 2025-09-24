@@ -15,7 +15,8 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         super().__init__(Paquete)
         # Configuraciones específicas para Paquete
         self.estados_permitidos = ['registrado', 'en_transito', 'en_reparto', 'entregado', 'no_entregado', 'devuelto']
-        self.tipos_permitidos = ['sobre', 'paquete_pequeno', 'paquete_mediano', 'paquete_grande', 'caja']
+        self.tipos_permitidos = ['normal', 'express']  # Tipos de envío
+        self.tamanos_permitidos = ['pequeño', 'mediano', 'grande', 'gigante']  # Tamaños de paquete
         self.peso_minimo = 0.1  # en kg
         self.peso_maximo = 50.0  # en kg
         self.valor_minimo = 0.0
@@ -23,30 +24,60 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
     
     def _validar_datos_paquete(self, datos: Dict[str, Any]) -> bool:
         """Valida los datos básicos de un paquete."""
-        # Validar descripción
-        descripcion = datos.get('descripcion', '')
-        if not descripcion or len(descripcion) < 5 or len(descripcion) > 500:
-            return False
+        print("\n=== VALIDACIÓN DE DATOS DEL PAQUETE ===")
+        print("Datos recibidos:", datos)
         
-        # Validar peso
-        peso = datos.get('peso', 0)
-        if not (self.peso_minimo <= float(peso) <= self.peso_maximo):
-            return False
+        try:
+            # Validar descripción
+            descripcion = datos.get('contenido', datos.get('descripcion', ''))
+            print(f"Validando descripción: '{descripcion}' (longitud: {len(descripcion) if descripcion else 0})")
+            if not descripcion or len(descripcion) < 5 or len(descripcion) > 500:
+                print(f"Error: La descripción debe tener entre 5 y 500 caracteres")
+                return False
             
-        # Validar valor declarado
-        valor_declarado = datos.get('valor_declarado', 0)
-        if not (self.valor_minimo <= float(valor_declarado) <= self.valor_maximo):
-            return False
-        
-        # Validar tipo
-        if datos.get('tipo') not in self.tipos_permitidos:
-            return False
+            # Validar peso
+            peso = float(datos.get('peso', 0))
+            print(f"Validando peso: {peso} kg (rango: {self.peso_minimo}-{self.peso_maximo} kg)")
+            if not (self.peso_minimo <= peso <= self.peso_maximo):
+                print(f"Error: El peso debe estar entre {self.peso_minimo} y {self.peso_maximo} kg")
+                return False
+                
+            # Validar tipo (normal o express)
+            tipo = datos.get('tipo', '').lower()
+            print(f"Validando tipo: '{tipo}' (permitidos: {', '.join(self.tipos_permitidos)})")
+            if tipo not in self.tipos_permitidos:
+                print(f"Error: Tipo de envío inválido. Debe ser uno de: {', '.join(self.tipos_permitidos)}")
+                return False
+                
+            # Validar fragilidad
+            fragilidad = datos.get('fragilidad', '').lower()
+            fragilidades_validas = ['baja', 'normal', 'alta']
+            print(f"Validando fragilidad: '{fragilidad}' (permitidas: {', '.join(fragilidades_validas)})")
+            if fragilidad not in fragilidades_validas:
+                print(f"Error: La fragilidad debe ser una de: {', '.join(fragilidades_validas)}")
+                return False
             
-        # Validar estado si está presente
-        if 'estado' in datos and datos['estado'] not in self.estados_permitidos:
-            return False
+            # Validar tamaño
+            tamaño = datos.get('tamaño', '').lower()
+            print(f"Validando tamaño: '{tamaño}' (permitidos: {', '.join(self.tamanos_permitidos)})")
+            if tamaño not in self.tamanos_permitidos:
+                print(f"Error: Tamaño de paquete inválido. Debe ser uno de: {', '.join(self.tamanos_permitidos)}")
+                return False
+                
+            # Validar estado si está presente
+            estado = datos.get('estado', 'registrado')
+            print(f"Validando estado: '{estado}' (permitidos: {', '.join(self.estados_permitidos)})")
+            if estado not in self.estados_permitidos:
+                print(f"Error: Estado inválido. Debe ser uno de: {', '.join(self.estados_permitidos)}")
+                return False
+                
+            print("¡Todas las validaciones pasaron con éxito!")
+            print("======================================\n")
+            return True
             
-        return True
+        except (ValueError, TypeError) as e:
+            print(f"Error de validación: {str(e)}")
+            return False
     
     def obtener_por_cliente(
         self, 
@@ -133,7 +164,7 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         self, 
         db: Session, 
         *, 
-        datos_entrada: PaqueteCreate, 
+        datos_entrada: Union[PaqueteCreate, Dict[str, Any]], 
         creado_por: UUID
     ) -> Optional[Paquete]:
         """
@@ -141,13 +172,24 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         
         Args:
             db: Sesión de base de datos
-            datos_entrada: Datos para crear el paquete
+            datos_entrada: Datos para crear el paquete (puede ser un objeto PaqueteCreate o un diccionario)
             creado_por: ID del usuario que crea el registro
             
         Returns:
             El paquete creado o None si hay un error
         """
-        datos = datos_entrada.dict()
+        # Si es un objeto Pydantic, convertirlo a diccionario
+        if hasattr(datos_entrada, 'model_dump'):
+            datos = datos_entrada.model_dump()
+        elif hasattr(datos_entrada, 'dict'):  # Para compatibilidad con versiones anteriores
+            datos = datos_entrada.dict()
+        else:
+            datos = dict(datos_entrada)
+        
+        # Asegurar que los campos de auditoría estén presentes
+        datos['creado_por'] = creado_por
+        if 'fecha_creacion' not in datos:
+            datos['fecha_creacion'] = datetime.now()  # Llamar al método now() para obtener la fecha actual
         
         # Validar datos
         if not self._validar_datos_paquete(datos):
@@ -159,17 +201,50 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         
         # Crear el paquete
         try:
-            paquete = Paquete(
-                **datos,
-                creado_por=creado_por,
-                fecha_creacion=datetime.utcnow()
-            )
+            print("\n=== INTENTANDO CREAR PAQUETE EN LA BASE DE DATOS ===")
+            print("Datos que se intentarán guardar:", datos)
+            
+            # Asegurarnos de que la fecha_creacion sea un objeto datetime
+            if isinstance(datos.get('fecha_creacion'), type(datetime.now)):
+                datos['fecha_creacion'] = datos['fecha_creacion']()
+                print("Fecha de creación convertida:", datos['fecha_creacion'])
+            
+            # Crear un diccionario con solo los campos que existen en el modelo
+            campos_permitidos = {
+                'id_paquete', 'id_cliente', 'peso', 'tamaño', 'fragilidad',
+                'contenido', 'tipo', 'estado', 'activo', 'fecha_creacion',
+                'fecha_actualizacion', 'creado_por', 'actualizado_por'
+            }
+            
+            # Filtrar solo los campos permitidos
+            datos_filtrados = {k: v for k, v in datos.items() if k in campos_permitidos}
+            
+            # Crear la instancia de Paquete con los campos filtrados
+            paquete = Paquete(**datos_filtrados)
+            
+            # Agregar a la sesión
             db.add(paquete)
+            print("Paquete agregado a la sesión")
+            
+            # Hacer commit
             db.commit()
+            print("Commit realizado con éxito")
+            
+            # Refrescar para obtener el ID generado
             db.refresh(paquete)
+            print(f"Paquete creado exitosamente con ID: {paquete.id_paquete}")
+            
             return paquete
-        except Exception:
+            
+        except Exception as e:
             db.rollback()
+            print("\n=== ERROR AL CREAR PAQUETE ===")
+            print(f"Tipo de error: {type(e).__name__}")
+            print(f"Mensaje de error: {str(e)}")
+            print("Datos que causaron el error:", datos)
+            print("==============================\n")
+            import traceback
+            traceback.print_exc()
             return None
     
     def actualizar(

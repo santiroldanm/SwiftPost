@@ -6,6 +6,7 @@ from typing import Optional, List
 from database.config import Base
 from datetime import datetime
 import uuid
+from uuid import uuid4, UUID as UUIDType
 import re
 
 
@@ -33,14 +34,22 @@ class Cliente(Base):
 
     __tablename__ = "clientes"
     id_cliente = Column(
-        String(36),
-        ForeignKey("usuarios.id_usuario"),
+        PG_UUID(as_uuid=True),
         primary_key=True,
-        comment="ID del cliente, igual al ID del usuario asociado"
+        default=uuid.uuid4,
+        comment="ID único del cliente"
     )
     
-    # Relación con Usuario (uno a uno, donde el id_cliente es el mismo que id_usuario)
-    usuario = relationship("Usuario", back_populates="cliente", foreign_keys=[id_cliente], uselist=False)
+    # Relación con Usuario (uno a uno)
+    usuario_id = Column(
+        String(36),
+        ForeignKey("usuarios.id_usuario"),
+        unique=True,
+        nullable=False,
+        comment="ID del usuario asociado a este cliente"
+    )
+    
+    usuario = relationship("Usuario", back_populates="cliente", foreign_keys=[usuario_id], uselist=False)
     
     id_tipo_documento = Column(
         PG_UUID(as_uuid=True),
@@ -53,12 +62,26 @@ class Cliente(Base):
     primer_apellido = Column(String(50), nullable=False)
     segundo_apellido = Column(String(50), default=None, nullable=True)
     direccion = Column(String(200), nullable=False)
-    telefono = Column(Integer, nullable=False)
+    telefono = Column(String(15), nullable=False)
     correo = Column(String(100), nullable=False, unique=True)
     tipo = Column(String(10), nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
-    fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
+    fecha_actualizacion = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Campos de auditoría
+    creado_por = Column(
+        String(36),
+        ForeignKey("usuarios.id_usuario"),
+        nullable=False,
+        comment="Usuario que creó el registro"
+    )
+    actualizado_por = Column(
+        String(36),
+        ForeignKey("usuarios.id_usuario"),
+        nullable=True,
+        comment="Usuario que actualizó por última vez el registro"
+    )
 
     # Relación con TipoDocumento
     tipo_documento_rel = relationship("TipoDocumento", back_populates="clientes")
@@ -116,7 +139,7 @@ class ClienteBase(BaseModel):
     direccion: str = Field(
         ..., min_length=5, max_length=200, description="Dirección del cliente"
     )
-    telefono: int = Field(..., gt=0, description="Número de teléfono del cliente")
+    telefono: str = Field(..., min_length=7, max_length=15, description="Número de teléfono del cliente (solo números)")
     correo: str = Field(
         ..., min_length=5, max_length=100, description="Correo electrónico del cliente"
     )
@@ -155,13 +178,13 @@ class ClienteBase(BaseModel):
 
     @validator("segundo_apellido")
     def validar_segundo_apellido(cls, v):
-        if v is None:
-            return v
-        if not v.strip():
-            raise ValueError("El segundo apellido no puede estar vacío")
-        if not v.replace(" ", "").isalpha():
-            raise ValueError("El segundo apellido solo puede contener letras")
-        return v.strip().title()
+        if v is not None:
+            if not v.strip():
+                raise ValueError("El segundo apellido no puede estar vacío")
+            if not v.replace(" ", "").isalpha():
+                raise ValueError("El segundo apellido solo puede contener letras")
+            return v.strip().title()
+        return v
 
     @validator("numero_documento")
     def validar_numero_documento(cls, v):
@@ -188,14 +211,33 @@ class ClienteBase(BaseModel):
     @validator("tipo")
     def validar_tipo(cls, v):
         tipos_validos = ["remitente", "receptor"]
-        if v.lower() not in tipos_validos:
+        v = v.lower().strip()
+        if v not in tipos_validos:
             raise ValueError(f'El tipo debe ser uno de: {", ".join(tipos_validos)}')
-        return v.strip().title()
+        return v
 
 
 class ClienteCreate(ClienteBase):
-
-    pass
+    """Esquema para la creación de un cliente."""
+    id_tipo_documento: str = Field(..., description="ID del tipo de documento del cliente")
+    usuario_id: str = Field(..., description="ID del usuario asociado al cliente")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "primer_nombre": "Juan",
+                "segundo_nombre": "Carlos",
+                "primer_apellido": "Pérez",
+                "segundo_apellido": "González",
+                "numero_documento": "123456789",
+                "direccion": "Calle Falsa 123",
+                "telefono": 1234567890,
+                "correo": "juan.perez@example.com",
+                "tipo": "remitente",
+                "id_tipo_documento": "550e8400-e29b-41d4-a716-446655440000",
+                "usuario_id": "550e8400-e29b-41d4-a716-446655440000"
+            }
+        }
 
 
 class ClienteUpdate(BaseModel):
@@ -292,7 +334,7 @@ class ClienteUpdate(BaseModel):
 
 class ClienteResponse(ClienteBase):
 
-    id_cliente: uuid.UUID
+    id_cliente: UUIDType
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     actualizado_por: Optional[str] = None

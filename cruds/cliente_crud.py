@@ -20,47 +20,84 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
         self.longitud_maxima_direccion = 200
     
     def _validar_datos_cliente(self, datos: Dict[str, Any]) -> bool:
-        """Valida los datos básicos de un cliente."""
-        # Validar nombres
-        if not self._validar_longitud_texto('primer_nombre', datos.get('primer_nombre', '')):
-            return False
-        if 'segundo_nombre' in datos and not self._validar_longitud_texto('segundo_nombre', datos['segundo_nombre']):
-            return False
+        """
+        Valida los datos básicos de un cliente.
         
-        # Validar apellidos
-        if not self._validar_longitud_texto('primer_apellido', datos.get('primer_apellido', '')):
-            return False
-        if 'segundo_apellido' in datos and not self._validar_longitud_texto('segundo_apellido', datos['segundo_apellido']):
-            return False
-        
-        # Validar email
-        if not self._validar_email(datos.get('correo', '')):
-            return False
+        Args:
+            datos: Diccionario con los datos del cliente a validar
             
-        # Validar teléfono
-        if 'telefono' in datos and not self._validar_telefono(str(datos['telefono'])):
-            return False
+        Returns:
+            bool: True si todos los datos son válidos, False de lo contrario
+        """
+        try:
+            print("\n=== VALIDACIÓN DE DATOS DEL CLIENTE ===")
             
-        # Validar número de documento
-        if not self._validar_documento(datos.get('numero_documento', '')):
-            return False
+            # Validar nombres
+            if not self._validar_longitud_texto('primer_nombre', datos.get('primer_nombre', '')):
+                print("Error: El primer nombre no cumple con la longitud requerida")
+                return False
+                
+            if 'segundo_nombre' in datos and datos['segundo_nombre'] is not None:
+                if not self._validar_longitud_texto('segundo_nombre', datos['segundo_nombre']):
+                    print("Error: El segundo nombre no cumple con la longitud requerida")
+                    return False
             
-        # Validar ID de tipo de documento
-        if 'id_tipo_documento' not in datos:
-            return False
+            # Validar apellidos
+            if not self._validar_longitud_texto('primer_apellido', datos.get('primer_apellido', '')):
+                print("Error: El primer apellido no cumple con la longitud requerida")
+                return False
+                
+            if 'segundo_apellido' in datos and datos['segundo_apellido'] is not None:
+                if not self._validar_longitud_texto('segundo_apellido', datos['segundo_apellido']):
+                    print("Error: El segundo apellido no cumple con la longitud requerida")
+                    return False
             
-        # Validar dirección
-        direccion = datos.get('direccion', '')
-        if (not direccion or 
-            len(direccion) < self.longitud_minima_direccion or 
-            len(direccion) > self.longitud_maxima_direccion):
-            return False
+            # Validar email
+            if not self._validar_email(datos.get('correo', '')):
+                print("Error: El correo electrónico no es válido")
+                return False
+                
+            # Validar teléfono
+            if 'telefono' not in datos or not self._validar_telefono(str(datos['telefono'])):
+                print("Error: El teléfono no es válido")
+                return False
+                
+            # Validar número de documento
+            if not self._validar_documento(datos.get('numero_documento', '')):
+                print("Error: El número de documento no es válido")
+                return False
+                
+            # Validar ID de tipo de documento
+            if 'id_tipo_documento' not in datos or not datos['id_tipo_documento']:
+                print("Error: Falta el ID del tipo de documento")
+                return False
+                
+            # Validar dirección
+            direccion = datos.get('direccion', '')
+            if not direccion:
+                print("Error: La dirección es requerida")
+                return False
+                
+            if len(direccion) < self.longitud_minima_direccion:
+                print(f"Error: La dirección es demasiado corta (mínimo {self.longitud_minima_direccion} caracteres)")
+                return False
+                
+            if len(direccion) > self.longitud_maxima_direccion:
+                print(f"Error: La dirección es demasiado larga (máximo {self.longitud_maxima_direccion} caracteres)")
+                return False
+                
+            # Validar tipo (remitente/receptor)
+            tipo = datos.get('tipo', '').lower()
+            if tipo not in ['remitente', 'receptor']:
+                print("Error: El tipo debe ser 'remitente' o 'receptor'")
+                return False
+                
+            print("✓ Todos los datos son válidos")
+            return True
             
-        # Validar tipo (remitente/receptor)
-        if datos.get('tipo') not in ['remitente', 'receptor']:
+        except Exception as e:
+            print(f"Error inesperado durante la validación: {str(e)}")
             return False
-            
-        return True
     
     def obtener_por_documento(self, db: Session, numero_documento: str) -> Optional[Cliente]:
         """Obtiene un cliente por su número de documento."""
@@ -110,6 +147,12 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
         total = consulta.count()
         resultados = consulta.offset(saltar).limit(limite).all()
         return resultados, total
+        
+    def obtener_por_usuario(self, db: Session, usuario_id: UUID) -> Optional[Cliente]:
+        """Obtiene un cliente por su ID de usuario."""
+        if not usuario_id:
+            return None
+        return db.query(Cliente).filter(Cliente.usuario_id == str(usuario_id)).first()
     
     def crear(
         self, 
@@ -155,10 +198,13 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
                 'telefono': datos['telefono'],
                 'direccion': datos['direccion'],
                 'tipo': datos['tipo'],
-                'usuario_id': usuario_id,
+                'creado_por': str(usuario_id),  # Agregar el ID del usuario que crea el registro
+                'usuario_id': str(usuario_id),  # Asegurar que sea string
                 'activo': True,
                 'fecha_creacion': datetime.utcnow()
             }
+            
+            print(f"Creando cliente con usuario_id: {datos_creacion['usuario_id']} (tipo: {type(datos_creacion['usuario_id'])})")
             
             # Agregar campos opcionales si existen
             if 'segundo_nombre' in datos and datos['segundo_nombre']:

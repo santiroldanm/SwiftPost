@@ -20,11 +20,6 @@ class Usuario(Base):
     Atributos:
         id_usuario: Identificador único del usuario
         rol: Rol del usuario
-        primer_nombre: Primer nombre del usuario
-        segundo_nombre: Segundo nombre del usuario (opcional)
-        primer_apellido: Primer apellido del usuario
-        segundo_apellido: Segundo apellido del usuario (opcional)
-        nombre_usuario: Nombre de usuario único para autenticación
         password: Contraseña del usuario
         activo: Estado del usuario (activo/inactivo)
         fecha_creacion: Fecha y hora de creación
@@ -48,7 +43,7 @@ class Usuario(Base):
     rol = relationship("Rol", back_populates="usuarios", foreign_keys=[id_rol])
 
     # Relaciones uno a uno con perfiles específicos
-    cliente = relationship("Cliente", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Cliente.id_cliente")
+    cliente = relationship("Cliente", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Cliente.usuario_id")
     empleado = relationship("Empleado", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Empleado.id_empleado")
      
   

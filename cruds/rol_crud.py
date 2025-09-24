@@ -71,18 +71,15 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
         
         Args:
             db: Sesión de base de datos
-            id_rol: ID del rol a buscar (puede ser str o UUID)
+            id_rol: ID del rol a buscar (como string o UUID)
             
         Returns:
             El rol encontrado o None si no existe
-            
-        Raises:
-            ValueError: Si el ID no es válido
         """
         try:
-            # Convertir a UUID si es necesario
-            if isinstance(id_rol, str):
-                id_rol = UUID(id_rol)
+            # Convertir a string si es un objeto UUID
+            if isinstance(id_rol, UUID):
+                id_rol = str(id_rol)
                 
             return db.query(self.model).filter(self.model.id_rol == id_rol).first()
             

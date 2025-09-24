@@ -36,14 +36,15 @@ class Paquete(Base):
     fragilidad = Column(String(8), nullable=False)
     contenido = Column(Text, nullable=False)
     tipo = Column(String(10), nullable=False)
+    estado = Column(String(20), nullable=False, default='registrado')
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
-    fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
+    fecha_actualizacion = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     creado_por = Column(
         String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
     actualizado_por = Column(
-        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
+        String(36), ForeignKey("usuarios.id_usuario"), nullable=True
     )
 
     # Relación con Cliente (bidireccional)
@@ -96,6 +97,17 @@ class PaqueteBase(BaseModel):
         max_length=10,
         description="Tipo de paquete (Normal, Express)",
     )
+    valor_declarado: float = Field(
+        default=0.0,
+        ge=0,
+        description="Valor declarado del paquete para fines de seguro",
+    )
+    estado: Optional[str] = Field(
+        default='registrado',
+        min_length=1,
+        max_length=20,
+        description="Estado actual del paquete (registrado, en_transito, etc.)"
+    )
 
     @validator("peso")
     def validar_peso(cls, v):
@@ -108,7 +120,7 @@ class PaqueteBase(BaseModel):
         tamaños_validos = ["pequeño", "mediano", "grande", "gigante"]
         if v.lower() not in tamaños_validos:
             raise ValueError(f'El tamaño debe ser uno de: {", ".join(tamaños_validos)}')
-        return v.strip().title()
+        return v.strip() 
 
     @validator("fragilidad")
     def validar_fragilidad(cls, v):
@@ -117,7 +129,7 @@ class PaqueteBase(BaseModel):
             raise ValueError(
                 f'La fragilidad debe ser una de: {", ".join(fragilidades_validas)}'
             )
-        return v.strip().title()
+        return v.strip() 
 
     @validator("contenido")
     def validar_contenido(cls, v):
@@ -130,7 +142,7 @@ class PaqueteBase(BaseModel):
         tipos_validos = ["normal", "express"]
         if v.lower() not in tipos_validos:
             raise ValueError(f'El tipo debe ser uno de: {", ".join(tipos_validos)}')
-        return v.strip().title()
+        return v.strip() 
 
 
 class PaqueteCreate(PaqueteBase):
@@ -143,6 +155,8 @@ class PaqueteUpdate(BaseModel):
     fragilidad: Optional[str] = Field(None, min_length=1, max_length=8)
     contenido: Optional[str] = Field(None, min_length=1, max_length=1000)
     tipo: Optional[str] = Field(None, min_length=1, max_length=10)
+    valor_declarado: Optional[float] = Field(None, ge=0)
+    estado: Optional[str] = Field(None, min_length=1, max_length=20)
 
     @validator("peso")
     def validar_peso(cls, v):
@@ -177,7 +191,7 @@ class PaqueteUpdate(BaseModel):
         tipos_validos = ["normal", "express"]
         if v is not None and v.lower() not in tipos_validos:
             raise ValueError(f'El tipo debe ser uno de: {", ".join(tipos_validos)}')
-        return v.strip().title()
+        return v.strip()
 
 
 class PaqueteResponse(PaqueteBase):

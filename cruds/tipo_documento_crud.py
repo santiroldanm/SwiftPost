@@ -10,13 +10,13 @@ from .base_crud import CRUDBase
 class TipoDocumentoCRUD(CRUDBase[TipoDocumento, TipoDocumentoCreate, TipoDocumentoUpdate]):
     """Operaciones CRUD para TipoDocumento."""
     
-    def get_by_nombre(self, db: Session, nombre: str) -> Optional[TipoDocumento]:
+    def obtener_por_nombre(self, db: Session, nombre: str) -> Optional[TipoDocumento]:
         """Obtiene un tipo de documento por nombre."""
         return db.query(TipoDocumento).filter(TipoDocumento.nombre == nombre).first()
     
-    def get_activos(self, db: Session, skip: int = 0, limit: int = 100) -> List[TipoDocumento]:
+    def obtener_activos(self, db: Session, saltar: int = 0, limite: int = 100) -> List[TipoDocumento]:
         """Obtiene tipos de documento activos."""
-        print("\n=== DEBUG: Iniciando get_activos ===")
+        print("\n=== DEBUG: Iniciando obtener_activos ===")
         print(f"Tipo de db: {type(db)}")
         
         # Verificar si la sesión es válida
@@ -32,8 +32,8 @@ class TipoDocumentoCRUD(CRUDBase[TipoDocumento, TipoDocumentoCreate, TipoDocumen
         try:
             tipos = db.query(TipoDocumento)\
                 .filter(TipoDocumento.activo == True)\
-                .offset(skip)\
-                .limit(limit)\
+                .offset(saltar)\
+                .limit(limite)\
                 .all()
             
             print(f"=== DEBUG: Tipos de documento encontrados: {len(tipos)} ===")
@@ -42,13 +42,13 @@ class TipoDocumentoCRUD(CRUDBase[TipoDocumento, TipoDocumentoCreate, TipoDocumen
             
             return tipos
         except Exception as e:
-            print(f"Error en get_activos: {e}")
+            print(f"Error en obtener_activos: {e}")
             return []
     
-    def create(self, db: Session, *, obj_in: TipoDocumentoCreate, creado_por: UUID) -> TipoDocumento:
+    def crear(self, db: Session, *, datos_entrada: TipoDocumentoCreate, creado_por: UUID) -> TipoDocumento:
         """Crea un nuevo tipo de documento."""
         db_obj = TipoDocumento(
-            **obj_in.dict(),
+            **datos_entrada.dict(),
             creado_por=creado_por
         )
         db.add(db_obj)
@@ -56,26 +56,26 @@ class TipoDocumentoCRUD(CRUDBase[TipoDocumento, TipoDocumentoCreate, TipoDocumen
         db.refresh(db_obj)
         return db_obj
     
-    def update(
+    def actualizar(
         self,
         db: Session,
         *,
-        db_obj: TipoDocumento,
-        obj_in: Union[TipoDocumentoUpdate, Dict[str, Any]],
+        objeto_db: TipoDocumento,
+        datos_entrada: Union[TipoDocumentoUpdate, Dict[str, Any]],
         actualizado_por: UUID
     ) -> TipoDocumento:
         """Actualiza un tipo de documento."""
-        if isinstance(obj_in, dict):
-            update_data = obj_in
+        if isinstance(datos_entrada, dict):
+            datos_actualizados = datos_entrada
         else:
-            update_data = obj_in.dict(exclude_unset=True)
+            datos_actualizados = datos_entrada.dict(exclude_unset=True)
         
-        update_data["actualizado_por"] = actualizado_por
-        return super().update(db, db_obj=db_obj, obj_in=update_data)
+        datos_actualizados["actualizado_por"] = actualizado_por
+        return super().actualizar(db, objeto_db=objeto_db, datos_entrada=datos_actualizados)
     
-    def deactivate(self, db: Session, *, id: UUID, actualizado_por: UUID) -> TipoDocumento:
+    def desactivar(self, db: Session, *, id: UUID, actualizado_por: UUID) -> TipoDocumento:
         """Desactiva un tipo de documento."""
-        tipo_documento = self.get(db, id)
+        tipo_documento = self.obtener_por_id(db, id)
         if tipo_documento:
             tipo_documento.activo = False
             tipo_documento.actualizado_por = actualizado_por

@@ -10,34 +10,34 @@ from .base_crud import CRUDBase
 class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
     """Operaciones CRUD para Sede."""
     
-    def get_by_nombre(self, db: Session, nombre: str) -> Optional[Sede]:
+    def obtener_por_nombre(self, db: Session, nombre: str) -> Optional[Sede]:
         """Obtiene una sede por nombre."""
         return db.query(Sede).filter(Sede.nombre == nombre).first()
     
-    def get_by_ciudad(self, db: Session, ciudad: str, skip: int = 0, limit: int = 100) -> List[Sede]:
+    def obtener_por_ciudad(self, db: Session, ciudad: str, saltar: int = 0, limite: int = 100) -> List[Sede]:
         """Obtiene sedes por ciudad."""
         return (
             db.query(Sede)
             .filter(Sede.ciudad == ciudad)
-            .offset(skip)
-            .limit(limit)
+            .offset(saltar)
+            .limit(limite)
             .all()
         )
     
-    def get_activas(self, db: Session, skip: int = 0, limit: int = 100) -> List[Sede]:
+    def obtener_activas(self, db: Session, saltar: int = 0, limite: int = 100) -> List[Sede]:
         """Obtiene sedes activas."""
         return (
             db.query(Sede)
             .filter(Sede.activa == True)  # noqa: E712
-            .offset(skip)
-            .limit(limit)
+            .offset(saltar)
+            .limit(limite)
             .all()
         )
     
-    def create(self, db: Session, *, obj_in: SedeCreate, creado_por: UUID) -> Sede:
+    def crear(self, db: Session, *, datos_entrada: SedeCreate, creado_por: UUID) -> Sede:
         """Crea una nueva sede."""
         db_obj = Sede(
-            **obj_in.dict(),
+            **datos_entrada.dict(),
             creado_por=creado_por
         )
         db.add(db_obj)
@@ -45,26 +45,26 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
         db.refresh(db_obj)
         return db_obj
     
-    def update(
+    def actualizar(
         self,
         db: Session,
         *,
-        db_obj: Sede,
-        obj_in: Union[SedeUpdate, Dict[str, Any]],
+        objeto_db: Sede,
+        datos_entrada: Union[SedeUpdate, Dict[str, Any]],
         actualizado_por: UUID
     ) -> Sede:
         """Actualiza una sede."""
-        if isinstance(obj_in, dict):
-            update_data = obj_in
+        if isinstance(datos_entrada, dict):
+            datos_actualizados = datos_entrada
         else:
-            update_data = obj_in.dict(exclude_unset=True)
+            datos_actualizados = datos_entrada.dict(exclude_unset=True)
         
-        update_data["actualizado_por"] = actualizado_por
-        return super().update(db, db_obj=db_obj, obj_in=update_data)
+        datos_actualizados["actualizado_por"] = actualizado_por
+        return super().actualizar(db, objeto_db=objeto_db, datos_entrada=datos_actualizados)
     
-    def deactivate(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Sede:
+    def desactivar(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Sede:
         """Desactiva una sede."""
-        sede = self.get(db, id)
+        sede = self.obtener_por_id(db, id)
         if sede:
             sede.activa = False
             sede.actualizado_por = actualizado_por

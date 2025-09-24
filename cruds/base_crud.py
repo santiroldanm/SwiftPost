@@ -58,7 +58,7 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
             return None
         return db.query(self.modelo).filter(self.modelo.id == id).first()
 
-    def obtener_varios(
+    def obtener_todos(
         self, db: Session, *, saltar: int = 0, limite: int = 100
     ) -> Tuple[List[TipoModelo], int]:
         """Obtiene múltiples registros con paginación."""
@@ -67,7 +67,7 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
         resultados = consulta.offset(saltar).limit(limite).all()
         return resultados, total
 
-    def crear(self, db: Session, *, datos_entrada: TipoCreacion) -> Optional[TipoModelo]:
+    def crear_registro(self, db: Session, *, datos_entrada: TipoCreacion) -> Optional[TipoModelo]:
         """Crea un nuevo registro con validación básica."""
         try:
             datos = datos_entrada.dict()
@@ -76,11 +76,12 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
             db.commit()
             db.refresh(objeto_db)
             return objeto_db
-        except Exception:
+        except Exception as e:
             db.rollback()
+            print(f"Error al crear registro: {str(e)}")
             return None
 
-    def actualizar(
+    def actualizar_registro(
         self,
         db: Session,
         *,
@@ -98,25 +99,31 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
                 if hasattr(objeto_db, campo):
                     setattr(objeto_db, campo, valor)
             
+            if hasattr(objeto_db, 'fecha_actualizacion'):
+                objeto_db.fecha_actualizacion = datetime.utcnow()
+                
             db.add(objeto_db)
             db.commit()
             db.refresh(objeto_db)
             return objeto_db
-        except Exception:
+        except Exception as e:
             db.rollback()
+            print(f"Error al actualizar registro: {str(e)}")
             return None
 
-    def eliminar(self, db: Session, *, id: UUID) -> bool:
+    def eliminar_registro(self, db: Session, *, id: UUID) -> bool:
         """Elimina un registro por su ID."""
         try:
-            objeto = db.query(self.modelo).get(id)
+            objeto = db.query(self.modelo).filter(self.modelo.id == id).first()
             if not objeto:
                 return False
+            
             db.delete(objeto)
             db.commit()
             return True
-        except Exception:
+        except Exception as e:
             db.rollback()
+            print(f"Error al eliminar registro: {str(e)}")
             return False
         
     def obtener_por_campo(
