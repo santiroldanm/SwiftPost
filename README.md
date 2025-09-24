@@ -1,61 +1,151 @@
-# SwiftPost
+# SwiftPost - Sistema de Gestión de Mensajería
 
-## Descripción
-**SwiftPost** es una aplicación de consola desarrollada en Python que simula un sistema de mensajería.  
-El programa permite registrar clientes, gestionar paquetes, rastrear envíos y aplicar principios de programación orientada a objetos como **herencia** y **polimorfismo**.
+## 📋 Descripción
+**SwiftPost** es un sistema de gestión de mensajería desarrollado en Python que permite administrar el ciclo completo de envíos de paquetes. Incluye módulos para la gestión de clientes, empleados, sedes, transportes y seguimiento de paquetes.
 
-## Propósito
-El objetivo del proyecto es modelar el funcionamiento de un servicio de mensajería básico, mostrando cómo estructurar aplicaciones modulares en Python.  
-También sirve como ejemplo educativo para reforzar conceptos de **POO** y **buenas prácticas de desarrollo**.
+## 🎯 Propósito
+El objetivo del proyecto es proporcionar una solución integral para la gestión de una empresa de mensajería, implementando buenas prácticas de desarrollo, arquitectura limpia y patrones de diseño.
 
-## Requisitos
-- Python 3.10 o superior  
-- No se requieren librerías externas, únicamente la librería estándar de Python.
+## 🚀 Requisitos
+- Python 3.10 o superior
+- SQLAlchemy 2.0+
+- Alembic (para migraciones de base de datos)
+- Dependencias listadas en `requirements.txt`
 
-## Funcionalidades
-- Registro de clientes con sus datos básicos.  
-- Creación y gestión de paquetes asociados a clientes.  
-- Rastreo de paquetes mediante su ID.   
-- Menús interactivos en consola para gestionar el sistema.
+## 🛠️ Instalación
 
-## Instalación
 1. Clonar el repositorio:
    ```bash
    git clone https://github.com/santiroldanm/SwiftPost
+   cd SwiftPost
    ```
-   
-  2. Acceder al directorio del proyecto:
-     ```bash
-      cd SwiftPost
-      ```
-## Ejecución
-Para iniciar la aplicación, ejecutar el archivo principal desde la terminal:
-  ```bash
-  py main.py
-  ```
 
-## Ejemplo de Uso
-Al ejecutar el programa, se muestra un menú interactivo en consola donde se pueden realizar operaciones como:
+2. Crear un entorno virtual (recomendado):
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # En Windows: venv\Scripts\activate
+   ```
 
-1. Registrar un cliente.  
-2. Registrar un paquete.  
-3. Rastrear un paquete ingresando su ID.
-4. Calcular el precio de un envío.
-5. Listar Paquetes.
-6. Actualizar el estado de un paquete.
-7. Salir del sistema.  
+3. Instalar dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-El usuario debe seguir las instrucciones en pantalla para interactuar con el sistema.
-  
-## Estructura del Proyecto
-  - main.py:
-  Este es el punto de entrada de la aplicación. Se encarga de inicializar el sistema y coordinar las interacciones principales, como crear clientes, paquetes y utilizar el servicio de mensajería.
+4. Configurar la base de datos:
+   ```bash
+   alembic upgrade head
+   ```
 
-- src/:
-Esta carpeta contiene todo el código fuente del proyecto. La modularización ayuda a mantener el código limpio, organizado y fácil de mantener.
+##  Ejecución
 
-- cliente.py: Define la clase Cliente, que modela a un usuario del servicio. Contiene atributos como nombre, teléfono y correo.
+Para iniciar la aplicación:
+```bash
+python main.py
+```
 
-- paquete.py: Define la clase Paquete, que representa un objeto a ser enviado. Incluye detalles como peso, origen, destino y estado de entrega.
+##  Estructura del Proyecto
 
-- servicio_mensajeria.py: Contiene la lógica principal del sistema. Aquí se gestionan las operaciones, como registrar clientes y paquetes, calcular costos de envio y actualizar el estado de las entregas.
+```
+SwiftPost/
+├── alembic/               # Migraciones de base de datos
+├── cruds/                 # Operaciones CRUD para cada entidad
+│   ├── base_crud.py
+│   ├── empleado_crud.py
+│   ├── paquete_crud.py
+│   └── sede_crud.py
+│
+├── database/              # Configuración de base de datos
+│   ├── __init__.py
+│   ├── base.py
+│   ├── models.py
+│   └── session.py
+│
+├── entities/              # Modelos Pydantic
+│   ├── empleado.py
+│   ├── paquete.py
+│   └── sede.py
+│
+├── menus/                 # Interfaces de usuario en consola
+│   ├── admin_menu.py
+│   ├── empleado_menu.py
+│   ├── main_menu.py
+│   ├── paquete_menu.py
+│   └── sede_menu.py
+│
+├── schemas/               # Esquemas SQLAlchemy
+│   ├── empleado.py
+│   ├── paquete.py
+│   └── sede.py
+│
+├── .env.example          # Variables de entorno de ejemplo
+├── alembic.ini          # Configuración de Alembic
+├── main.py              # Punto de entrada de la aplicación
+└── requirements.txt     # Dependencias del proyecto
+```
+
+## 📊 Lógica de Negocio
+
+### Módulos Principales
+
+1. **Gestión de Usuarios**
+   - Autenticación y autorización
+   - Roles: Administrador, Empleado, Cliente
+   - Gestión de perfiles
+
+2. **Gestión de Paquetes**
+   - Registro de paquetes
+   - Seguimiento en tiempo real
+   - Actualización de estados
+   - Cálculo de tarifas
+
+3. **Gestión de Sedes**
+   - Administración de ubicaciones
+   - Control de inventario
+   - Asignación de personal
+
+4. **Gestión de Transporte**
+   - Flota de vehículos
+   - Rutas y horarios
+   - Seguimiento GPS
+
+### Flujo de Trabajo
+
+1. **Recepción de Paquete**
+   - Registro del paquete en el sistema
+   - Asignación de número de seguimiento
+   - Cálculo de tarifa
+
+2. **Procesamiento**
+   - Clasificación en la sede de origen
+   - Asignación a ruta
+   - Carga en vehículo
+
+3. **Distribución**
+   - Transporte a sede destino
+   - Actualización de estado
+   - Notificaciones al cliente
+
+4. **Entrega**
+   - Confirmación de recepción
+   - Firma digital
+   - Cierre del envío
+
+## 📝 Ejemplo de Uso
+
+1. Iniciar sesión con credenciales de administrador
+2. Navegar por el menú principal
+3. Gestionar empleados, sedes o paquetes
+4. Realizar seguimiento de envíos
+5. Generar reportes
+
+## 🤝 Contribución
+
+1. Hacer fork del proyecto
+2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Hacer commit de tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Hacer push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.

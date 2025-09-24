@@ -5,6 +5,8 @@ Módulo para las funciones del menú de gestión de transportes.
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime
+from pydantic import ValidationError
+from uuid import UUID
 
 from cruds.transporte_crud import transporte as transporte_crud
 from cruds.sede_crud import sede as sede_crud
@@ -23,7 +25,7 @@ def listar_transportes(db: Session) -> None:
     """Lista todos los transportes en el sistema."""
     mostrar_encabezado("LISTADO DE TRANSPORTES")
     try:
-        transportes = transporte_crud.obtener_todos(db)
+        transportes, total = transporte_crud.obtener_todos(db)
         if not transportes:
             print("No hay transportes registrados.")
             input("\nPresione Enter para continuar...")
@@ -97,7 +99,7 @@ def buscar_transporte_por_placa(db: Session) -> None:
         print(f"Estado: {transporte.estado.title()}")
         print(f"Activo: {'Sí' if transporte.activo else 'No'}")
         if transporte.id_sede:
-            sede = sede_crud.get(db, id=transporte.id_sede)
+            sede = sede_crud.obtener_por_id(db, id=transporte.id_sede)
             if sede:
                 print(f"\nAsignado a sede: {sede.ciudad} - {sede.direccion}")
 
@@ -210,20 +212,57 @@ def agregar_transporte(db: Session, id_administrador: str) -> None:
 def editar_transporte(db: Session) -> None:
     """Edita un transporte existente."""
     mostrar_encabezado("EDITAR TRANSPORTE")
-    placa = input("\nIngrese la placa del vehículo a editar: ").strip().upper()
-    transporte = transporte_crud.obtener_por_placa(db, placa=placa)
+    
+    try:
+        placa = input("\nIngrese la placa del vehículo a editar: ").strip().upper()
+        if not placa:
+            print("\nDebe ingresar una placa válida.")
+            input("\nPresione Enter para continuar...")
+            return
+            
+        transporte = transporte_crud.obtener_por_placa(db, placa=placa)
 
-    if not transporte:
-        print("\nNo se encontró ningún vehículo con esa placa.")
-        input("\nPresione Enter para continuar...")
-        return
+        if not transporte:
+            print("\nNo se encontró ningún vehículo con esa placa.")
+            input("\nPresione Enter para continuar...")
+            return
 
-    print("\nDatos actuales (deje en blanco para no modificar):")
-    nuevo_estado = input(f"Estado [{transporte.estado}]: ").strip() or transporte.estado
+        print("\nDatos actuales (deje en blanco para no modificar):")
+        nuevo_estado = input(f"Estado [{transporte.estado}]: ").strip() or transporte.estado
 
-    update_data = TransporteUpdate(estado=nuevo_estado)
-    transporte_crud.actualizar(db, db_obj=transporte, obj_in=update_data)
-    print("\n¡Transporte actualizado exitosamente!")
+        # Validar estado
+        estados_validos = ['disponible', 'en_ruta', 'mantenimiento', 'fuera_servicio']
+        if nuevo_estado.lower() not in estados_validos:
+            print(f"\nEstado inválido. Estados válidos: {', '.join(estados_validos)}")
+            input("\nPresione Enter para continuar...")
+            return
+
+        try:
+            update_data = TransporteUpdate(estado=nuevo_estado.lower())
+            
+            # Usar un ID de administrador por defecto (debería venir del usuario actual)
+            admin_id = UUID("00000000-0000-0000-0000-000000000000")
+            
+            transporte_crud.actualizar(
+                db, 
+                db_obj=transporte, 
+                obj_in=update_data, 
+                actualizado_por=admin_id
+            )
+            print("\n✅ ¡Transporte actualizado exitosamente!")
+            
+        except ValidationError as e:
+            print(f"\n❌ Error de validación:")
+            for error in e.errors():
+                field = error['loc'][0] if error['loc'] else 'campo'
+                message = error['msg']
+                print(f"  - {field}: {message}")
+        except Exception as e:
+            print(f"\n❌ Error al actualizar transporte: {str(e)}")
+            
+    except Exception as e:
+        print(f"\n❌ Error inesperado: {str(e)}")
+    
     input("\nPresione Enter para continuar...")
 
 
@@ -243,11 +282,20 @@ def cambiar_estado_transporte(db: Session) -> None:
         f"¿Está seguro de {'activar' if nuevo_estado else 'desactivar'} el vehículo {placa}? (s/n): "
     ).lower()
     if confirmar == "s":
-        update_data = TransporteUpdate(activo=nuevo_estado)
-        transporte_crud.actualizar(db, db_obj=transporte, obj_in=update_data)
-        print(
-            f"\n¡Vehículo {placa} {'activado' if nuevo_estado else 'desactivado'} exitosamente!"
-        )
+        try:
+            update_data = TransporteUpdate(activo=nuevo_estado)
+            admin_id = UUID("00000000-0000-0000-0000-000000000000")
+            transporte_crud.actualizar(
+                db, 
+                db_obj=transporte, 
+                obj_in=update_data, 
+                actualizado_por=admin_id
+            )
+            print(
+                f"\n✅ ¡Vehículo {placa} {'activado' if nuevo_estado else 'desactivado'} exitosamente!"
+            )
+        except Exception as e:
+            print(f"\n❌ Error al cambiar estado del transporte: {str(e)}")
     else:
         print("\nOperación cancelada.")
     input("\nPresione Enter para continuar...")

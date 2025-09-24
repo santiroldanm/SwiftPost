@@ -228,4 +228,39 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
         except Exception:
             db.rollback()
             return False
+
+    def buscar_por_nombre(self, db: Session, nombre: str, limite: int = 10) -> List[Cliente]:
+        """
+        Busca clientes por nombre (primer nombre o primer apellido).
+        
+        Args:
+            db: Sesión de base de datos
+            nombre: Nombre a buscar
+            limite: Número máximo de resultados
+        
+        Returns:
+            List[Cliente]: Lista de clientes encontrados
+        """
+        try:
+            if not nombre or len(nombre.strip()) < 2:
+                return []
+            
+            nombre_busqueda = f"%{nombre.strip().lower()}%"
+            
+            return (
+                db.query(Cliente)
+                .filter(
+                    (Cliente.primer_nombre.ilike(nombre_busqueda)) |
+                    (Cliente.primer_apellido.ilike(nombre_busqueda)) |
+                    (Cliente.segundo_nombre.ilike(nombre_busqueda)) |
+                    (Cliente.segundo_apellido.ilike(nombre_busqueda))
+                )
+                .filter(Cliente.activo == True)
+                .limit(limite)
+                .all()
+            )
+        except Exception as e:
+            print(f"Error al buscar clientes por nombre: {str(e)}")
+            return []
+
 cliente = ClienteCRUD()

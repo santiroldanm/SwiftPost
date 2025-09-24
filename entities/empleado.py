@@ -117,6 +117,10 @@ class EmpleadoBase(BaseModel):
     segundo_apellido: Optional[str] = Field(
         None, min_length=1, max_length=50, description="Segundo apellido del empleado"
     )
+    tipo_documento: uuid.UUID = Field(..., description="ID del tipo de documento")
+    documento: str = Field(
+        ..., min_length=5, max_length=20, description="Número de documento del empleado"
+    )
     fecha_nacimiento: date = Field(..., description="Fecha de nacimiento del empleado")
     telefono: str = Field(
         ..., min_length=7, max_length=15, description="Número de teléfono del empleado"
@@ -219,9 +223,12 @@ class EmpleadoBase(BaseModel):
     @validator("tipo_empleado")
     def validar_tipo_empleado(cls, v):
         tipos_validos = [
+            "administrador",
+            "coordinador", 
             "mensajero",
-            "logistico",
+            "atencion_cliente",
             "secretario",
+            "logistico",
         ]
         if v.lower() not in tipos_validos:
             raise ValueError(
@@ -245,6 +252,16 @@ class EmpleadoBase(BaseModel):
         if (today - v).days > 18250:
             raise ValueError("La fecha de ingreso no puede ser mayor a 50 años atrás")
         return v
+
+    @validator("documento")
+    def validar_documento(cls, v):
+        if not v or not v.strip():
+            raise ValueError("El número de documento no puede estar vacío")
+        if not v.strip().isdigit():
+            raise ValueError("El número de documento solo puede contener números")
+        if len(v.strip()) < 5:
+            raise ValueError("El número de documento debe tener al menos 5 dígitos")
+        return v.strip()
 
 
 class EmpleadoCreate(EmpleadoBase):

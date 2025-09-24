@@ -8,12 +8,30 @@ from .base_crud import CRUDBase
 from datetime import datetime
 class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
     """Operaciones CRUD para Usuario."""
+    
+    def __init__(self):
+        super().__init__(Usuario)
+    
+    def obtener_por_id(self, db: Session, id: Union[UUID, str]) -> Optional[Usuario]:
+        """Obtiene un usuario por su ID."""
+        try:
+            if not id:
+                return None
+            # Convertir a string para la consulta
+            id_str = str(id) if isinstance(id, UUID) else id
+            return db.query(Usuario).filter(Usuario.id_usuario == id_str).first()
+        except Exception as e:
+            print(f"Error al obtener usuario por ID {id}: {str(e)}")
+            return None
+    
     def obtener_por_nombre_usuario(self, db: Session, nombre_usuario: str) -> Optional[Usuario]:
         """Obtiene un usuario por nombre de usuario."""
         return db.query(Usuario).filter(Usuario.nombre_usuario == nombre_usuario).first()
+    
     def obtener_por_correo(self, db: Session, correo: str) -> Optional[Usuario]:
         """Obtiene un usuario por correo electrónico."""
         return db.query(Usuario).filter(Usuario.nombre_usuario == correo).first()
+    
     def obtener_por_rol(self, db: Session, id_rol: UUID, saltar: int = 0, limite: int = 100) -> List[Usuario]:
         """Obtiene usuarios por rol."""
         return (
@@ -93,4 +111,4 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
     def es_superusuario(self, usuario: Usuario) -> bool:
         """Verifica si el usuario es superusuario."""
         return getattr(getattr(usuario, "rol", None), "nombre_rol", "").lower() == "administrador"
-usuario = UsuarioCRUD(Usuario)
+usuario = UsuarioCRUD()

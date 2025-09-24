@@ -4,52 +4,132 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from entities.paquete import Paquete, PaqueteCreate, PaqueteUpdate
 from .base_crud import CRUDBase
+
+
 class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
     """Operaciones CRUD para la entidad Paquete con validaciones."""
+
     def __init__(self):
         super().__init__(Paquete)
-        self.estados_permitidos = ['registrado', 'en_transito', 'en_reparto', 'entregado', 'no_entregado', 'devuelto']
-        self.tipos_permitidos = ['normal', 'express']  
-        self.tamanos_permitidos = ['pequeño', 'mediano', 'grande', 'gigante']  
-        self.peso_minimo = 0.1  
-        self.peso_maximo = 50.0  
+        self.estados_permitidos = [
+            "registrado",
+            "en_transito",
+            "en_reparto",
+            "entregado",
+            "no_entregado",
+            "devuelto",
+        ]
+        self.tipos_permitidos = ["normal", "express"]
+        self.tamanos_permitidos = ["pequeño", "mediano", "grande", "gigante"]
+        self.peso_minimo = 0.1
+        self.peso_maximo = 50.0
         self.valor_minimo = 0.0
-        self.valor_maximo = 1000000.0  
+        self.valor_maximo = 1000000.0
+
+    def obtener_todos(
+        self,
+        db: Session,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        activos: bool = True,
+        id_remitente: Optional[UUID] = None,
+        id_destinatario: Optional[UUID] = None,
+        estado: Optional[str] = None,
+        tipo: Optional[str] = None,
+    ) -> List[Paquete]:
+        """
+        Obtiene todos los paquetes con filtros opcionales.
+
+        Args:
+            db: Sesión de base de datos
+            skip: Número de registros a omitir (para paginación)
+            limit: Número máximo de registros a devolver
+            activos: Si es True, solo devuelve paquetes activos
+            id_remitente: Filtrar por ID del remitente
+            id_destinatario: Filtrar por ID del destinatario
+            estado: Filtrar por estado del paquete
+            tipo: Filtrar por tipo de envío (normal/express)
+
+        Returns:
+            Lista de objetos Paquete que coinciden con los criterios
+        """
+        query = db.query(Paquete)
+
+        if activos:
+            query = query.filter(Paquete.activo == True)
+
+        if id_remitente:
+            query = query.filter(Paquete.id_remitente == id_remitente)
+
+        if id_destinatario:
+            query = query.filter(Paquete.id_destinatario == id_destinatario)
+
+        if estado:
+            query = query.filter(Paquete.estado == estado.lower())
+
+        if tipo:
+            query = query.filter(Paquete.tipo == tipo.lower())
+
+        return query.offset(skip).limit(limit).all()
+
     def _validar_datos_paquete(self, datos: Dict[str, Any]) -> bool:
         """Valida los datos básicos de un paquete."""
         print("\n=== VALIDACIÓN DE DATOS DEL PAQUETE ===")
         print("Datos recibidos:", datos)
         try:
-            descripcion = datos.get('contenido', datos.get('descripcion', ''))
-            print(f"Validando descripción: '{descripcion}' (longitud: {len(descripcion) if descripcion else 0})")
+            descripcion = datos.get("contenido", datos.get("descripcion", ""))
+            print(
+                f"Validando descripción: '{descripcion}' (longitud: {len(descripcion) if descripcion else 0})"
+            )
             if not descripcion or len(descripcion) < 5 or len(descripcion) > 500:
                 print(f"Error: La descripción debe tener entre 5 y 500 caracteres")
                 return False
-            peso = float(datos.get('peso', 0))
-            print(f"Validando peso: {peso} kg (rango: {self.peso_minimo}-{self.peso_maximo} kg)")
+            peso = float(datos.get("peso", 0))
+            print(
+                f"Validando peso: {peso} kg (rango: {self.peso_minimo}-{self.peso_maximo} kg)"
+            )
             if not (self.peso_minimo <= peso <= self.peso_maximo):
-                print(f"Error: El peso debe estar entre {self.peso_minimo} y {self.peso_maximo} kg")
+                print(
+                    f"Error: El peso debe estar entre {self.peso_minimo} y {self.peso_maximo} kg"
+                )
                 return False
-            tipo = datos.get('tipo', '').lower()
-            print(f"Validando tipo: '{tipo}' (permitidos: {', '.join(self.tipos_permitidos)})")
+            tipo = datos.get("tipo", "").lower()
+            print(
+                f"Validando tipo: '{tipo}' (permitidos: {', '.join(self.tipos_permitidos)})"
+            )
             if tipo not in self.tipos_permitidos:
-                print(f"Error: Tipo de envío inválido. Debe ser uno de: {', '.join(self.tipos_permitidos)}")
+                print(
+                    f"Error: Tipo de envío inválido. Debe ser uno de: {', '.join(self.tipos_permitidos)}"
+                )
                 return False
-            fragilidad = datos.get('fragilidad', '').lower()
-            fragilidades_validas = ['baja', 'normal', 'alta']
-            print(f"Validando fragilidad: '{fragilidad}' (permitidas: {', '.join(fragilidades_validas)})")
+            fragilidad = datos.get("fragilidad", "").lower()
+            fragilidades_validas = ["baja", "normal", "alta"]
+            print(
+                f"Validando fragilidad: '{fragilidad}' (permitidas: {', '.join(fragilidades_validas)})"
+            )
             if fragilidad not in fragilidades_validas:
-                print(f"Error: La fragilidad debe ser una de: {', '.join(fragilidades_validas)}")
+                print(
+                    f"Error: La fragilidad debe ser una de: {', '.join(fragilidades_validas)}"
+                )
                 return False
-            tamaño = datos.get('tamaño', '').lower()
-            print(f"Validando tamaño: '{tamaño}' (permitidos: {', '.join(self.tamanos_permitidos)})")
+            tamaño = datos.get("tamaño", "").lower()
+            print(
+                f"Validando tamaño: '{tamaño}' (permitidos: {', '.join(self.tamanos_permitidos)})"
+            )
             if tamaño not in self.tamanos_permitidos:
-                print(f"Error: Tamaño de paquete inválido. Debe ser uno de: {', '.join(self.tamanos_permitidos)}")
+                print(
+                    f"Error: Tamaño de paquete inválido. Debe ser uno de: {', '.join(self.tamanos_permitidos)}"
+                )
                 return False
-            estado = datos.get('estado', 'registrado')
-            print(f"Validando estado: '{estado}' (permitidos: {', '.join(self.estados_permitidos)})")
+            estado = datos.get("estado", "registrado")
+            print(
+                f"Validando estado: '{estado}' (permitidos: {', '.join(self.estados_permitidos)})"
+            )
             if estado not in self.estados_permitidos:
-                print(f"Error: Estado inválido. Debe ser uno de: {', '.join(self.estados_permitidos)}")
+                print(
+                    f"Error: Estado inválido. Debe ser uno de: {', '.join(self.estados_permitidos)}"
+                )
                 return False
             print("¡Todas las validaciones pasaron con éxito!")
             print("======================================\n")
@@ -57,17 +137,17 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         except (ValueError, TypeError) as e:
             print(f"Error de validación: {str(e)}")
             return False
-    def obtener_por_id_paquete(self, db: Session, id_paquete: UUID) -> Optional[Paquete]:
+
+    def obtener_por_id_paquete(
+        self, db: Session, id_paquete: UUID
+    ) -> Optional[Paquete]:
         """Obtiene un paquete por su ID."""
         if not id_paquete:
             return None
         return db.query(Paquete).filter(Paquete.id_paquete == id_paquete).first()
+
     def obtener_por_cliente(
-        self, 
-        db: Session, 
-        id_cliente: UUID, 
-        saltar: int = 0, 
-        limite: int = 100
+        self, db: Session, id_cliente: UUID, saltar: int = 0, limite: int = 100
     ) -> Tuple[List[Paquete], int]:
         """
         Obtiene paquetes por ID de cliente con paginación.
@@ -85,12 +165,9 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         total = consulta.count()
         resultados = consulta.offset(saltar).limit(limite).all()
         return resultados, total
+
     def obtener_por_estado(
-        self, 
-        db: Session, 
-        estado: str, 
-        saltar: int = 0, 
-        limite: int = 100
+        self, db: Session, estado: str, saltar: int = 0, limite: int = 100
     ) -> Tuple[List[Paquete], int]:
         """
         Obtiene paquetes por estado con paginación.
@@ -108,12 +185,9 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         total = consulta.count()
         resultados = consulta.offset(saltar).limit(limite).all()
         return resultados, total
+
     def obtener_por_tipo(
-        self, 
-        db: Session, 
-        tipo: str, 
-        saltar: int = 0, 
-        limite: int = 100
+        self, db: Session, tipo: str, saltar: int = 0, limite: int = 100
     ) -> Tuple[List[Paquete], int]:
         """
         Obtiene paquetes por tipo con paginación.
@@ -131,12 +205,13 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         total = consulta.count()
         resultados = consulta.offset(saltar).limit(limite).all()
         return resultados, total
-    def crear(
-        self, 
-        db: Session, 
-        *, 
-        datos_entrada: Union[PaqueteCreate, Dict[str, Any]], 
-        creado_por: UUID
+
+    def crear_registro(
+        self,
+        db: Session,
+        *,
+        datos_entrada: Union[PaqueteCreate, Dict[str, Any]],
+        creado_por: UUID,
     ) -> Optional[Paquete]:
         """
         Crea un nuevo paquete con validación de datos.
@@ -147,56 +222,56 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         Returns:
             El paquete creado o None si hay un error
         """
-        if hasattr(datos_entrada, 'model_dump'):
+        if hasattr(datos_entrada, "model_dump"):
             datos = datos_entrada.model_dump()
-        elif hasattr(datos_entrada, 'dict'):  
+        elif hasattr(datos_entrada, "dict"):
             datos = datos_entrada.dict()
         else:
             datos = dict(datos_entrada)
-        datos['creado_por'] = creado_por
-        if 'fecha_creacion' not in datos:
-            datos['fecha_creacion'] = datetime.now()  
+        datos["creado_por"] = creado_por
+        if "fecha_creacion" not in datos:
+            datos["fecha_creacion"] = datetime.now()
         if not self._validar_datos_paquete(datos):
             return None
-        if 'estado' not in datos:
-            datos['estado'] = 'registrado'
+        if "estado" not in datos:
+            datos["estado"] = "registrado"
         try:
-            print("\n=== INTENTANDO CREAR PAQUETE EN LA BASE DE DATOS ===")
-            print("Datos que se intentarán guardar:", datos)
-            if isinstance(datos.get('fecha_creacion'), type(datetime.now)):
-                datos['fecha_creacion'] = datos['fecha_creacion']()
-                print("Fecha de creación convertida:", datos['fecha_creacion'])
+            if isinstance(datos.get("fecha_creacion"), type(datetime.now)):
+                datos["fecha_creacion"] = datos["fecha_creacion"]()
+            
             campos_permitidos = {
-                'id_paquete', 'id_cliente', 'peso', 'tamaño', 'fragilidad',
-                'contenido', 'tipo', 'estado', 'activo', 'fecha_creacion',
-                'fecha_actualizacion', 'creado_por', 'actualizado_por'
+                "id_paquete",
+                "id_cliente",
+                "peso",
+                "tamaño",
+                "fragilidad",
+                "contenido",
+                "tipo",
+                "estado",
+                "activo",
+                "fecha_creacion",
+                "fecha_actualizacion",
+                "creado_por",
+                "actualizado_por",
             }
             datos_filtrados = {k: v for k, v in datos.items() if k in campos_permitidos}
             paquete = Paquete(**datos_filtrados)
             db.add(paquete)
-            print("Paquete agregado a la sesión")
             db.commit()
-            print("Commit realizado con éxito")
             db.refresh(paquete)
-            print(f"Paquete creado exitosamente con ID: {paquete.id_paquete}")
             return paquete
         except Exception as e:
             db.rollback()
-            print("\n=== ERROR AL CREAR PAQUETE ===")
-            print(f"Tipo de error: {type(e).__name__}")
-            print(f"Mensaje de error: {str(e)}")
-            print("Datos que causaron el error:", datos)
-            print("==============================\n")
-            import traceback
-            traceback.print_exc()
+            print(f"Error al crear paquete: {str(e)}")
             return None
+
     def actualizar(
         self,
         db: Session,
         *,
         objeto_db: Paquete,
         datos_entrada: Union[PaqueteUpdate, Dict[str, Any]],
-        actualizado_por: UUID
+        actualizado_por: UUID,
     ) -> Optional[Paquete]:
         """
         Actualiza un paquete existente con validación de datos.
@@ -229,13 +304,9 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         except Exception:
             db.rollback()
             return None
+
     def actualizar_estado(
-        self, 
-        db: Session, 
-        *, 
-        id: UUID, 
-        nuevo_estado: str, 
-        actualizado_por: UUID
+        self, db: Session, *, id: UUID, nuevo_estado: str, actualizado_por: UUID
     ) -> Optional[Paquete]:
         """
         Actualiza el estado de un paquete.
@@ -256,7 +327,7 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
             paquete.estado = nuevo_estado
             paquete.actualizado_por = actualizado_por
             paquete.fecha_actualizacion = datetime.utcnow()
-            if nuevo_estado == 'entregado' and not paquete.fecha_entrega:
+            if nuevo_estado == "entregado" and not paquete.fecha_entrega:
                 paquete.fecha_entrega = datetime.utcnow()
             db.add(paquete)
             db.commit()
@@ -265,4 +336,6 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         except Exception:
             db.rollback()
             return None
+
+
 paquete = PaqueteCRUD()

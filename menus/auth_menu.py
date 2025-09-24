@@ -5,6 +5,7 @@ Módulo para manejar la autenticación de usuarios (inicio de sesión y registro
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 from getpass import getpass
+from pydantic import ValidationError
 
 from auth.security import autenticar_usuario as authenticate_user
 from cruds.usuario_crud import usuario as usuario_crud
@@ -73,11 +74,10 @@ def registrar_usuario(db: Session) -> None:
         input("Presione Enter para continuar...")
         return
 
-    usuario_in = UsuarioCreate(
-        nombre_usuario=username, password=password, id_rol=rol_id
-    )
-
     try:
+        usuario_in = UsuarioCreate(
+            nombre_usuario=username, password=password, id_rol=rol_id
+        )
         usuario = usuario_crud.crear_usuario(db, datos_usuario=usuario_in)
 
         print("\nPor favor ingrese los datos del cliente:")
@@ -144,7 +144,7 @@ def registrar_usuario(db: Session) -> None:
             direccion=direccion,
             telefono=telefono,
             correo=correo,
-            tipo="remitente",  # Por defecto
+            tipo="remitente",   
             id_tipo_documento=str(id_tipo_documento),
             usuario_id=str(usuario.id_usuario),
         )
@@ -155,8 +155,22 @@ def registrar_usuario(db: Session) -> None:
         db.commit()
         print(f"\n¡Cliente {usuario.nombre_usuario} registrado exitosamente!")
 
+    except ValidationError as e:
+        print(f"\n❌ Error de validación de datos:")
+        for error in e.errors():
+            field = error['loc'][0] if error['loc'] else 'campo'
+            message = error['msg']
+            print(f"  - {field}: {message}")
+        input("Presione Enter para continuar...")
+        return
+    except ValueError as e:
+        print(f"\n❌ Error de validación: {str(e)}")
+        input("Presione Enter para continuar...")
+        return
     except Exception as e:
         db.rollback()
-        print(f"\nError al crear el usuario: {str(e)}")
+        print(f"\n❌ Error al crear el usuario: {str(e)}")
+        input("Presione Enter para continuar...")
+        return
 
-    input("\nPresione Enter para continuar...")
+    input("\nPresioneF Enter para continuar...")
