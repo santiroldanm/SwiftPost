@@ -28,7 +28,7 @@ class Sede(Base):
     id_sede = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     ciudad = Column(String(50), nullable=False)
     direccion = Column(String(200), nullable=False)
-    telefono = Column(Integer, nullable=False)
+    telefono = Column(String(15), nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(
@@ -41,7 +41,6 @@ class Sede(Base):
         String(36), ForeignKey("usuarios.id_usuario"), default=None
     )
 
-    # Relaciones con DetalleEntrega (sin back_populates para evitar dependencias circulares)
     detalles_remitente = relationship(
         "DetalleEntrega",
         foreign_keys="DetalleEntrega.id_sede_remitente",
@@ -53,12 +52,9 @@ class Sede(Base):
         viewonly=True
     )
     
-    # Relación con Transporte (sin back_populates para evitar dependencias circulares)
     transportes = relationship("Transporte", foreign_keys="Transporte.id_sede", viewonly=True)
     
-    # Relación con Empleado (sin back_populates para evitar dependencias circulares)
     empleados = relationship("Empleado", foreign_keys="Empleado.id_sede", viewonly=True)
-    # Relaciones con Usuario para auditoría (sin back_populates en Usuario)
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 
@@ -84,7 +80,7 @@ class SedeBase(BaseModel):
     direccion: str = Field(
         ..., min_length=5, max_length=200, description="Dirección física de la sede"
     )
-    telefono: int = Field(
+    telefono: str = Field(
         ..., min_length=7, max_length=15, description="Número de teléfono de la sede"
     )
 
@@ -106,11 +102,14 @@ class SedeBase(BaseModel):
 
     @validator("telefono")
     def validar_telefono(cls, v):
-        if v <= 0:
-            raise ValueError("El teléfono debe ser un número positivo")
-        if len(str(v)) < 7 or len(str(v)) > 15:
+        if not v or not v.strip():
+            raise ValueError("El teléfono no puede estar vacío")
+        telefono_limpio = ''.join(filter(str.isdigit, v))
+        if not telefono_limpio.isdigit():
+            raise ValueError("El teléfono solo puede contener números")
+        if len(telefono_limpio) < 7 or len(telefono_limpio) > 15:
             raise ValueError("El teléfono debe tener entre 7 y 15 dígitos")
-        return v
+        return telefono_limpio
 
 
 class SedeCreate(SedeBase):
@@ -120,7 +119,7 @@ class SedeCreate(SedeBase):
 class SedeUpdate(BaseModel):
     ciudad: Optional[str] = Field(None, min_length=2, max_length=50)
     direccion: Optional[str] = Field(None, min_length=5, max_length=200)
-    telefono: Optional[int] = Field(None, min_length=7, max_length=15)
+    telefono: Optional[str] = Field(None, min_length=7, max_length=15)
     activo: Optional[bool] = None
 
     @validator("ciudad")
@@ -146,10 +145,14 @@ class SedeUpdate(BaseModel):
     @validator("telefono")
     def validar_telefono(cls, v):
         if v is not None:
-            if v <= 0:
-                raise ValueError("El teléfono debe ser un número positivo")
-            if len(str(v)) < 7 or len(str(v)) > 15:
+            if not v.strip():
+                raise ValueError("El teléfono no puede estar vacío")
+            telefono_limpio = ''.join(filter(str.isdigit, v))
+            if not telefono_limpio.isdigit():
+                raise ValueError("El teléfono solo puede contener números")
+            if len(telefono_limpio) < 7 or len(telefono_limpio) > 15:
                 raise ValueError("El teléfono debe tener entre 7 y 15 dígitos")
+            return telefono_limpio
         return v
 
 
