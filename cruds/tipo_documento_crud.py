@@ -13,6 +13,14 @@ class TipoDocumentoCRUD(CRUDBase[TipoDocumento, TipoDocumentoCreate, TipoDocumen
     def obtener_por_nombre(self, db: Session, nombre: str) -> Optional[TipoDocumento]:
         """Obtiene un tipo de documento por nombre."""
         return db.query(TipoDocumento).filter(TipoDocumento.nombre == nombre).first()
+        
+    def obtener_todos(self, db: Session, skip: int = 0, limit: int = 100) -> List[TipoDocumento]:
+        """Obtiene todos los tipos de documento."""
+        try:
+            return db.query(TipoDocumento).offset(skip).limit(limit).all()
+        except Exception as e:
+            print(f"Error al obtener tipos de documento: {e}")
+            return []
     
     def obtener_activos(self, db: Session, saltar: int = 0, limite: int = 100) -> List[TipoDocumento]:
         """Obtiene tipos de documento activos."""

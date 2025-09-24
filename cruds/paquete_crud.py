@@ -79,6 +79,12 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
             print(f"Error de validación: {str(e)}")
             return False
     
+    def obtener_por_id_paquete(self, db: Session, id_paquete: UUID) -> Optional[Paquete]:
+        """Obtiene un paquete por su ID."""
+        if not id_paquete:
+            return None
+        return db.query(Paquete).filter(Paquete.id_paquete == id_paquete).first()
+
     def obtener_por_cliente(
         self, 
         db: Session, 

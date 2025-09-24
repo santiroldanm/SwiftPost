@@ -140,52 +140,71 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
         return resultados, total
     
     def crear(
-        self, 
-        db: Session, 
-        *, 
-        datos_entrada: EmpleadoCreate, 
-        creado_por: UUID,
-        usuario_id: UUID,
+        self,
+        db: Session,
+        *,
+        datos: dict,
+        usuario_id: str,
+        creado_por: str
     ) -> Optional[Empleado]:
         """
-        Crea un nuevo empleado con validación de datos.
+        Crea un nuevo empleado.
         
         Args:
             db: Sesión de base de datos
-            datos_entrada: Datos para crear el empleado
+            datos: Datos del empleado a crear
+            usuario_id: ID del usuario asociado al empleado (debe ser un usuario existente)
             creado_por: ID del usuario que crea el registro
             
         Returns:
-            El empleado creado o None si hay un error
+            Empleado: El empleado recién creado o None si hay un error
         """
-        datos = datos_entrada.dict()
-        
         # Validar datos
         if not self._validar_datos_empleado(datos):
             return None
             
         # Verificar duplicados
-        if self.obtener_por_documento(db, datos['documento']):
+        if 'documento' in datos and self.obtener_por_documento(db, datos['documento']):
+            print("Error: Ya existe un empleado con este número de documento")
             return None
             
-        if self.obtener_por_email(db, datos['correo']):
+        if 'correo' in datos and self.obtener_por_email(db, datos['correo']):
+            print("Error: Ya existe un empleado con este correo electrónico")
             return None
         
-        # Crear el empleado
+        # Verificar que el usuario exista
+        from cruds.usuario_crud import usuario as usuario_crud
+        usuario = usuario_crud.get(db, id=usuario_id)
+        if not usuario:
+            print(f"Error: No existe un usuario con ID {usuario_id}")
+            return None
+        
+        # Verificar que no exista ya un empleado con este usuario
+        if self.get(db, id=usuario_id):
+            print(f"Error: Ya existe un empleado asociado al usuario con ID {usuario_id}")
+            return None
+            
         try:
+            # Crear el empleado
             empleado = Empleado(
-                **datos,
-                usuario_id=usuario_id,
-                creado_por=creado_por,
-                fecha_creacion=datetime.utcnow(),
+                id_empleado=str(usuario_id),  # El ID del empleado debe coincidir con el ID del usuario
+                **{k: v for k, v in datos.items() if k != 'id_empleado'},  # Asegurarse de no incluir id_empleado dos veces
+                creado_por=str(creado_por),
+                fecha_creacion=datetime.now(),
                 activo=True
             )
+            
             db.add(empleado)
             db.commit()
             db.refresh(empleado)
             return empleado
-        except Exception:
+            
+        except Exception as e:
             db.rollback()
+            print(f"Error al crear empleado: {str(e)}")
+            print(f"Tipo de error: {type(e).__name__}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def actualizar(

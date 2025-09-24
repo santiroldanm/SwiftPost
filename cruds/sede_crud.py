@@ -10,6 +10,23 @@ from .base_crud import CRUDBase
 class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
     """Operaciones CRUD para Sede."""
     
+    def obtener_por_id(self, db: Session, id: Union[UUID, str]) -> Optional[Sede]:
+        """
+        Obtiene una sede por su ID.
+        
+        Args:
+            db: Sesión de base de datos
+            id: ID de la sede a buscar (puede ser UUID o string)
+            
+        Returns:
+            Optional[Sede]: La sede encontrada o None si no existe
+        """
+        try:
+            return db.query(Sede).filter(Sede.id_sede == id).first()
+        except Exception as e:
+            print(f"Error al obtener sede por ID {id}: {e}")
+            return None
+    
     def obtener_por_nombre(self, db: Session, nombre: str) -> Optional[Sede]:
         """Obtiene una sede por nombre."""
         return db.query(Sede).filter(Sede.nombre == nombre).first()
@@ -34,10 +51,19 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
             .all()
         )
     
-    def crear(self, db: Session, *, datos_entrada: SedeCreate, creado_por: UUID) -> Sede:
-        """Crea una nueva sede."""
+    def crear(self, db: Session, *, obj_in: SedeCreate, creado_por: UUID) -> Sede:
+        """Crea una nueva sede.
+        
+        Args:
+            db: Sesión de base de datos
+            obj_in: Datos de la sede a crear
+            creado_por: ID del usuario que crea la sede
+            
+        Returns:
+            Sede: La sede recién creada
+        """
         db_obj = Sede(
-            **datos_entrada.dict(),
+            **obj_in.model.dump(),
             creado_por=creado_por
         )
         db.add(db_obj)

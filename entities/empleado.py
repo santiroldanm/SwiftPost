@@ -52,7 +52,16 @@ class Empleado(Base):
     
     # Relación con Usuario
     usuario = relationship("Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False)
-    id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=False)
+    
+    # Usuario que creó el registro
+    creado_por = Column(
+        String(36),
+        ForeignKey("usuarios.id_usuario"),
+        nullable=False,
+        comment="ID del usuario que creó el registro"
+    )
+    creado_por_rel = relationship("Usuario", foreign_keys=[creado_por], backref="empleados_creados")
+    id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=True)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
     primer_apellido = Column(String(50), nullable=False)
@@ -64,7 +73,7 @@ class Empleado(Base):
     )
     documento = Column(String(20), nullable=False)
     fecha_nacimiento = Column(Date, nullable=False)
-    telefono = Column(String(15), nullable=False)
+    telefono = Column(String(15), nullable=False)  # Mismo tipo que en Sede
     correo = Column(String(100), nullable=False, unique=True)
     direccion = Column(String(200), nullable=False)
     tipo_empleado = Column(String(20), nullable=False)
