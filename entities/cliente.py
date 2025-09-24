@@ -40,7 +40,6 @@ class Cliente(Base):
         comment="ID único del cliente"
     )
     
-    # Relación con Usuario (uno a uno)
     usuario_id = Column(
         String(36),
         ForeignKey("usuarios.id_usuario"),
@@ -69,7 +68,6 @@ class Cliente(Base):
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
-    # Campos de auditoría
     creado_por = Column(
         String(36),
         ForeignKey("usuarios.id_usuario"),
@@ -83,13 +81,10 @@ class Cliente(Base):
         comment="Usuario que actualizó por última vez el registro"
     )
 
-    # Relación con TipoDocumento
     tipo_documento_rel = relationship("TipoDocumento", back_populates="clientes")
     
-    # Relaciones con otros modelos
     paquetes = relationship("Paquete", back_populates="cliente", cascade="all, delete-orphan")
     
-    # Relaciones con DetalleEntrega (sin back_populates para evitar dependencias circulares)
     envios_como_remitente = relationship(
         "DetalleEntrega",
         foreign_keys="DetalleEntrega.id_cliente_remitente",
@@ -101,8 +96,6 @@ class Cliente(Base):
         viewonly=True
     )
     
-    # Relaciones de auditoría (usando backref desde Usuario)
-    # creador y actualizador están definidos por los backref en Usuario
 
     def __repr__(self):
         return f"<Cliente(id={self.id_cliente}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, numero_documento={self.numero_documento}, telefono={self.telefono}, direccion={self.direccion}, correo={self.correo}, tipo={self.tipo})>"

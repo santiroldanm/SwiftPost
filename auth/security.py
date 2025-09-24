@@ -4,7 +4,6 @@ from database.config import get_db
 from cruds.usuario_crud import usuario as usuario_crud
 from cruds.rol_crud import rol as rol_crud
 
-# Variable global para almacenar en caché los roles
 _cache_roles = {}
 
 def obtener_roles(db: Session) -> Dict[str, str]:
@@ -14,11 +13,9 @@ def obtener_roles(db: Session) -> Dict[str, str]:
     """
     global _cache_roles
     
-    # Si ya tenemos los roles en caché, los devolvemos
     if _cache_roles:
         return _cache_roles
     
-    # Si no, los obtenemos de la base de datos
     roles_db = rol_crud.obtener_activos(db=db)
     _cache_roles = {rol.nombre_rol.lower(): str(rol.id_rol) for rol in roles_db}
     
@@ -47,24 +44,22 @@ def autenticar_usuario(db: Session, nombre_usuario: str, contraseña: str) -> Op
     Autentica un usuario con nombre de usuario y contraseña.
     Devuelve un diccionario con los datos del usuario y su rol si la autenticación es exitosa.
     """
-    # Limpiar caché de roles para asegurar que tenemos los últimos datos
     limpiar_cache_roles()
     
     usuario = usuario_crud.obtener_por_nombre_usuario(db, nombre_usuario=nombre_usuario)
-    if not usuario or usuario.password != contraseña:  # Comparación directa sin hash
+    if not usuario or usuario.password != contraseña: 
         return None
     
-    # Obtener el nombre del rol
     rol = rol_crud.obtener_por_id(db, id_rol=usuario.id_rol)
     if not rol:
-        return None  # Usuario sin rol válido
+        return None 
         
     nombre_rol = rol.nombre_rol.lower()
     
     return {
         'id_usuario': usuario.id_usuario,
         'nombre_usuario': usuario.nombre_usuario,
-        'rol_id': str(usuario.id_rol),  # Asegurarse de que sea string
+        'rol_id': str(usuario.id_rol),  
         'rol_nombre': nombre_rol,
         'activo': usuario.activo
     }
@@ -78,12 +73,10 @@ def es_administrador(datos_usuario: Dict[str, Any], db: Optional[Session] = None
     if not datos_usuario:
         return False
     
-    # Si se proporciona una sesión de base de datos, verificar dinámicamente
     if db is not None:
         nombre_rol = obtener_nombre_rol(db, datos_usuario.get('rol_id', ''))
         return nombre_rol and nombre_rol.lower() in ['admin', 'administrador']
     
-    # Si no hay sesión, intentar determinar por el nombre del rol en los datos del usuario
     nombre_rol = datos_usuario.get('rol_nombre', '').lower()
     return nombre_rol in ['admin', 'administrador']
 
@@ -92,12 +85,10 @@ def es_empleado(datos_usuario: Dict[str, Any], db: Optional[Session] = None) -> 
     if not datos_usuario:
         return False
     
-    # Si se proporciona una sesión de base de datos, verificar dinámicamente
     if db is not None:
         nombre_rol = obtener_nombre_rol(db, datos_usuario.get('rol_id', ''))
         return nombre_rol and nombre_rol.lower() == 'empleado'
     
-    # Si no hay sesión, intentar determinar por el nombre del rol en los datos del usuario
     nombre_rol = datos_usuario.get('rol_nombre', '').lower()
     return nombre_rol == 'empleado'
 
@@ -106,15 +97,12 @@ def es_cliente(datos_usuario: Dict[str, Any], db: Optional[Session] = None) -> b
     if not datos_usuario:
         return False
     
-    # Si se proporciona una sesión de base de datos, verificar dinámicamente
     if db is not None:
         nombre_rol = obtener_nombre_rol(db, datos_usuario.get('rol_id', ''))
-        # Si no es admin ni empleado, asumimos que es cliente
         if not nombre_rol:
             return False
         return nombre_rol.lower() not in ['admin', 'empleado']
     
-    # Si no hay sesión, intentar determinar por el nombre del rol en los datos del usuario
     nombre_rol = datos_usuario.get('rol_nombre', '').lower()
     return nombre_rol not in ['admin', 'empleado'] and bool(nombre_rol)
 
@@ -127,7 +115,6 @@ def obtener_usuario_actual(db: Session, nombre_usuario: str) -> Optional[Dict[st
     if not usuario:
         return None
     
-    # Obtener el nombre del rol
     rol = rol_crud.obtener_por_id(db, id_rol=usuario.id_rol)
     nombre_rol = rol.nombre_rol.lower() if rol else 'cliente'
     

@@ -49,10 +49,8 @@ class Transporte(Base):
         String(36), ForeignKey("usuarios.id_usuario"), default=None
     )
 
-    # Relación con Sede (sin back_populates para evitar dependencias circulares)
     sede = relationship("Sede", foreign_keys=[id_sede])
     
-    # Relaciones con Usuario para auditoría (sin back_populates)
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 

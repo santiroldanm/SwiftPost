@@ -50,10 +50,8 @@ class Empleado(Base):
         comment="ID del empleado, igual al ID del usuario asociado"
     )
     
-    # Relación con Usuario
     usuario = relationship("Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False)
     
-    # Usuario que creó el registro
     creado_por = Column(
         String(36),
         ForeignKey("usuarios.id_usuario"),
@@ -73,7 +71,7 @@ class Empleado(Base):
     )
     documento = Column(String(20), nullable=False)
     fecha_nacimiento = Column(Date, nullable=False)
-    telefono = Column(String(15), nullable=False)  # Mismo tipo que en Sede
+    telefono = Column(String(15), nullable=False)
     correo = Column(String(100), nullable=False, unique=True)
     direccion = Column(String(200), nullable=False)
     tipo_empleado = Column(String(20), nullable=False)
@@ -177,7 +175,6 @@ class EmpleadoBase(BaseModel):
             return v.strip().title()
         return v
 
-    # Validator removed - numero_documento field doesn't exist in this model
 
     @validator("fecha_nacimiento")
     def validar_fecha_nacimiento(cls, v):

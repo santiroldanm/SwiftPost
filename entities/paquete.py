@@ -47,12 +47,9 @@ class Paquete(Base):
         String(36), ForeignKey("usuarios.id_usuario"), nullable=True
     )
 
-    # Relación con Cliente (bidireccional)
     cliente = relationship("Cliente", back_populates="paquetes", foreign_keys=[id_cliente])
     
-    # Relación con DetalleEntrega (unidireccional)
     detalle_entrega = relationship("DetalleEntrega", back_populates="paquete", uselist=False)
-    # Relaciones con Usuario para auditoría (sin back_populates en Usuario)
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 

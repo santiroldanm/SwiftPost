@@ -58,17 +58,13 @@ class DetalleEntrega(Base):
         String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
 
-    # Relaciones con Sede (sin back_populates para evitar dependencias circulares)
     sede_remitente_rel = relationship("Sede", foreign_keys=[id_sede_remitente])
     sede_receptora_rel = relationship("Sede", foreign_keys=[id_sede_receptora])
-    # Relación con Paquete (unidireccional)
     paquete = relationship("Paquete", back_populates="detalle_entrega", foreign_keys=[id_paquete], uselist=False)
     
-    # Relaciones con Cliente (sin back_populates para evitar dependencias circulares)
     cliente_remitente = relationship("Cliente", foreign_keys=[id_cliente_remitente])
     cliente_receptor = relationship("Cliente", foreign_keys=[id_cliente_receptor])
     
-    # Relaciones con Usuario para auditoría (sin back_populates)
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 

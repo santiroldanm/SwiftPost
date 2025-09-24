@@ -41,7 +41,6 @@ class Sede(Base):
         String(36), ForeignKey("usuarios.id_usuario"), default=None
     )
 
-    # Relaciones con DetalleEntrega (sin back_populates para evitar dependencias circulares)
     detalles_remitente = relationship(
         "DetalleEntrega",
         foreign_keys="DetalleEntrega.id_sede_remitente",
@@ -53,12 +52,9 @@ class Sede(Base):
         viewonly=True
     )
     
-    # Relación con Transporte (sin back_populates para evitar dependencias circulares)
     transportes = relationship("Transporte", foreign_keys="Transporte.id_sede", viewonly=True)
     
-    # Relación con Empleado (sin back_populates para evitar dependencias circulares)
     empleados = relationship("Empleado", foreign_keys="Empleado.id_sede", viewonly=True)
-    # Relaciones con Usuario para auditoría (sin back_populates en Usuario)
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 
@@ -108,7 +104,6 @@ class SedeBase(BaseModel):
     def validar_telefono(cls, v):
         if not v or not v.strip():
             raise ValueError("El teléfono no puede estar vacío")
-        # Eliminar espacios y caracteres no numéricos
         telefono_limpio = ''.join(filter(str.isdigit, v))
         if not telefono_limpio.isdigit():
             raise ValueError("El teléfono solo puede contener números")
@@ -152,7 +147,6 @@ class SedeUpdate(BaseModel):
         if v is not None:
             if not v.strip():
                 raise ValueError("El teléfono no puede estar vacío")
-            # Eliminar espacios y caracteres no numéricos
             telefono_limpio = ''.join(filter(str.isdigit, v))
             if not telefono_limpio.isdigit():
                 raise ValueError("El teléfono solo puede contener números")
