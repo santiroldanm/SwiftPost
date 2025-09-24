@@ -1,22 +1,18 @@
-# SwiftPost
+# SwiftPost - Sistema de Gestión de Mensajería
 
 ## Descripción
-**SwiftPost** es una aplicación de consola desarrollada en Python que simula un sistema de mensajería.  
-El programa permite registrar clientes, gestionar paquetes, rastrear envíos y aplicar principios de programación orientada a objetos como **herencia** y **polimorfismo**.
+*SwiftPost* es un sistema de gestión de mensajería desarrollado en Python que permite administrar el ciclo completo de envíos de paquetes. Incluye módulos para la gestión de clientes, empleados, sedes, transportes y seguimiento de paquetes.
 
 ## Propósito
-El objetivo del proyecto es modelar el funcionamiento de un servicio de mensajería básico, mostrando cómo estructurar aplicaciones modulares en Python.  
-También sirve como ejemplo educativo para reforzar conceptos de **POO** y **buenas prácticas de desarrollo**.
+El objetivo del proyecto es proporcionar una solución integral para la gestión de una empresa de mensajería, implementando buenas prácticas de desarrollo, arquitectura limpia y patrones de diseño.
 
 ## Requisitos
-- Python 3.10 o superior  
-- No se requieren librerías externas, únicamente la librería estándar de Python.
+- Python 3.10 o superior
+- SQLAlchemy 2.0+
+- Alembic (para migraciones de base de datos)
+- Dependencias listadas en requirements.txt
 
-## Funcionalidades
-- Registro de clientes con sus datos básicos.  
-- Creación y gestión de paquetes asociados a clientes.  
-- Rastreo de paquetes mediante su ID.   
-- Menús interactivos en consola para gestionar el sistema.
+## Instalación
 
 ## Instalación
 1. Clonar el repositorio:
@@ -28,34 +24,71 @@ También sirve como ejemplo educativo para reforzar conceptos de **POO** y **bue
      ```bash
       cd SwiftPost
       ```
-## Ejecución
-Para iniciar la aplicación, ejecutar el archivo principal desde la terminal:
-  ```bash
-  py main.py
-  ```
+   
+
+3. Instalar dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Configurar la base de datos:
+   ```bash
+   alembic upgrade head
+   ```
+
+##  Ejecución
+
+Para iniciar la aplicación:
+```bash
+   py main.py
+```
+
+##  Estructura del Proyecto
+SwiftPost/
+├── auth/               
+├── cruds/                 
+├── database/              
+├── entities/              
+├── menus/                 
+├── migrations/      
+├── scripts/  
+├── src/  
+├── alembic.ini          
+├── main.py              
+└── requirements.txt
+
+
+## Lógica de Negocio
+
+### Módulos Principales
+
+1. *Gestión de Usuarios*
+   - Autenticación y autorización
+   - Roles: Administrador, Empleado, Cliente
+   - Gestión de perfiles
+
+2. *Gestión de Paquetes*
+   - Registro de paquetes
+   - Actualización de estados
+
+3. *Gestión de Sedes*
+   - Administración de ubicaciones
+   - Asignación de personal
+
+4. *Gestión de Transporte*
+   - Flota de vehículos
+   - Rutas y horarios
 
 ## Ejemplo de Uso
-Al ejecutar el programa, se muestra un menú interactivo en consola donde se pueden realizar operaciones como:
 
-1. Registrar un cliente.  
-2. Registrar un paquete.  
-3. Rastrear un paquete ingresando su ID.
-4. Calcular el precio de un envío.
-5. Listar Paquetes.
-6. Actualizar el estado de un paquete.
-7. Salir del sistema.  
+1. Iniciar sesión con credenciales de administrador
+2. Navegar por el menú principal
+3. Gestionar empleados, sedes o paquetes
+4. Realizar seguimiento de envíos
+5. Generar reportes
 
-El usuario debe seguir las instrucciones en pantalla para interactuar con el sistema.
-  
-## Estructura del Proyecto
-  - main.py:
-  Este es el punto de entrada de la aplicación. Se encarga de inicializar el sistema y coordinar las interacciones principales, como crear clientes, paquetes y utilizar el servicio de mensajería.
 
-- src/:
-Esta carpeta contiene todo el código fuente del proyecto. La modularización ayuda a mantener el código limpio, organizado y fácil de mantener.
-
-- cliente.py: Define la clase Cliente, que modela a un usuario del servicio. Contiene atributos como nombre, teléfono y correo.
-
-- paquete.py: Define la clase Paquete, que representa un objeto a ser enviado. Incluye detalles como peso, origen, destino y estado de entrega.
-
-- servicio_mensajeria.py: Contiene la lógica principal del sistema. Aquí se gestionan las operaciones, como registrar clientes y paquetes, calcular costos de envio y actualizar el estado de las entregas.
+## Realizado Por:   
+   - Santiago Roldán Muñoz
+   - Emmanuel Pérez Vivas
+   - Jeison Olaya
