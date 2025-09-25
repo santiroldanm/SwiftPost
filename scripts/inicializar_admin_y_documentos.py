@@ -28,7 +28,7 @@ def crear_usuario_administrador(db: Session):
     usuario_admin = Usuario(
         id_rol=rol_admin.id_rol,
         nombre_usuario="admin",
-        password="admin123",  
+        password="admin123",
         activo=True,
         fecha_creacion=datetime.now(),
     )

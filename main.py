@@ -4,6 +4,7 @@ from getpass import getpass
 from typing import Optional, List, Dict, Any, Union, Tuple
 from uuid import UUID, uuid4
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, date, timedelta
 from sqlalchemy.orm import Session, joinedload
 import getpass
@@ -18,6 +19,30 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+
+def limpiar_estado_db(db: Session) -> None:
+    """
+    Limpia el estado de la base de datos para evitar transacciones inválidas.
+
+    Args:
+        db: Sesión de base de datos
+    """
+    try:
+        if db.is_active and db.in_transaction():
+            db.rollback()
+    except SQLAlchemyError:
+        try:
+            db.close()
+        except:
+            pass
+    except Exception:
+        try:
+            db.close()
+        except:
+            pass
+
+
 from cruds.tipo_documento_crud import TipoDocumentoCRUD
 from entities.tipo_documento import TipoDocumento, TipoDocumentoCreate
 
@@ -150,8 +175,9 @@ def mostrar_menu(usuario_data: Optional[Dict[str, Any]] = None) -> str:
             print("2. Buscar cliente")
             print("3. Listar clientes activos")
             print("4. Gestionar paquetes")
-            print("5. Ver reportes")
-            print("6. Mi perfil")
+            print("5. Cotizar envío")
+            print("6. Ver reportes")
+            print("7. Mi perfil")
             print("0. Cerrar sesión")
         else:
             print("1. Solicitar recogida")
@@ -173,7 +199,8 @@ def login(db: Session) -> Optional[Dict[str, Any]]:
     return iniciar_sesion(db)
 
 
-def registrar_usuario(db: Session, es_empleado: bool = False) -> None:
+def registrar_usuario_main(db: Session, es_empleado: bool = False) -> None:
+    """Registra un nuevo usuario en el sistema."""
     from menus.auth_menu import registrar_usuario
 
     registrar_usuario(db, es_empleado)
@@ -181,27 +208,66 @@ def registrar_usuario(db: Session, es_empleado: bool = False) -> None:
 
 def administrar_usuarios(db: Session) -> None:
     """Muestra el menú de administración de usuarios."""
-    from menus import manejar_menu_usuarios
+    from menus.usuario_menu import manejar_menu_usuarios
 
     manejar_menu_usuarios(db)
 
 
 def gestionar_sedes(db: Session, usuario_actual: Dict[str, Any] = None) -> None:
     """Muestra el menú de gestión de sedes.
+
+    Args:
+        db: Sesión de base de datos
+        usuario_actual: Información del usuario actual
+    """
+    try:
+        limpiar_estado_db(db)
+        from menus.sede_menu import manejar_menu_sedes
+
+        manejar_menu_sedes(db, usuario_actual)
+    except Exception as e:
+        logger.error(f"Error en gestión de sedes: {str(e)}")
+        limpiar_estado_db(db)
+        print(f"Error en gestión de sedes: {str(e)}")
+        input("Presione Enter para continuar...")
+
+
+def gestionar_empleados(db: Session, usuario_actual: Dict[str, Any] = None) -> None:
+    """Muestra el menú de gestión de empleados.
+
     Args:
         db: Sesión de base de datos
         usuario_actual: Diccionario con los datos del usuario administrador actual
     """
-    from menus.sede_menu import manejar_menu_sedes
+    from menus.empleado_menu import manejar_menu_empleados
 
-    manejar_menu_sedes(db, usuario_actual=usuario_actual)
+    manejar_menu_empleados(
+        db, usuario_actual.get("id_usuario") if usuario_actual else None
+    )
+
+
+def gestionar_paquetes(db: Session, usuario_actual: Dict[str, Any] = None) -> None:
+    """Muestra el menú de gestión de paquetes.
+
+    Args:
+        db: Sesión de base de datos
+        usuario_actual: Diccionario con los datos del usuario actual
+    """
+    from menus.paquete_menu import manejar_menu_paquetes
+
+    manejar_menu_paquetes(db)
 
 
 def registrar_envio(db: Session, empleado_data: Dict[str, Any]) -> None:
     """Permite a un empleado registrar un nuevo envío."""
-    mostrar_encabezado("REGISTRAR NUEVO ENVÍO")
-    print("Funcionalidad en desarrollo...")
-    input("\nPresione Enter para continuar...")
+    try:
+        from menus.envio_menu import registrar_envio_completo
+
+        registrar_envio_completo(db, empleado_data)
+    except Exception as e:
+        logger.error(f"Error en registro de envío: {str(e)}")
+        print(f"Error al registrar envío: {str(e)}")
+        input("\nPresione Enter para continuar...")
 
 
 def buscar_cliente_empleado(db: Session) -> None:
@@ -268,7 +334,6 @@ def enviar_paquete(db: Session, usuario_data: Dict[str, Any]) -> None:
             if fragilidad not in ["baja", "normal", "alta"]:
                 print("Opción no válida. Intente de nuevo.")
         from entities.paquete import PaqueteCreate
-        from entities.paquete import PaqueteCreate
 
         paquete_data = PaqueteCreate(
             peso=float(peso),
@@ -281,24 +346,12 @@ def enviar_paquete(db: Session, usuario_data: Dict[str, Any]) -> None:
             "id_paquete": str(uuid4()),
             "id_cliente": str(cliente.id_cliente),
         }
-        print("\nDatos del paquete a crear:")
-        print(f"ID Cliente: {datos_adicionales['id_cliente']}")
-        print(f"Peso: {paquete_data.peso}")
-        print(f"Tamaño: {paquete_data.tamaño}")
-        print(f"Fragilidad: {paquete_data.fragilidad}")
-        print(f"Contenido: {paquete_data.contenido}")
-        print(f"Tipo: {paquete_data.tipo}")
-        print("\n=== DATOS DE DEPURACIÓN ===")
-        print("Datos del paquete:", paquete_data.dict())
-        print("Datos adicionales:", datos_adicionales)
         datos_creacion = {
             **paquete_data.dict(),
             **datos_adicionales,
             "creado_por": usuario_data["id_usuario"],
         }
-        print("Datos finales para crear el paquete:", datos_creacion)
-        print("==========================\n")
-        nuevo_paquete = paquete_crud.crear(
+        nuevo_paquete = paquete_crud.crear_registro(
             db=db, datos_entrada=datos_creacion, creado_por=usuario_data["id_usuario"]
         )
         if nuevo_paquete is None:
@@ -317,9 +370,6 @@ def enviar_paquete(db: Session, usuario_data: Dict[str, Any]) -> None:
         print(f"Número de seguimiento: {nuevo_paquete.id_paquete}")
     except Exception as e:
         print(f"\nError al registrar el paquete: {str(e)}")
-        import traceback
-
-        traceback.print_exc()
     input("\nPresione Enter para continuar...")
 
 
@@ -853,11 +903,7 @@ def main() -> None:
                     if opcion == "1":
                         administrar_usuarios(db)
                     elif opcion == "2":
-                        from menus.empleado_menu import manejar_menu_empleados
-
-                        manejar_menu_empleados(
-                            db, id_administrador=str(usuario_actual.get("id_usuario"))
-                        )
+                        gestionar_empleados(db, usuario_actual=usuario_actual)
                     elif opcion == "3":
                         from menus.cliente_menu import gestionar_clientes
 
@@ -871,11 +917,7 @@ def main() -> None:
                             db, id_administrador=str(usuario_actual.get("id_usuario"))
                         )
                     elif opcion == "6":
-                        from menus.paquete_menu import manejar_menu_paquetes_admin
-
-                        manejar_menu_paquetes_admin(
-                            db, id_administrador=str(usuario_actual.get("id_usuario"))
-                        )
+                        gestionar_paquetes(db, usuario_actual=usuario_actual)
                     elif opcion == "7":
                         from menus.reportes_menu import manejar_menu_reportes_admin
 
@@ -903,9 +945,13 @@ def main() -> None:
                             db, id_empleado=str(usuario_actual.get("id_usuario"))
                         )
                     elif opcion == "5":
-                        mostrar_reportes(db)
+                        from menus.cotizacion_menu import menu_cotizacion
+
+                        menu_cotizacion(db)
                     elif opcion == "6":
-                        mostrar_perfil(usuario_actual)
+                        mostrar_reportes(db)
+                    elif opcion == "7":
+                        mostrar_perfil(db, usuario_actual)
                     elif opcion == "0":
                         print(
                             f"\nSesión cerrada. ¡Hasta pronto, {usuario_actual['nombre_usuario']}!"
@@ -915,13 +961,9 @@ def main() -> None:
                         print("\nOpción no válida. Intente de nuevo.")
                 else:
                     if opcion == "1":
-                        from menus.paquete_menu import solicitar_recogida
-
-                        solicitar_recogida(db, usuario_actual)
+                        enviar_paquete(db, usuario_actual)
                     elif opcion == "2":
-                        from menus.paquete_menu import rastrear_envio
-
-                        rastrear_envio(db, usuario_actual)
+                        seguimiento_paquetes(db, usuario_actual)
                     elif opcion == "3":
                         from menus.paquete_menu import historial_envios
 

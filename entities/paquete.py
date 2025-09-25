@@ -36,20 +36,22 @@ class Paquete(Base):
     fragilidad = Column(String(8), nullable=False)
     contenido = Column(Text, nullable=False)
     tipo = Column(String(10), nullable=False)
-    estado = Column(String(20), nullable=False, default='registrado')
+    estado = Column(String(20), nullable=False, default="registrado")
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    creado_por = Column(
-        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
-    )
+    creado_por = Column(String(36), ForeignKey("usuarios.id_usuario"), nullable=False)
     actualizado_por = Column(
         String(36), ForeignKey("usuarios.id_usuario"), nullable=True
     )
 
-    cliente = relationship("Cliente", back_populates="paquetes", foreign_keys=[id_cliente])
-    
-    detalle_entrega = relationship("DetalleEntrega", back_populates="paquete", uselist=False)
+    cliente = relationship(
+        "Cliente", back_populates="paquetes", foreign_keys=[id_cliente]
+    )
+
+    detalle_entrega = relationship(
+        "DetalleEntrega", back_populates="paquete", uselist=False
+    )
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 
@@ -100,10 +102,10 @@ class PaqueteBase(BaseModel):
         description="Valor declarado del paquete para fines de seguro",
     )
     estado: Optional[str] = Field(
-        default='registrado',
+        default="registrado",
         min_length=1,
         max_length=20,
-        description="Estado actual del paquete (registrado, en_transito, etc.)"
+        description="Estado actual del paquete (registrado, en_transito, etc.)",
     )
 
     @validator("peso")
@@ -117,7 +119,7 @@ class PaqueteBase(BaseModel):
         tamaños_validos = ["pequeño", "mediano", "grande", "gigante"]
         if v.lower() not in tamaños_validos:
             raise ValueError(f'El tamaño debe ser uno de: {", ".join(tamaños_validos)}')
-        return v.strip() 
+        return v.strip()
 
     @validator("fragilidad")
     def validar_fragilidad(cls, v):
@@ -126,7 +128,7 @@ class PaqueteBase(BaseModel):
             raise ValueError(
                 f'La fragilidad debe ser una de: {", ".join(fragilidades_validas)}'
             )
-        return v.strip() 
+        return v.strip()
 
     @validator("contenido")
     def validar_contenido(cls, v):
@@ -139,7 +141,7 @@ class PaqueteBase(BaseModel):
         tipos_validos = ["normal", "express"]
         if v.lower() not in tipos_validos:
             raise ValueError(f'El tipo debe ser uno de: {", ".join(tipos_validos)}')
-        return v.strip() 
+        return v.strip()
 
 
 class PaqueteCreate(PaqueteBase):

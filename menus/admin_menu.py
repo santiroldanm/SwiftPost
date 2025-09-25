@@ -46,23 +46,23 @@ def manejar_opcion_administrador(
         paquete_crud,
     )
 
-    if opcion == "1":  # Administrar usuarios
+    if opcion == "1":
         administrar_usuarios(db)
-    elif opcion == "2":  # Gestionar empleados
+    elif opcion == "2":
         gestionar_empleados(db)
-    elif opcion == "3":  # Gestionar clientes
+    elif opcion == "3":
         gestionar_clientes(db)
-    elif opcion == "4":  # Gestionar sedes
+    elif opcion == "4":
         gestionar_sedes(db)
-    elif opcion == "5":  # Gestionar transportes
+    elif opcion == "5":
         gestionar_transportes(db)
-    elif opcion == "6":  # Gestionar paquetes
+    elif opcion == "6":
         gestionar_paquetes_admin(db)
-    elif opcion == "7":  # Reportes
+    elif opcion == "7":
         mostrar_reportes_admin(db)
-    elif opcion == "8":  # Configuración del sistema
+    elif opcion == "8":
         configuracion_sistema(db)
-    elif opcion == "0":  # Cerrar sesión
+    elif opcion == "0":
         print(f"\nSesión cerrada. ¡Hasta pronto, {usuario_actual['nombre_usuario']}!")
         return False
     else:
@@ -79,7 +79,6 @@ def administrar_usuarios(db: Session) -> None:
 def gestionar_empleados(db: Session) -> None:
     """Muestra el menú de gestión de empleados."""
     print("\nFunción de gestión de empleados")
-    # Implementar lógica de gestión de empleados
 
 
 def gestionar_clientes(db: Session) -> None:
@@ -90,7 +89,6 @@ def gestionar_clientes(db: Session) -> None:
 def gestionar_sedes(db: Session) -> None:
     """Muestra el menú de gestión de sedes."""
     print("\nFunción de gestión de sedes")
-    # Implementar lógica de gestión de sedes
 
 
 def gestionar_transportes(db: Session) -> None:
@@ -101,7 +99,6 @@ def gestionar_transportes(db: Session) -> None:
 def gestionar_paquetes_admin(db: Session) -> None:
     """Muestra el menú de gestión de paquetes para administradores."""
     print("\nFunción de gestión de paquetes (admin)")
-    # Implementar lógica de gestión de paquetes
 
 
 def mostrar_reportes_admin(db: Session) -> None:
@@ -112,4 +109,3 @@ def mostrar_reportes_admin(db: Session) -> None:
 def configuracion_sistema(db: Session) -> None:
     """Muestra el menú de configuración del sistema."""
     print("\nFunción de configuración del sistema")
-    # Implementar lógica de configuración del sistema

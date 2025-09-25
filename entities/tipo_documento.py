@@ -33,16 +33,18 @@ class TipoDocumento(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(
-        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
-    )
+    creado_por = Column(String(36), ForeignKey("usuarios.id_usuario"), nullable=False)
     actualizado_por = Column(
         String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
 
-    clientes = relationship("Cliente", back_populates="tipo_documento_rel" )
-    empleados = relationship("Empleado", back_populates="tipo_documento_rel", foreign_keys="[Empleado.tipo_documento]")
-    
+    clientes = relationship("Cliente", back_populates="tipo_documento_rel")
+    empleados = relationship(
+        "Empleado",
+        back_populates="tipo_documento_rel",
+        foreign_keys="[Empleado.tipo_documento]",
+    )
+
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 

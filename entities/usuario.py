@@ -27,7 +27,7 @@ class Usuario(Base):
 
     __tablename__ = "usuarios"
     id_usuario = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    
+
     id_rol = Column(String(36), ForeignKey("roles.id_rol"), nullable=False, index=True)
     nombre_usuario = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
@@ -37,10 +37,21 @@ class Usuario(Base):
 
     rol = relationship("Rol", back_populates="usuarios", foreign_keys=[id_rol])
 
-    cliente = relationship("Cliente", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Cliente.usuario_id")
-    empleado = relationship("Empleado", back_populates="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Empleado.id_empleado")
-     
-  
+    cliente = relationship(
+        "Cliente",
+        back_populates="usuario",
+        uselist=False,
+        cascade="all, delete-orphan",
+        foreign_keys="Cliente.usuario_id",
+    )
+    empleado = relationship(
+        "Empleado",
+        back_populates="usuario",
+        uselist=False,
+        cascade="all, delete-orphan",
+        foreign_keys="Empleado.id_empleado",
+    )
+
     def __repr__(self):
         return f"<Usuario(id_usuario={self.id_usuario}, id_rol={self.id_rol}, nombre_usuario={self.nombre_usuario})>"
 
