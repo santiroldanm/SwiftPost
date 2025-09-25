@@ -157,9 +157,11 @@ def historial_envios_cliente(db: Session) -> None:
         input("Presione Enter para continuar...")
         return
 
-    paquetes = paquete_crud.obtener_por_cliente(db, id_cliente=cliente.id_cliente)
+    paquetes, total = paquete_crud.obtener_por_cliente(
+        db, id_cliente=cliente.id_cliente
+    )
 
-    if not paquetes:
+    if not paquetes or total == 0:
         print(
             f"\nEl cliente {cliente.primer_nombre} {cliente.primer_apellido} no tiene envíos registrados."
         )

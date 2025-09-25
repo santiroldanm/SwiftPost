@@ -3,8 +3,11 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from entities.transporte import Transporte, TransporteCreate, TransporteUpdate
 from .base_crud import CRUDBase
+
+
 class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
     """Clase para operaciones CRUD de Transporte."""
+
     def obtener_por_placa(self, db: Session, placa: str) -> Optional[Transporte]:
         """
         Busca un transporte por su placa.
@@ -15,6 +18,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
             Transporte: El transporte encontrado o None si no existe
         """
         return db.query(Transporte).filter(Transporte.placa == placa).first()
+
     def obtener_por_estado(
         self, db: Session, estado: str, skip: int = 0, limit: int = 100
     ) -> List[Transporte]:
@@ -35,6 +39,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
             .limit(limit)
             .all()
         )
+
     def obtener_por_tipo(
         self, db: Session, tipo: str, skip: int = 0, limit: int = 100
     ) -> List[Transporte]:
@@ -55,7 +60,10 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
             .limit(limit)
             .all()
         )
-    def obtener_activos(self, db: Session, skip: int = 0, limit: int = 100) -> List[Transporte]:
+
+    def obtener_activos(
+        self, db: Session, skip: int = 0, limit: int = 100
+    ) -> List[Transporte]:
         """
         Obtiene una lista de transportes activos.
         Args:
@@ -67,12 +75,15 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         """
         return (
             db.query(Transporte)
-            .filter(Transporte.activo == True)  
+            .filter(Transporte.activo == True)
             .offset(skip)
             .limit(limit)
             .all()
         )
-    def crear(self, db: Session, *, obj_in: TransporteCreate, creado_por: UUID) -> Transporte:
+
+    def crear(
+        self, db: Session, *, obj_in: TransporteCreate, creado_por: UUID
+    ) -> Transporte:
         """
         Crea un nuevo registro de transporte.
         Args:
@@ -82,14 +93,12 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         Returns:
             Transporte: El transporte recién creado
         """
-        db_obj = Transporte(
-            **obj_in.dict(),
-            creado_por=creado_por
-        )
+        db_obj = Transporte(**obj_in.dict(), creado_por=creado_por)
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
         return db_obj
+
     def actualizar_estado(
         self,
         db: Session,
@@ -114,6 +123,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
+
     def actualizar(
         self,
         db: Session,
@@ -138,6 +148,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
             update_data = obj_in.dict(exclude_unset=True)
         update_data["actualizado_por"] = actualizado_por
         return super().update(db, db_obj=db_obj, obj_in=update_data)
+
     def desactivar(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Transporte:
         """
         Desactiva un transporte estableciendo su estado activo como falso.
@@ -156,4 +167,6 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
             db.commit()
             db.refresh(transporte)
         return transporte
+
+
 transporte = TransporteCRUD(Transporte)

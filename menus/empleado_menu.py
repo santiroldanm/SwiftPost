@@ -4,9 +4,21 @@ Módulo que contiene las funciones del menú de gestión de empleados.
 
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
 from cruds.empleado_crud import empleado as empleado_crud
 from cruds.usuario_crud import usuario as usuario_crud
 from cruds.rol_crud import rol as rol_crud
+from uuid import uuid4
+from cruds.usuario_crud import usuario as usuario_crud
+from entities.usuario import UsuarioCreate
+from cruds.tipo_documento_crud import tipo_documento as tipo_documento_crud
+from entities.rol import Rol
+import re
+from datetime import datetime, date
+from entities.empleado import EmpleadoCreate
+from uuid import UUID
+from getpass import getpass
+import traceback
 
 
 def mostrar_menu_empleados() -> None:
@@ -100,40 +112,53 @@ def listar_empleados(db: Session) -> None:
 def buscar_empleado(db: Session) -> None:
     """Busca un empleado por documento o nombre."""
     try:
-        termino = input(
-            "\nIngrese el número de documento o nombre del empleado: "
-        ).strip()
+        termino = input("\nIngrese el número de documento del empleado: ").strip()
 
         if not termino:
             print("\nError: Debe ingresar un término de búsqueda.")
             input("Presione Enter para continuar...")
             return
 
-        empleados = empleado_crud.buscar_por_documento_o_nombre(db, termino)
+        empleados = empleado_crud.obtener_por_documento(db, termino)
 
         if not empleados:
-            print("\nNo se encontró ningún empleado con ese criterio de búsqueda.")
+            print("\nNo se encontraron empleados con el criterio de búsqueda.")
             input("Presione Enter para continuar...")
             return
+        print("\n" + "=" * 100)
+        print("RESULTADOS DE BÚSQUEDA".center(100))
+        print("=" * 100)
 
-        print("\n" + "=" * 120)
-        print("RESULTADOS DE BÚSQUEDA".center(120))
-        print("=" * 120)
+        print(f"{'ID':<38} | {'NOMBRE COMPLETO':<40} | {'TIPO EMPLEADO':<15} | ESTADO")
+        print("-" * 100)
 
         for empleado in empleados:
-            print(f"\nID: {empleado.id_empleado}")
-            print(
-                f"Nombre: {empleado.primer_nombre} {empleado.segundo_nombre or ''} {empleado.primer_apellido} {empleado.segundo_apellido or ''}"
-            )
-            print(
-                f"Documento: {empleado.tipo_documento.nombre if empleado.tipo_documento else 'N/A'} {empleado.numero_documento}"
-            )
-            print(f"Correo: {empleado.correo}")
-            print(f"Teléfono: {empleado.telefono}")
-            print(f"Estado: {'Activo' if empleado.activo else 'Inactivo'}")
-            print("-" * 40)
+            nombres = [empleado.primer_nombre or "", empleado.segundo_nombre or ""]
+            apellidos = [
+                empleado.primer_apellido or "",
+                empleado.segundo_apellido or "",
+            ]
+            nombre_completo = " ".join(filter(None, [*nombres, *apellidos]))
 
-        print("=" * 120)
+            tipo_doc = getattr(
+                getattr(empleado, "tipo_documento_rel", None), "nombre", "N/A"
+            )
+
+            print(
+                f"{str(empleado.id_empleado):<38} | {nombre_completo[:38]:<40} | {getattr(empleado, 'tipo_empleado', 'N/A')[:13]:<15} | {' Activo' if empleado.activo else ' Inactivo'}"
+            )
+
+            print(f"   Documento: {tipo_doc} {getattr(empleado, 'documento', 'N/A')}")
+            print(f"   Correo: {getattr(empleado, 'correo', 'Sin correo')}")
+            print(f"   Teléfono: {getattr(empleado, 'telefono', 'Sin teléfono')}")
+
+            if hasattr(empleado, "sede") and empleado.sede:
+                print(f"   Sede: {empleado.sede.nombre} ({empleado.sede.ciudad})")
+
+            print("-" * 100)
+
+        print(f"\nTotal de empleados encontrados: {len(empleados)}")
+        print("=" * 100)
 
     except Exception as e:
         print(f"\nError al buscar empleado: {str(e)}")
@@ -155,7 +180,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
         return
 
     try:
-        from cruds.tipo_documento_crud import tipo_documento as tipo_documento_crud
 
         print("\n" + "=" * 80)
         print("REGISTRAR NUEVO EMPLEADO".center(80))
@@ -186,34 +210,127 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             except ValueError:
                 print("Por favor ingrese un número válido.")
 
-        print("\nIngrese los datos del empleado:")
-        print("-" * 40)
+        def validar_datos_empleado(datos):
+            errores = []
 
-        numero_documento = input("Número de documento: ").strip()
-        primer_nombre = input("Primer nombre: ").strip()
-        segundo_nombre = (
-            input("Segundo nombre (opcional, presione Enter para omitir): ").strip()
-            or None
-        )
-        primer_apellido = input("Primer apellido: ").strip()
-        segundo_apellido = (
-            input("Segundo apellido (opcional, presione Enter para omitir): ").strip()
-            or None
-        )
+            if not datos["numero_documento"] or len(datos["numero_documento"]) < 5:
+                errores.append("Número de documento: Debe tener al menos 5 dígitos")
+            elif not datos["numero_documento"].isdigit():
+                errores.append("Número de documento: Solo debe contener números")
+
+            if not datos["primer_nombre"] or len(datos["primer_nombre"]) < 2:
+                errores.append("Primer nombre: Debe tener al menos 2 caracteres")
+            elif not datos["primer_nombre"].replace(" ", "").isalpha():
+                errores.append("Primer nombre: Solo debe contener letras")
+
+            if datos["segundo_nombre"] and len(datos["segundo_nombre"]) < 2:
+                errores.append("Segundo nombre: Debe tener al menos 2 caracteres")
+            elif (
+                datos["segundo_nombre"]
+                and not datos["segundo_nombre"].replace(" ", "").isalpha()
+            ):
+                errores.append("Segundo nombre: Solo debe contener letras")
+
+            if not datos["primer_apellido"] or len(datos["primer_apellido"]) < 2:
+                errores.append("Primer apellido: Debe tener al menos 2 caracteres")
+            elif not datos["primer_apellido"].replace(" ", "").isalpha():
+                errores.append("Primer apellido: Solo debe contener letras")
+
+            if datos["segundo_apellido"] and len(datos["segundo_apellido"]) < 2:
+                errores.append("Segundo apellido: Debe tener al menos 2 caracteres")
+            elif (
+                datos["segundo_apellido"]
+                and not datos["segundo_apellido"].replace(" ", "").isalpha()
+            ):
+                errores.append("Segundo apellido: Solo debe contener letras")
+
+            patron_email = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+            if not datos["correo"] or not re.match(patron_email, datos["correo"]):
+                errores.append("Correo: Formato de correo electrónico inválido")
+
+            if not datos["telefono"] or len(datos["telefono"]) < 7:
+                errores.append("Teléfono: Debe tener al menos 7 dígitos")
+            elif not datos["telefono"].isdigit():
+                errores.append("Teléfono: Solo debe contener números")
+
+            if not datos["direccion"] or len(datos["direccion"]) < 5:
+                errores.append("Dirección: Debe tener al menos 5 caracteres")
+
+            try:
+                salario_val = float(datos["salario"])
+                if salario_val <= 0:
+                    errores.append("Salario: Debe ser mayor a cero")
+                elif salario_val > 50000000:
+                    errores.append("Salario: No puede exceder 50,000,000")
+            except (ValueError, TypeError):
+                errores.append("Salario: Debe ser un número válido")
+
+            return errores
 
         while True:
-            try:
-                fecha_nac_str = input("Fecha de nacimiento (YYYY-MM-DD): ").strip()
-                from datetime import datetime
+            print("\nIngrese los datos del empleado:")
+            print("-" * 40)
 
-                fecha_nacimiento = datetime.strptime(fecha_nac_str, "%Y-%m-%d").date()
+            numero_documento = input("Número de documento: ").strip()
+            primer_nombre = input("Primer nombre: ").strip()
+            segundo_nombre = (
+                input("Segundo nombre (opcional, presione Enter para omitir): ").strip()
+                or None
+            )
+            primer_apellido = input("Primer apellido: ").strip()
+            segundo_apellido = (
+                input(
+                    "Segundo apellido (opcional, presione Enter para omitir): "
+                ).strip()
+                or None
+            )
+
+            while True:
+                try:
+                    fecha_nac_str = input("Fecha de nacimiento (YYYY-MM-DD): ").strip()
+
+                    fecha_nacimiento = datetime.strptime(
+                        fecha_nac_str, "%Y-%m-%d"
+                    ).date()
+                    break
+                except ValueError:
+                    print("Formato de fecha inválido. Use YYYY-MM-DD.")
+
+            correo = input("Correo electrónico: ").strip().lower()
+            telefono = input("Teléfono: ").strip()
+            direccion = input("Dirección: ").strip()
+            salario = input("Salario: ").strip()
+
+            datos_temp = {
+                "numero_documento": numero_documento,
+                "primer_nombre": primer_nombre,
+                "segundo_nombre": segundo_nombre,
+                "primer_apellido": primer_apellido,
+                "segundo_apellido": segundo_apellido,
+                "correo": correo,
+                "telefono": telefono,
+                "direccion": direccion,
+                "salario": salario,
+            }
+
+            errores = validar_datos_empleado(datos_temp)
+
+            if errores:
+                print("\n Errores encontrados:")
+                for i, error in enumerate(errores, 1):
+                    print(f"  {i}. {error}")
+                print("\nPor favor corrija los errores e intente nuevamente.")
+                continuar = (
+                    input("\n¿Desea intentar nuevamente? (s/n): ").strip().lower()
+                )
+                if continuar != "s":
+                    print("Operación cancelada.")
+                    return
+                continue
+            else:
+                print("\n Todos los datos son válidos.")
+                salario = float(salario)
                 break
-            except ValueError:
-                print("Formato de fecha inválido. Use YYYY-MM-DD.")
-
-        correo = input("Correo electrónico: ").strip().lower()
-        telefono = input("Teléfono: ").strip()
-        direccion = input("Dirección: ").strip()
 
         print("\nTipos de empleado disponibles:")
         print("1. Mensajero")
@@ -235,17 +352,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
                 break
             print("Opción no válida. Intente nuevamente.")
 
-        while True:
-            try:
-                salario = float(input("Salario: ").strip())
-                if salario > 0:
-                    break
-                print("El salario debe ser mayor a cero.")
-            except ValueError:
-                print("Por favor ingrese un número válido para el salario.")
-
-        from datetime import date
-
         fecha_ingreso = date.today()
         print(f"Fecha de ingreso: {fecha_ingreso} (fecha actual)")
 
@@ -262,18 +368,107 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
         print(f"Salario: {salario}")
         print(f"Fecha de ingreso: {fecha_ingreso}")
 
+        print("\n" + "=" * 50)
+        print("DATOS DE ACCESO AL SISTEMA")
+        print("=" * 50)
+
+        while True:
+            nombre_usuario = input(
+                "Nombre de usuario (solo letras, números, _ y .): "
+            ).strip()
+            if not nombre_usuario:
+                print("El nombre de usuario no puede estar vacío.")
+                continue
+            if len(nombre_usuario) < 3:
+                print("El nombre de usuario debe tener al menos 3 caracteres.")
+                continue
+
+            if not re.match(r"^[a-zA-Z0-9._]+$", nombre_usuario):
+                print(
+                    "El nombre de usuario solo puede contener letras, números, guiones bajos (_) y puntos (.)."
+                )
+                continue
+
+            usuario_existente = usuario_crud.obtener_por_nombre_usuario(
+                db, nombre_usuario
+            )
+            if usuario_existente:
+                print("Error: Ya existe un usuario con ese nombre. Intente con otro.")
+                continue
+            break
+
+        while True:
+
+            password = getpass(
+                "Contraseña (mín. 8 caracteres, 1 mayúscula, 1 número): "
+            )
+            if not password:
+                print("La contraseña no puede estar vacía.")
+                continue
+            if len(password) < 8:
+                print("La contraseña debe tener al menos 8 caracteres.")
+                continue
+            if not re.search(r"[A-Z]", password):
+                print("La contraseña debe contener al menos una letra mayúscula.")
+                continue
+            if not re.search(r"[0-9]", password):
+                print("La contraseña debe contener al menos un número.")
+                continue
+
+            password_confirm = getpass("Confirme la contraseña: ")
+            if password != password_confirm:
+                print("Las contraseñas no coinciden. Intente de nuevo.")
+                continue
+            break
+
+        print("\n" + "=" * 50)
+        print("RESUMEN COMPLETO")
+        print("=" * 50)
+        print(
+            f"Nombre: {primer_nombre} {segundo_nombre or ''} {primer_apellido} {segundo_apellido or ''}".strip()
+        )
+        print(f"Documento: {numero_documento}")
+        print(f"Correo: {correo}")
+        print(f"Teléfono: {telefono}")
+        print(f"Tipo de empleado: {tipo_empleado}")
+        print(f"Salario: {salario}")
+        print(f"Nombre de usuario: {nombre_usuario}")
+
         confirmar = input("\n¿Los datos son correctos? (s/n): ").strip().lower()
         if confirmar != "s":
             print("Operación cancelada por el usuario.")
             return
 
-        from uuid import uuid4
+        rol_empleado = db.query(Rol).filter(Rol.nombre_rol == "empleado").first()
+        if not rol_empleado:
+            print("Error: No se encontró el rol de empleado en el sistema.")
+            input("Presione Enter para continuar...")
+            return
 
-        id_usuario = str(uuid4())
+        try:
+            usuario_data = UsuarioCreate(
+                nombre_usuario=nombre_usuario,
+                password=password,
+                id_rol=str(rol_empleado.id_rol),
+            )
+
+            usuario = usuario_crud.crear_usuario(db=db, datos_usuario=usuario_data)
+            id_usuario = str(usuario.id_usuario)
+        except ValidationError as e:
+            print(f"\n Error de validación en datos del usuario:")
+            for error in e.errors():
+                field = error["loc"][0] if error["loc"] else "campo"
+                message = error["msg"]
+                print(f"  - {field}: {message}")
+            input("Presione Enter para continuar...")
+            return
+        except Exception as e:
+            print(f" Error al crear usuario: {str(e)}")
+            input("Presione Enter para continuar...")
+            return
 
         empleado_data = {
-            "id_empleado": id_usuario,
-            "id_tipo_documento": str(tipo_documento.id_tipo_documento),
+            "tipo_documento": str(tipo_documento.id_tipo_documento),
             "documento": numero_documento,
             "primer_nombre": primer_nombre,
             "segundo_nombre": segundo_nombre,
@@ -286,53 +481,60 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             "tipo_empleado": tipo_empleado,
             "salario": salario,
             "fecha_ingreso": fecha_ingreso,
-            "activo": True,
-            "usuario_id": id_usuario,
         }
 
-        from uuid import UUID
-        from datetime import datetime
-
-        from entities.empleado import EmpleadoCreate
-        from uuid import UUID
-
-        empleado_data["creado_por"] = str(id_administrador)
-        empleado_data["usuario_id"] = str(id_usuario)
-
         try:
-            empleado = empleado_crud.crear(
-                db=db,
-                datos=empleado_data,
-                creado_por=UUID(id_administrador),
-                usuario_id=UUID(id_usuario),
-            )
-
-            if not empleado:
-                print(
-                    "\nError: No se pudo crear el empleado. Verifique los datos e intente nuevamente."
-                )
-                input("Presione Enter para continuar...")
-                return
+            empleado_create = EmpleadoCreate(**empleado_data)
+        except ValidationError as e:
+            print(f"\n Error de validación en datos del empleado:")
+            for error in e.errors():
+                field = error["loc"][0] if error["loc"] else "campo"
+                message = error["msg"]
+                print(f"  - {field}: {message}")
+            input("Presione Enter para continuar...")
+            return
         except Exception as e:
-            print(f"\nError al crear el empleado: {str(e)}")
+            print(f"\n Error al crear modelo EmpleadoCreate: {str(e)}")
             input("Presione Enter para continuar...")
             return
 
-        crear_usuario = (
-            input("\n¿Desea crear un usuario para este empleado? (s/n): ")
-            .strip()
-            .lower()
-        )
+        try:
 
-        if crear_usuario == "s":
-            from menus.usuario_menu import registrar_usuario_para_empleado
+            empleado = empleado_crud.crear_registro(
+                db=db,
+                datos_entrada=empleado_create,
+                usuario_id=UUID(id_usuario),
+                creado_por=UUID(id_administrador),
+            )
 
-            registrar_usuario_para_empleado(db, empleado)
+            if not empleado:
+                print("\n Error: El método crear_registro devolvió None.")
+                print("Posibles causas:")
+                print("- El usuario ya tiene un empleado asociado")
+                print("- Error en la validación de datos")
+                print("- Problema con la base de datos")
+                input("Presione Enter para continuar...")
+                return
 
-        print(f"\nEmpleado registrado exitosamente con ID: {empleado.id_empleado}")
+            print(f"\n Empleado creado exitosamente!")
+            print(f"ID Empleado: {empleado.id_empleado}")
+            print(f"Nombre: {empleado.primer_nombre} {empleado.primer_apellido}")
+
+        except Exception as e:
+            print(f"\n Error al crear el empleado: {str(e)}")
+            print(f"Tipo de error: {type(e).__name__}")
+            print("Detalles del error:")
+            traceback.print_exc()
+            input("Presione Enter para continuar...")
+            return
+
+        print(f"\n ¡Empleado y usuario creados exitosamente!")
+        print(f"ID Empleado: {empleado.id_empleado}")
+        print(f"Usuario: {nombre_usuario}")
+        print(f"El empleado puede iniciar sesión con sus credenciales.")
 
     except Exception as e:
-        print(f"\nError al registrar empleado: {str(e)}")
+        print(f"\nError general al registrar empleado: {str(e)}")
 
     input("\nPresione Enter para continuar...")
 
@@ -412,7 +614,7 @@ def cambiar_estado_empleado(db: Session) -> None:
             input("Presione Enter para continuar...")
             return
 
-        empleado = empleado_crud.get(db, id=id_empleado)
+        empleado = empleado_crud.obtener_por_id(db, id=id_empleado)
 
         if not empleado:
             print("\nError: No se encontró ningún empleado con ese ID.")
@@ -443,9 +645,7 @@ def cambiar_estado_empleado(db: Session) -> None:
                 db, db_obj=empleado, obj_in={"activo": nuevo_estado}
             )
 
-            # Si se está desactivando, también se debe desactivar el usuario asociado si existe
             if not nuevo_estado and empleado.usuario:
-                from cruds.usuario_crud import usuario as usuario_crud
 
                 usuario_crud.actualizar_usuario(
                     db, db_obj=empleado.usuario, obj_in={"activo": False}
@@ -459,6 +659,47 @@ def cambiar_estado_empleado(db: Session) -> None:
             print("\nOperación cancelada.")
 
     except Exception as e:
+        print(f"\nError al cambiar el estado del empleado: {str(e)}")
+
+    input("\nPresione Enter para continuar...")
+
+
+def manejar_menu_empleados(db: Session, id_administrador: str = None) -> None:
+    """
+    Maneja el menú de gestión de empleados.
+
+    Args:
+        db: Sesión de base de datos
+        id_administrador: ID del administrador que está realizando las acciones
+    """
+    while True:
+        mostrar_menu_empleados()
+
+        opcion = input("\nSeleccione una opción: ").strip()
+
+        if opcion == "1":
+            listar_empleados(db)
+        elif opcion == "2":
+            buscar_empleado(db)
+        elif opcion == "3":
+            admin_id = id_administrador
+            if not admin_id:
+                admin_id = input("\nIngrese el ID del administrador: ").strip()
+                if not admin_id:
+                    print("Error: Se requiere el ID del administrador.")
+                    input("Presione Enter para continuar...")
+                    continue
+            registrar_empleado(db, id_administrador=admin_id)
+        elif opcion == "4":
+            editar_empleado(db)
+        elif opcion == "5":
+            cambiar_estado_empleado(db)
+        elif opcion == "0":
+            break
+        else:
+            print("\nOpción no válida. Intente de nuevo.")
+            input("Presione Enter para continuar...")
+
         print(f"\nError al cambiar el estado del empleado: {str(e)}")
 
     input("\nPresione Enter para continuar...")
