@@ -8,6 +8,17 @@ from pydantic import ValidationError
 from cruds.empleado_crud import empleado as empleado_crud
 from cruds.usuario_crud import usuario as usuario_crud
 from cruds.rol_crud import rol as rol_crud
+from uuid import uuid4
+from cruds.usuario_crud import usuario as usuario_crud
+from entities.usuario import UsuarioCreate
+from cruds.tipo_documento_crud import tipo_documento as tipo_documento_crud
+from entities.rol import Rol
+import re
+from datetime import datetime, date
+from entities.empleado import EmpleadoCreate
+from uuid import UUID
+from getpass import getpass
+import traceback
 
 
 def mostrar_menu_empleados() -> None:
@@ -134,7 +145,7 @@ def buscar_empleado(db: Session) -> None:
             )
 
             print(
-                f"{str(empleado.id_empleado):<38} | {nombre_completo[:38]:<40} | {getattr(empleado, 'tipo_empleado', 'N/A')[:13]:<15} | {'✅ Activo' if empleado.activo else '❌ Inactivo'}"
+                f"{str(empleado.id_empleado):<38} | {nombre_completo[:38]:<40} | {getattr(empleado, 'tipo_empleado', 'N/A')[:13]:<15} | {' Activo' if empleado.activo else ' Inactivo'}"
             )
 
             print(f"   Documento: {tipo_doc} {getattr(empleado, 'documento', 'N/A')}")
@@ -169,7 +180,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
         return
 
     try:
-        from cruds.tipo_documento_crud import tipo_documento as tipo_documento_crud
 
         print("\n" + "=" * 80)
         print("REGISTRAR NUEVO EMPLEADO".center(80))
@@ -200,24 +210,19 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             except ValueError:
                 print("Por favor ingrese un número válido.")
 
-        # Función para validar todos los campos
         def validar_datos_empleado(datos):
             errores = []
-            import re
 
-            # Validar número de documento
             if not datos["numero_documento"] or len(datos["numero_documento"]) < 5:
                 errores.append("Número de documento: Debe tener al menos 5 dígitos")
             elif not datos["numero_documento"].isdigit():
                 errores.append("Número de documento: Solo debe contener números")
 
-            # Validar primer nombre
             if not datos["primer_nombre"] or len(datos["primer_nombre"]) < 2:
                 errores.append("Primer nombre: Debe tener al menos 2 caracteres")
             elif not datos["primer_nombre"].replace(" ", "").isalpha():
                 errores.append("Primer nombre: Solo debe contener letras")
 
-            # Validar segundo nombre (opcional)
             if datos["segundo_nombre"] and len(datos["segundo_nombre"]) < 2:
                 errores.append("Segundo nombre: Debe tener al menos 2 caracteres")
             elif (
@@ -226,13 +231,11 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             ):
                 errores.append("Segundo nombre: Solo debe contener letras")
 
-            # Validar primer apellido
             if not datos["primer_apellido"] or len(datos["primer_apellido"]) < 2:
                 errores.append("Primer apellido: Debe tener al menos 2 caracteres")
             elif not datos["primer_apellido"].replace(" ", "").isalpha():
                 errores.append("Primer apellido: Solo debe contener letras")
 
-            # Validar segundo apellido (opcional)
             if datos["segundo_apellido"] and len(datos["segundo_apellido"]) < 2:
                 errores.append("Segundo apellido: Debe tener al menos 2 caracteres")
             elif (
@@ -241,22 +244,18 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             ):
                 errores.append("Segundo apellido: Solo debe contener letras")
 
-            # Validar correo
             patron_email = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
             if not datos["correo"] or not re.match(patron_email, datos["correo"]):
                 errores.append("Correo: Formato de correo electrónico inválido")
 
-            # Validar teléfono
             if not datos["telefono"] or len(datos["telefono"]) < 7:
                 errores.append("Teléfono: Debe tener al menos 7 dígitos")
             elif not datos["telefono"].isdigit():
                 errores.append("Teléfono: Solo debe contener números")
 
-            # Validar dirección
             if not datos["direccion"] or len(datos["direccion"]) < 5:
                 errores.append("Dirección: Debe tener al menos 5 caracteres")
 
-            # Validar salario
             try:
                 salario_val = float(datos["salario"])
                 if salario_val <= 0:
@@ -268,7 +267,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
 
             return errores
 
-        # Bucle principal para capturar datos con validación
         while True:
             print("\nIngrese los datos del empleado:")
             print("-" * 40)
@@ -290,7 +288,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             while True:
                 try:
                     fecha_nac_str = input("Fecha de nacimiento (YYYY-MM-DD): ").strip()
-                    from datetime import datetime
 
                     fecha_nacimiento = datetime.strptime(
                         fecha_nac_str, "%Y-%m-%d"
@@ -304,7 +301,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             direccion = input("Dirección: ").strip()
             salario = input("Salario: ").strip()
 
-            # Validar todos los datos
             datos_temp = {
                 "numero_documento": numero_documento,
                 "primer_nombre": primer_nombre,
@@ -320,7 +316,7 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             errores = validar_datos_empleado(datos_temp)
 
             if errores:
-                print("\n❌ Errores encontrados:")
+                print("\n Errores encontrados:")
                 for i, error in enumerate(errores, 1):
                     print(f"  {i}. {error}")
                 print("\nPor favor corrija los errores e intente nuevamente.")
@@ -332,8 +328,7 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
                     return
                 continue
             else:
-                print("\n✅ Todos los datos son válidos.")
-                # Convertir salario a float después de validación
+                print("\n Todos los datos son válidos.")
                 salario = float(salario)
                 break
 
@@ -357,8 +352,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
                 break
             print("Opción no válida. Intente nuevamente.")
 
-        from datetime import date
-
         fecha_ingreso = date.today()
         print(f"Fecha de ingreso: {fecha_ingreso} (fecha actual)")
 
@@ -379,7 +372,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
         print("DATOS DE ACCESO AL SISTEMA")
         print("=" * 50)
 
-        # Solicitar nombre de usuario
         while True:
             nombre_usuario = input(
                 "Nombre de usuario (solo letras, números, _ y .): "
@@ -390,8 +382,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             if len(nombre_usuario) < 3:
                 print("El nombre de usuario debe tener al menos 3 caracteres.")
                 continue
-            # Validación básica del formato
-            import re
 
             if not re.match(r"^[a-zA-Z0-9._]+$", nombre_usuario):
                 print(
@@ -399,10 +389,7 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
                 )
                 continue
 
-            # Verificar que no exista ya el usuario
-            from cruds.usuario_crud import usuario as usuario_crud_temp
-
-            usuario_existente = usuario_crud_temp.obtener_por_nombre_usuario(
+            usuario_existente = usuario_crud.obtener_por_nombre_usuario(
                 db, nombre_usuario
             )
             if usuario_existente:
@@ -410,9 +397,7 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
                 continue
             break
 
-        # Solicitar contraseña
         while True:
-            from getpass import getpass
 
             password = getpass(
                 "Contraseña (mín. 8 caracteres, 1 mayúscula, 1 número): "
@@ -430,7 +415,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
                 print("La contraseña debe contener al menos un número.")
                 continue
 
-            # Confirmar contraseña
             password_confirm = getpass("Confirme la contraseña: ")
             if password != password_confirm:
                 print("Las contraseñas no coinciden. Intente de nuevo.")
@@ -455,20 +439,12 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             print("Operación cancelada por el usuario.")
             return
 
-        from uuid import uuid4
-        from cruds.usuario_crud import usuario as usuario_crud
-        from entities.usuario import UsuarioCreate
-
-        # Primero obtener el rol de empleado
-        from entities.rol import Rol
-
         rol_empleado = db.query(Rol).filter(Rol.nombre_rol == "empleado").first()
         if not rol_empleado:
             print("Error: No se encontró el rol de empleado en el sistema.")
             input("Presione Enter para continuar...")
             return
 
-        # Crear el usuario
         try:
             usuario_data = UsuarioCreate(
                 nombre_usuario=nombre_usuario,
@@ -479,7 +455,7 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             usuario = usuario_crud.crear_usuario(db=db, datos_usuario=usuario_data)
             id_usuario = str(usuario.id_usuario)
         except ValidationError as e:
-            print(f"\n❌ Error de validación en datos del usuario:")
+            print(f"\n Error de validación en datos del usuario:")
             for error in e.errors():
                 field = error["loc"][0] if error["loc"] else "campo"
                 message = error["msg"]
@@ -487,7 +463,7 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             input("Presione Enter para continuar...")
             return
         except Exception as e:
-            print(f"❌ Error al crear usuario: {str(e)}")
+            print(f" Error al crear usuario: {str(e)}")
             input("Presione Enter para continuar...")
             return
 
@@ -507,13 +483,10 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             "fecha_ingreso": fecha_ingreso,
         }
 
-        from entities.empleado import EmpleadoCreate
-        from uuid import UUID
-
         try:
             empleado_create = EmpleadoCreate(**empleado_data)
         except ValidationError as e:
-            print(f"\n❌ Error de validación en datos del empleado:")
+            print(f"\n Error de validación en datos del empleado:")
             for error in e.errors():
                 field = error["loc"][0] if error["loc"] else "campo"
                 message = error["msg"]
@@ -521,7 +494,7 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
             input("Presione Enter para continuar...")
             return
         except Exception as e:
-            print(f"\n❌ Error al crear modelo EmpleadoCreate: {str(e)}")
+            print(f"\n Error al crear modelo EmpleadoCreate: {str(e)}")
             input("Presione Enter para continuar...")
             return
 
@@ -550,8 +523,6 @@ def registrar_empleado(db: Session, id_administrador: str = None) -> None:
         except Exception as e:
             print(f"\n Error al crear el empleado: {str(e)}")
             print(f"Tipo de error: {type(e).__name__}")
-            import traceback
-
             print("Detalles del error:")
             traceback.print_exc()
             input("Presione Enter para continuar...")
@@ -675,7 +646,6 @@ def cambiar_estado_empleado(db: Session) -> None:
             )
 
             if not nuevo_estado and empleado.usuario:
-                from cruds.usuario_crud import usuario as usuario_crud
 
                 usuario_crud.actualizar_usuario(
                     db, db_obj=empleado.usuario, obj_in={"activo": False}

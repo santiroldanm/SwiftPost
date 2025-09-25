@@ -1,8 +1,10 @@
 """
 Módulo que contiene las funciones del menú de administrador.
 """
+
 from typing import Dict, Any
 from sqlalchemy.orm import Session
+
 
 def mostrar_menu_administrador() -> None:
     """Muestra el menú de opciones del administrador."""
@@ -20,73 +22,90 @@ def mostrar_menu_administrador() -> None:
     print("0. Cerrar sesión")
     print("=" * 80)
 
-def manejar_opcion_administrador(db: Session, opcion: str, usuario_actual: Dict[str, Any]) -> bool:
+
+def manejar_opcion_administrador(
+    db: Session, opcion: str, usuario_actual: Dict[str, Any]
+) -> bool:
     """
     Maneja la opción seleccionada en el menú de administrador.
-    
+
     Args:
         db: Sesión de base de datos
         opcion: Opción seleccionada por el usuario
         usuario_actual: Diccionario con los datos del usuario actual
-        
+
     Returns:
         bool: True si la sesión debe continuar, False si se debe cerrar sesión
     """
-    from cruds import usuario_crud, empleado_crud, cliente_crud, sede_crud, transporte_crud, paquete_crud
-    
-    if opcion == '1':  
+    from cruds import (
+        usuario_crud,
+        empleado_crud,
+        cliente_crud,
+        sede_crud,
+        transporte_crud,
+        paquete_crud,
+    )
+
+    if opcion == "1":
         administrar_usuarios(db)
-    elif opcion == '2':  
+    elif opcion == "2":
         gestionar_empleados(db)
-    elif opcion == '3':  
+    elif opcion == "3":
         gestionar_clientes(db)
-    elif opcion == '4':   
+    elif opcion == "4":
         gestionar_sedes(db)
-    elif opcion == '5':   
+    elif opcion == "5":
         gestionar_transportes(db)
-    elif opcion == '6':   
+    elif opcion == "6":
         gestionar_paquetes_admin(db)
-    elif opcion == '7': 
+    elif opcion == "7":
         mostrar_reportes_admin(db)
-    elif opcion == '8':  
+    elif opcion == "8":
         configuracion_sistema(db)
-    elif opcion == '0':  
+    elif opcion == "0":
         print(f"\nSesión cerrada. ¡Hasta pronto, {usuario_actual['nombre_usuario']}!")
         return False
     else:
         print("\nOpción no válida. Intente de nuevo.")
-    
+
     return True
+
 
 def administrar_usuarios(db: Session) -> None:
     """Muestra el menú de administración de usuarios."""
     print("\nFunción de administración de usuarios")
- 
+
+
 def gestionar_empleados(db: Session) -> None:
     """Muestra el menú de gestión de empleados."""
     print("\nFunción de gestión de empleados")
- 
+
+
 def gestionar_clientes(db: Session) -> None:
     """Muestra el menú de gestión de clientes."""
     print("\nFunción de gestión de clientes")
- 
+
+
 def gestionar_sedes(db: Session) -> None:
     """Muestra el menú de gestión de sedes."""
     print("\nFunción de gestión de sedes")
- 
+
+
 def gestionar_transportes(db: Session) -> None:
     """Muestra el menú de gestión de transportes."""
     print("\nFunción de gestión de transportes")
- 
+
+
 def gestionar_paquetes_admin(db: Session) -> None:
     """Muestra el menú de gestión de paquetes para administradores."""
     print("\nFunción de gestión de paquetes (admin)")
- 
+
+
 def mostrar_reportes_admin(db: Session) -> None:
     """Muestra el menú de reportes para administradores."""
     print("\nFunción de reportes de administración")
- 
+
+
 def configuracion_sistema(db: Session) -> None:
     """Muestra el menú de configuración del sistema."""
     print("\nFunción de configuración del sistema")
- 

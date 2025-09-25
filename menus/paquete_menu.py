@@ -49,10 +49,10 @@ def listar_paquetes(db: Session) -> None:
             print(
                 "-"
                 * (col_id + col_cliente + col_contenido + col_estado + col_fecha + 12)
-            )   
-            
+            )
+
             for p in paquetes:
-                 
+
                 cliente = getattr(p, "cliente", None)
                 cliente_nombre = (
                     f"{getattr(cliente, 'primer_nombre', '')} {getattr(cliente, 'primer_apellido', '')}".strip()
@@ -243,9 +243,7 @@ def historial_envios(db: Session, usuario_data: Dict[str, Any]) -> None:
             print(
                 f"\n{'ID PAQUETE':<{col_id}} | {'CONTENIDO':<{col_contenido}} | {'ESTADO':<{col_estado}} | {'FECHA ENVÍO':<{col_fecha}}"
             )
-            print(
-                "-" * (col_id + col_contenido + col_estado + col_fecha + 9)
-            )
+            print("-" * (col_id + col_contenido + col_estado + col_fecha + 9))
 
             for p in paquetes:
                 fecha_envio = getattr(p, "fecha_envio", None)

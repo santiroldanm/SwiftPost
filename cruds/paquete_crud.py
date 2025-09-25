@@ -238,7 +238,7 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         try:
             if isinstance(datos.get("fecha_creacion"), type(datetime.now)):
                 datos["fecha_creacion"] = datos["fecha_creacion"]()
-            
+
             campos_permitidos = {
                 "id_paquete",
                 "id_cliente",

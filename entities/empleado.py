@@ -47,18 +47,22 @@ class Empleado(Base):
         String(36),
         ForeignKey("usuarios.id_usuario"),
         primary_key=True,
-        comment="ID del empleado, igual al ID del usuario asociado"
+        comment="ID del empleado, igual al ID del usuario asociado",
     )
-    
-    usuario = relationship("Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False)
-    
+
+    usuario = relationship(
+        "Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False
+    )
+
     creado_por = Column(
         String(36),
         ForeignKey("usuarios.id_usuario"),
         nullable=False,
-        comment="ID del usuario que creó el registro"
+        comment="ID del usuario que creó el registro",
     )
-    creado_por_rel = relationship("Usuario", foreign_keys=[creado_por], backref="empleados_creados")
+    creado_por_rel = relationship(
+        "Usuario", foreign_keys=[creado_por], backref="empleados_creados"
+    )
     id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=True)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
@@ -179,7 +183,6 @@ class EmpleadoBase(BaseModel):
             return v.strip().title()
         return v
 
-
     @validator("fecha_nacimiento")
     def validar_fecha_nacimiento(cls, v):
         today = date.today()
@@ -224,7 +227,7 @@ class EmpleadoBase(BaseModel):
     def validar_tipo_empleado(cls, v):
         tipos_validos = [
             "administrador",
-            "coordinador", 
+            "coordinador",
             "mensajero",
             "atencion_cliente",
             "secretario",

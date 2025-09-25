@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from pydantic import ValidationError
 from uuid import UUID
-
 from cruds.transporte_crud import transporte as transporte_crud
 from cruds.sede_crud import sede as sede_crud
 from entities.transporte import TransporteCreate, TransporteUpdate
@@ -139,9 +138,7 @@ def agregar_transporte(db: Session, id_administrador: str) -> None:
             año_str = input("Año: ").strip()
             try:
                 año = int(año_str)
-                if (
-                    2002 <= año <= datetime.now().year + 1
-                ):
+                if 2002 <= año <= datetime.now().year + 1:
                     break
                 print(f"El año debe estar entre 2002 y {datetime.now().year + 1}")
             except ValueError:
@@ -212,14 +209,14 @@ def agregar_transporte(db: Session, id_administrador: str) -> None:
 def editar_transporte(db: Session) -> None:
     """Edita un transporte existente."""
     mostrar_encabezado("EDITAR TRANSPORTE")
-    
+
     try:
         placa = input("\nIngrese la placa del vehículo a editar: ").strip().upper()
         if not placa:
             print("\nDebe ingresar una placa válida.")
             input("\nPresione Enter para continuar...")
             return
-            
+
         transporte = transporte_crud.obtener_por_placa(db, placa=placa)
 
         if not transporte:
@@ -228,10 +225,11 @@ def editar_transporte(db: Session) -> None:
             return
 
         print("\nDatos actuales (deje en blanco para no modificar):")
-        nuevo_estado = input(f"Estado [{transporte.estado}]: ").strip() or transporte.estado
+        nuevo_estado = (
+            input(f"Estado [{transporte.estado}]: ").strip() or transporte.estado
+        )
 
-        # Validar estado
-        estados_validos = ['disponible', 'en_ruta', 'mantenimiento', 'fuera_servicio']
+        estados_validos = ["disponible", "en_ruta", "mantenimiento", "fuera_servicio"]
         if nuevo_estado.lower() not in estados_validos:
             print(f"\nEstado inválido. Estados válidos: {', '.join(estados_validos)}")
             input("\nPresione Enter para continuar...")
@@ -239,30 +237,26 @@ def editar_transporte(db: Session) -> None:
 
         try:
             update_data = TransporteUpdate(estado=nuevo_estado.lower())
-            
-            # Usar un ID de administrador por defecto (debería venir del usuario actual)
+
             admin_id = UUID("00000000-0000-0000-0000-000000000000")
-            
+
             transporte_crud.actualizar(
-                db, 
-                db_obj=transporte, 
-                obj_in=update_data, 
-                actualizado_por=admin_id
+                db, db_obj=transporte, obj_in=update_data, actualizado_por=admin_id
             )
-            print("\n✅ ¡Transporte actualizado exitosamente!")
-            
+            print("\n ¡Transporte actualizado exitosamente!")
+
         except ValidationError as e:
-            print(f"\n❌ Error de validación:")
+            print(f"\n Error de validación:")
             for error in e.errors():
-                field = error['loc'][0] if error['loc'] else 'campo'
-                message = error['msg']
+                field = error["loc"][0] if error["loc"] else "campo"
+                message = error["msg"]
                 print(f"  - {field}: {message}")
         except Exception as e:
-            print(f"\n❌ Error al actualizar transporte: {str(e)}")
-            
+            print(f"\n Error al actualizar transporte: {str(e)}")
+
     except Exception as e:
-        print(f"\n❌ Error inesperado: {str(e)}")
-    
+        print(f"\n Error inesperado: {str(e)}")
+
     input("\nPresione Enter para continuar...")
 
 
@@ -286,16 +280,13 @@ def cambiar_estado_transporte(db: Session) -> None:
             update_data = TransporteUpdate(activo=nuevo_estado)
             admin_id = UUID("00000000-0000-0000-0000-000000000000")
             transporte_crud.actualizar(
-                db, 
-                db_obj=transporte, 
-                obj_in=update_data, 
-                actualizado_por=admin_id
+                db, db_obj=transporte, obj_in=update_data, actualizado_por=admin_id
             )
             print(
-                f"\n✅ ¡Vehículo {placa} {'activado' if nuevo_estado else 'desactivado'} exitosamente!"
+                f"\n ¡Vehículo {placa} {'activado' if nuevo_estado else 'desactivado'} exitosamente!"
             )
         except Exception as e:
-            print(f"\n❌ Error al cambiar estado del transporte: {str(e)}")
+            print(f"\n Error al cambiar estado del transporte: {str(e)}")
     else:
         print("\nOperación cancelada.")
     input("\nPresione Enter para continuar...")

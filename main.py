@@ -262,6 +262,7 @@ def registrar_envio(db: Session, empleado_data: Dict[str, Any]) -> None:
     """Permite a un empleado registrar un nuevo envío."""
     try:
         from menus.envio_menu import registrar_envio_completo
+
         registrar_envio_completo(db, empleado_data)
     except Exception as e:
         logger.error(f"Error en registro de envío: {str(e)}")

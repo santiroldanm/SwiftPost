@@ -144,7 +144,7 @@ def registrar_usuario(db: Session) -> None:
             direccion=direccion,
             telefono=telefono,
             correo=correo,
-            tipo="remitente",   
+            tipo="remitente",
             id_tipo_documento=str(id_tipo_documento),
             usuario_id=str(usuario.id_usuario),
         )
@@ -158,8 +158,8 @@ def registrar_usuario(db: Session) -> None:
     except ValidationError as e:
         print(f"\n❌ Error de validación de datos:")
         for error in e.errors():
-            field = error['loc'][0] if error['loc'] else 'campo'
-            message = error['msg']
+            field = error["loc"][0] if error["loc"] else "campo"
+            message = error["msg"]
             print(f"  - {field}: {message}")
         input("Presione Enter para continuar...")
         return

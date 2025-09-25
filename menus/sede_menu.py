@@ -43,16 +43,15 @@ def listar_sedes(db: Session) -> None:
 
         for sede in sedes:
             estado = "Activa" if sede.activo else "Inactiva"
-            nombre = getattr(sede, 'nombre', 'Sin nombre')[:23]
-            
-            # Formatear coordenadas
+            nombre = getattr(sede, "nombre", "Sin nombre")[:23]
+
             coordenadas = "Sin coordenadas"
-            if hasattr(sede, 'latitud') and sede.latitud is not None:
+            if hasattr(sede, "latitud") and sede.latitud is not None:
                 lat = round(sede.latitud, 4)
                 lng = round(sede.longitud, 4) if sede.longitud else 0
                 alt = round(sede.altitud, 0) if sede.altitud else 0
                 coordenadas = f"{lat},{lng},{alt}m"[:23]
-            
+
             print(
                 f"{str(sede.id_sede)[:5]:<5} | {nombre:<25} | {sede.ciudad[:13]:<15} | {sede.direccion[:28]:<30} | {sede.telefono[:10]:<12} | {coordenadas:<25} | {estado:<8}"
             )
@@ -93,7 +92,7 @@ def buscar_sede_por_ciudad(db: Session) -> None:
 
         for sede in sedes:
             estado = "Activa" if sede.activo else "Inactiva"
-            nombre = getattr(sede, 'nombre', 'Sin nombre')[:28]
+            nombre = getattr(sede, "nombre", "Sin nombre")[:28]
             print(
                 f"{str(sede.id_sede)[:5]:<5} | {nombre:<30} | {sede.ciudad[:18]:<20} | {sede.direccion[:33]:<35} | {sede.telefono[:13]:<15} | {estado:<10}"
             )
@@ -125,20 +124,18 @@ def agregar_sede(db: Session, id_administrador: UUID) -> None:
         ciudad = input("Ciudad: ").strip()
         direccion = input("Dirección: ").strip()
         telefono = input("Teléfono: ").strip()
-        
-        # Capturar coordenadas (opcional)
+
         print("\nCoordenadas para cálculo de costos de envío (opcional):")
         print("Puede buscar las coordenadas en Google Maps")
-        
+
         latitud_str = input("Latitud (ej: 6.2442): ").strip()
         longitud_str = input("Longitud (ej: -75.5812): ").strip()
         altitud_str = input("Altitud en metros (ej: 1495): ").strip()
-        
-        # Validar y convertir coordenadas
+
         latitud = None
         longitud = None
         altitud = None
-        
+
         try:
             if latitud_str:
                 latitud = float(latitud_str)
@@ -147,7 +144,7 @@ def agregar_sede(db: Session, id_administrador: UUID) -> None:
                     latitud = None
         except ValueError:
             print(" Advertencia: Latitud inválida, se omitirá")
-            
+
         try:
             if longitud_str:
                 longitud = float(longitud_str)
@@ -156,7 +153,7 @@ def agregar_sede(db: Session, id_administrador: UUID) -> None:
                     longitud = None
         except ValueError:
             print(" Advertencia: Longitud inválida, se omitirá")
-            
+
         try:
             if altitud_str:
                 altitud = float(altitud_str)
@@ -164,7 +161,9 @@ def agregar_sede(db: Session, id_administrador: UUID) -> None:
             print(" Advertencia: Altitud inválida, se omitirá")
 
         if not all([nombre, ciudad, direccion, telefono]):
-            print("\nError: Los campos básicos (nombre, ciudad, dirección, teléfono) son obligatorios.")
+            print(
+                "\nError: Los campos básicos (nombre, ciudad, dirección, teléfono) son obligatorios."
+            )
             input("Presione Enter para continuar...")
             return
 
@@ -181,9 +180,7 @@ def agregar_sede(db: Session, id_administrador: UUID) -> None:
 
         sede_create = SedeCreate(**sede_data)
         sede = sede_crud.crear_registro(
-            db=db,
-            datos_entrada=sede_create,
-            creado_por=id_administrador
+            db=db, datos_entrada=sede_create, creado_por=id_administrador
         )
 
         print(f"\nSede registrada exitosamente con ID: {sede.id_sede}")
@@ -223,14 +220,16 @@ def editar_sede(db: Session) -> None:
         print("Ingrese los nuevos valores (deje en blanco para mantener el actual):")
         print("-" * 40)
 
-        nuevo_nombre = input(f"Nuevo nombre [{getattr(sede, 'nombre', 'Sin nombre')}]: ").strip()
+        nuevo_nombre = input(
+            f"Nuevo nombre [{getattr(sede, 'nombre', 'Sin nombre')}]: "
+        ).strip()
         nueva_ciudad = input(f"Nueva ciudad [{sede.ciudad}]: ").strip()
         nueva_direccion = input(f"Nueva dirección [{sede.direccion}]: ").strip()
         nuevo_telefono = input(f"Nuevo teléfono [{sede.telefono}]: ").strip()
 
         datos_actualizados = {}
 
-        if nuevo_nombre and nuevo_nombre != getattr(sede, 'nombre', ''):
+        if nuevo_nombre and nuevo_nombre != getattr(sede, "nombre", ""):
             datos_actualizados["nombre"] = nuevo_nombre
 
         if nueva_ciudad and nueva_ciudad != sede.ciudad:
@@ -244,11 +243,12 @@ def editar_sede(db: Session) -> None:
 
         if datos_actualizados:
             from uuid import uuid4
+
             sede_actualizada = sede_crud.actualizar(
-                db=db, 
-                objeto_db=sede, 
+                db=db,
+                objeto_db=sede,
                 datos_entrada=datos_actualizados,
-                actualizado_por=uuid4()
+                actualizado_por=uuid4(),
             )
             if sede_actualizada:
                 print("\nSede actualizada correctamente.")
@@ -301,11 +301,12 @@ def cambiar_estado_sede(db: Session) -> None:
         if confirmar == "s":
             nuevo_estado = not sede.activo
             from uuid import uuid4
+
             sede_actualizada = sede_crud.actualizar(
-                db=db, 
-                objeto_db=sede, 
+                db=db,
+                objeto_db=sede,
                 datos_entrada={"activo": nuevo_estado},
-                actualizado_por=uuid4()
+                actualizado_por=uuid4(),
             )
 
             if sede_actualizada:
