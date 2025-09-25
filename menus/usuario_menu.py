@@ -91,7 +91,6 @@ def buscar_usuario(db: Session) -> None:
             input("Presione Enter para continuar...")
             return
 
-        # Cargar relaciones de cliente y empleado junto con el usuario
         usuario = (
             db.query(Usuario)
             .options(
@@ -111,7 +110,6 @@ def buscar_usuario(db: Session) -> None:
             input("Presione Enter para continuar...")
             return
 
-        # Determinar si es cliente o empleado
         tipo_cuenta = (
             "Cliente"
             if hasattr(usuario, "cliente") and usuario.cliente
@@ -122,7 +120,6 @@ def buscar_usuario(db: Session) -> None:
             )
         )
 
-        # Obtener correo según el tipo de cuenta
         correo = ""
         if hasattr(usuario, "cliente") and usuario.cliente:
             correo = (
@@ -137,7 +134,6 @@ def buscar_usuario(db: Session) -> None:
                 else "No especificado"
             )
 
-        # Mostrar detalles del usuario
         print("\n" + "=" * 80)
         print("DETALLES DEL USUARIO".center(80))
         print("=" * 80)
@@ -151,7 +147,6 @@ def buscar_usuario(db: Session) -> None:
             f"Fecha de creación: {usuario.fecha_creacion.strftime('%Y-%m-%d %H:%M') if usuario.fecha_creacion else 'N/A'}"
         )
 
-        # Mostrar información adicional según el tipo de cuenta
         if tipo_cuenta == "Cliente" and hasattr(usuario, "cliente") and usuario.cliente:
             print("\nINFORMACIÓN DEL CLIENTE")
             print("-" * 40)
@@ -263,7 +258,6 @@ def cambiar_estado_usuario(db: Session) -> None:
             input("Presione Enter para continuar...")
             return
 
-        # Obtener el usuario
         usuario = usuario_crud.obtener_por_id(db, id=id_usuario)
 
         if not usuario:
@@ -271,7 +265,6 @@ def cambiar_estado_usuario(db: Session) -> None:
             input("Presione Enter para continuar...")
             return
 
-        # Mostrar estado actual
         print("\n" + "=" * 80)
         print("CAMBIAR ESTADO DE USUARIO".center(80))
         print("=" * 80)
@@ -279,7 +272,6 @@ def cambiar_estado_usuario(db: Session) -> None:
         print(f"Estado actual: {'ACTIVO' if usuario.activo else 'INACTIVO'}")
         print("=" * 80)
 
-        # Confirmar cambio de estado
         confirmar = (
             input(
                 f"\n¿Desea {'DESACTIVAR' if usuario.activo else 'ACTIVAR'} este usuario? (s/n): "

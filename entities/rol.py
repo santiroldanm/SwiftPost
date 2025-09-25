@@ -26,9 +26,13 @@ class Rol(Base):
     nombre_rol = Column(String(50), unique=True, nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
-    fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now, nullable=True)
+    fecha_actualizacion = Column(
+        DateTime, default=None, onupdate=datetime.now, nullable=True
+    )
 
-    usuarios = relationship("Usuario", back_populates="rol", cascade="all, delete-orphan")
+    usuarios = relationship(
+        "Usuario", back_populates="rol", cascade="all, delete-orphan"
+    )
 
 
 class RolBase(BaseModel):

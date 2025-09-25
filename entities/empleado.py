@@ -47,18 +47,22 @@ class Empleado(Base):
         String(36),
         ForeignKey("usuarios.id_usuario"),
         primary_key=True,
-        comment="ID del empleado, igual al ID del usuario asociado"
+        comment="ID del empleado, igual al ID del usuario asociado",
     )
-    
-    usuario = relationship("Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False)
-    
+
+    usuario = relationship(
+        "Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False
+    )
+
     creado_por = Column(
         String(36),
         ForeignKey("usuarios.id_usuario"),
         nullable=False,
-        comment="ID del usuario que creó el registro"
+        comment="ID del usuario que creó el registro",
     )
-    creado_por_rel = relationship("Usuario", foreign_keys=[creado_por], backref="empleados_creados")
+    creado_por_rel = relationship(
+        "Usuario", foreign_keys=[creado_por], backref="empleados_creados"
+    )
     id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=True)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
@@ -116,6 +120,10 @@ class EmpleadoBase(BaseModel):
     )
     segundo_apellido: Optional[str] = Field(
         None, min_length=1, max_length=50, description="Segundo apellido del empleado"
+    )
+    tipo_documento: uuid.UUID = Field(..., description="ID del tipo de documento")
+    documento: str = Field(
+        ..., min_length=5, max_length=20, description="Número de documento del empleado"
     )
     fecha_nacimiento: date = Field(..., description="Fecha de nacimiento del empleado")
     telefono: str = Field(
@@ -175,7 +183,6 @@ class EmpleadoBase(BaseModel):
             return v.strip().title()
         return v
 
-
     @validator("fecha_nacimiento")
     def validar_fecha_nacimiento(cls, v):
         today = date.today()
@@ -219,9 +226,12 @@ class EmpleadoBase(BaseModel):
     @validator("tipo_empleado")
     def validar_tipo_empleado(cls, v):
         tipos_validos = [
+            "administrador",
+            "coordinador",
             "mensajero",
-            "logistico",
+            "atencion_cliente",
             "secretario",
+            "logistico",
         ]
         if v.lower() not in tipos_validos:
             raise ValueError(
@@ -245,6 +255,16 @@ class EmpleadoBase(BaseModel):
         if (today - v).days > 18250:
             raise ValueError("La fecha de ingreso no puede ser mayor a 50 años atrás")
         return v
+
+    @validator("documento")
+    def validar_documento(cls, v):
+        if not v or not v.strip():
+            raise ValueError("El número de documento no puede estar vacío")
+        if not v.strip().isdigit():
+            raise ValueError("El número de documento solo puede contener números")
+        if len(v.strip()) < 5:
+            raise ValueError("El número de documento debe tener al menos 5 dígitos")
+        return v.strip()
 
 
 class EmpleadoCreate(EmpleadoBase):
