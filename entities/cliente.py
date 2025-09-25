@@ -37,19 +37,21 @@ class Cliente(Base):
         PG_UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
-        comment="ID único del cliente"
+        comment="ID único del cliente",
     )
-    
+
     usuario_id = Column(
         String(36),
         ForeignKey("usuarios.id_usuario"),
         unique=True,
         nullable=False,
-        comment="ID del usuario asociado a este cliente"
+        comment="ID del usuario asociado a este cliente",
     )
-    
-    usuario = relationship("Usuario", back_populates="cliente", foreign_keys=[usuario_id], uselist=False)
-    
+
+    usuario = relationship(
+        "Usuario", back_populates="cliente", foreign_keys=[usuario_id], uselist=False
+    )
+
     id_tipo_documento = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("tipos_documentos.id_tipo_documento"),
@@ -67,35 +69,36 @@ class Cliente(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    
+
     creado_por = Column(
         String(36),
         ForeignKey("usuarios.id_usuario"),
         nullable=False,
-        comment="Usuario que creó el registro"
+        comment="Usuario que creó el registro",
     )
     actualizado_por = Column(
         String(36),
         ForeignKey("usuarios.id_usuario"),
         nullable=True,
-        comment="Usuario que actualizó por última vez el registro"
+        comment="Usuario que actualizó por última vez el registro",
     )
 
     tipo_documento_rel = relationship("TipoDocumento", back_populates="clientes")
-    
-    paquetes = relationship("Paquete", back_populates="cliente", cascade="all, delete-orphan")
-    
+
+    paquetes = relationship(
+        "Paquete", back_populates="cliente", cascade="all, delete-orphan"
+    )
+
     envios_como_remitente = relationship(
         "DetalleEntrega",
         foreign_keys="DetalleEntrega.id_cliente_remitente",
-        viewonly=True
+        viewonly=True,
     )
     envios_como_receptor = relationship(
         "DetalleEntrega",
         foreign_keys="DetalleEntrega.id_cliente_receptor",
-        viewonly=True
+        viewonly=True,
     )
-    
 
     def __repr__(self):
         return f"<Cliente(id={self.id_cliente}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, numero_documento={self.numero_documento}, telefono={self.telefono}, direccion={self.direccion}, correo={self.correo}, tipo={self.tipo})>"
@@ -128,11 +131,18 @@ class ClienteBase(BaseModel):
     segundo_apellido: Optional[str] = Field(
         min_length=1, max_length=50, description="Segundo apellido del cliente"
     )
-    numero_documento: str = Field(..., min_length=3, max_length=20, description="Número de documento del cliente")
+    numero_documento: str = Field(
+        ..., min_length=3, max_length=20, description="Número de documento del cliente"
+    )
     direccion: str = Field(
         ..., min_length=5, max_length=200, description="Dirección del cliente"
     )
-    telefono: str = Field(..., min_length=7, max_length=15, description="Número de teléfono del cliente (solo números)")
+    telefono: str = Field(
+        ...,
+        min_length=7,
+        max_length=15,
+        description="Número de teléfono del cliente (solo números)",
+    )
     correo: str = Field(
         ..., min_length=5, max_length=100, description="Correo electrónico del cliente"
     )
@@ -212,9 +222,12 @@ class ClienteBase(BaseModel):
 
 class ClienteCreate(ClienteBase):
     """Esquema para la creación de un cliente."""
-    id_tipo_documento: str = Field(..., description="ID del tipo de documento del cliente")
+
+    id_tipo_documento: str = Field(
+        ..., description="ID del tipo de documento del cliente"
+    )
     usuario_id: str = Field(..., description="ID del usuario asociado al cliente")
-    
+
     class Config:
         schema_extra = {
             "example": {
@@ -228,7 +241,7 @@ class ClienteCreate(ClienteBase):
                 "correo": "juan.perez@example.com",
                 "tipo": "remitente",
                 "id_tipo_documento": "550e8400-e29b-41d4-a716-446655440000",
-                "usuario_id": "550e8400-e29b-41d4-a716-446655440000"
+                "usuario_id": "550e8400-e29b-41d4-a716-446655440000",
             }
         }
 

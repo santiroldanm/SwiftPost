@@ -42,15 +42,13 @@ class Transporte(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(
-        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
-    )
+    creado_por = Column(String(36), ForeignKey("usuarios.id_usuario"), nullable=False)
     actualizado_por = Column(
         String(36), ForeignKey("usuarios.id_usuario"), default=None
     )
 
     sede = relationship("Sede", foreign_keys=[id_sede])
-    
+
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 

@@ -34,9 +34,9 @@ def get_engine():
     """Create and configure the SQLAlchemy engine with UUID support"""
     engine = create_engine(
         DATABASE_URL,
-        echo=False,  
-        pool_pre_ping=True,  
-        pool_recycle=300,  
+        echo=False,
+        pool_pre_ping=True,
+        pool_recycle=300,
     )
 
     with engine.connect() as conn:

@@ -49,24 +49,23 @@ def listar_paquetes(db: Session) -> None:
             print(
                 "-"
                 * (col_id + col_cliente + col_contenido + col_estado + col_fecha + 12)
-            )  # +12 por los separadores " | "
+            )
 
-            # Imprimir cada paquete
             for p in paquetes:
-                # Usar getattr para acceder a los atributos de manera segura
+
                 cliente = getattr(p, "cliente", None)
                 cliente_nombre = (
                     f"{getattr(cliente, 'primer_nombre', '')} {getattr(cliente, 'primer_apellido', '')}".strip()
                     if cliente
                     else "N/A"
                 )
-
+                id_paquete = str(getattr(p, "id_paquete", "N/A"))
                 print(
-                    f"{getattr(p, 'id_paquete', 'N/A'):<{col_id}} | "
+                    f"{id_paquete:<{col_id}} | "
                     f"{cliente_nombre:<{col_cliente}} | "
                     f"{getattr(p, 'contenido', 'N/A'):<{col_contenido}} | "
                     f"{getattr(p, 'estado', 'N/A'):<{col_estado}} | "
-                    f"{getattr(p, 'fecha_registro', 'N/A').strftime('%Y-%m-%d') if getattr(p, 'fecha_registro', None) else 'N/A':<{col_fecha}}"
+                    f"{getattr(p, 'fecha_registro', None).strftime('%Y-%m-%d') if getattr(p, 'fecha_registro', None) else 'N/A':<{col_fecha}}"
                 )
     except Exception as e:
         print(f"\nError al listar paquetes: {str(e)}")
@@ -82,7 +81,7 @@ def buscar_paquete(db: Session) -> None:
         input("\nPresione Enter para continuar...")
         return
 
-    paquete = paquete_crud.get(db, id=id_paquete)
+    paquete = paquete_crud.obtener_por_id_paquete(db, id_paquete=id_paquete)
     if paquete:
         print(f"Paquete encontrado: {paquete.contenido}")
     else:
@@ -94,7 +93,7 @@ def actualizar_estado_paquete(db: Session) -> None:
     """Actualiza el estado de un paquete."""
     mostrar_encabezado("ACTUALIZAR ESTADO DE PAQUETE")
     id_paquete = input("Ingrese el ID del paquete: ").strip()
-    paquete = paquete_crud.get(db, id=id_paquete)
+    paquete = paquete_crud.obtener_por_id_paquete(db, id_paquete=id_paquete)
     if not paquete:
         print("Paquete no encontrado.")
         input("\nPresione Enter para continuar...")
@@ -156,7 +155,6 @@ def manejar_menu_paquetes_empleado(db: Session, id_empleado: str) -> None:
             print("Opción no válida.")
 
 
-# Funciones para el cliente
 def solicitar_recogida(db: Session, usuario_data: Dict[str, Any]) -> None:
     """Permite a un cliente solicitar la recogida de un paquete."""
     mostrar_encabezado("SOLICITAR RECOGIDA")
@@ -185,7 +183,7 @@ def solicitar_recogida(db: Session, usuario_data: Dict[str, Any]) -> None:
         paquete_datos = paquete_data.model_dump()
         paquete_datos["id_cliente"] = cliente.id_cliente
 
-        paquete_crud.crear(
+        paquete_crud.crear_registro(
             db=db, datos_entrada=paquete_datos, creado_por=usuario_data["id_usuario"]
         )
         print("\n¡Solicitud de recogida enviada exitosamente!")
@@ -245,9 +243,7 @@ def historial_envios(db: Session, usuario_data: Dict[str, Any]) -> None:
             print(
                 f"\n{'ID PAQUETE':<{col_id}} | {'CONTENIDO':<{col_contenido}} | {'ESTADO':<{col_estado}} | {'FECHA ENVÍO':<{col_fecha}}"
             )
-            print(
-                "-" * (col_id + col_contenido + col_estado + col_fecha + 9)
-            )
+            print("-" * (col_id + col_contenido + col_estado + col_fecha + 9))
 
             for p in paquetes:
                 fecha_envio = getattr(p, "fecha_envio", None)

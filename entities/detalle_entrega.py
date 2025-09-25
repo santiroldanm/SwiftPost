@@ -51,20 +51,23 @@ class DetalleEntrega(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(
-        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
-    )
+    creado_por = Column(String(36), ForeignKey("usuarios.id_usuario"), nullable=False)
     actualizado_por = Column(
         String(36), ForeignKey("usuarios.id_usuario"), nullable=False
     )
 
     sede_remitente_rel = relationship("Sede", foreign_keys=[id_sede_remitente])
     sede_receptora_rel = relationship("Sede", foreign_keys=[id_sede_receptora])
-    paquete = relationship("Paquete", back_populates="detalle_entrega", foreign_keys=[id_paquete], uselist=False)
-    
+    paquete = relationship(
+        "Paquete",
+        back_populates="detalle_entrega",
+        foreign_keys=[id_paquete],
+        uselist=False,
+    )
+
     cliente_remitente = relationship("Cliente", foreign_keys=[id_cliente_remitente])
     cliente_receptor = relationship("Cliente", foreign_keys=[id_cliente_receptor])
-    
+
     creador = relationship("Usuario", foreign_keys=[creado_por])
     actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
 

@@ -1,3 +1,7 @@
+"""
+ARCHIVO ANTERIOR DE LOGICA DE NEGOCIO
+
+
 import math
 import re
 from src.cliente import cliente
@@ -553,7 +557,6 @@ class servicioMensajeria:
             self._imprimirPaquete(p)
 
     def _imprimirPaquete(self, p):
-        """Método auxiliar para imprimir la info de un paquete."""
         print("--------------------------------------------")
         print(f"ID Paquete   : {p.getId()}")
         print(f"Origen       : {p.getOrigen()}")
@@ -618,3 +621,4 @@ class servicioMensajeria:
         print(f"Estado del paquete {id_paquete} actualizado correctamente")
         print(f"Nuevo estado: {nuevo_estado}")
         print("===================================\n")
+"""
