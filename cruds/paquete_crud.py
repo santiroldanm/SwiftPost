@@ -9,7 +9,7 @@ from .base_crud import CRUDBase
 class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
     """Operaciones CRUD para la entidad Paquete con validaciones."""
 
-    def __init__(self):
+    def __init__(self, db: Session):
         super().__init__(Paquete)
         self.estados_permitidos = [
             "registrado",
@@ -25,7 +25,8 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         self.peso_maximo = 50.0
         self.valor_minimo = 0.0
         self.valor_maximo = 1000000.0
-
+        self.db= db   
+        
     def obtener_todos(
         self,
         db: Session,
@@ -336,6 +337,4 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         except Exception:
             db.rollback()
             return None
-
-
-paquete = PaqueteCRUD()
+ 
