@@ -10,7 +10,7 @@ from .base_crud import CRUDBase
 class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
     """Operaciones CRUD para la entidad Empleado con validaciones."""
 
-    def __init__(self):
+    def __init__(self, db: Session):
         super().__init__(Empleado)
         self.longitud_minima_nombre = 2
         self.longitud_maxima_nombre = 50
@@ -22,6 +22,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             "secretario",
             "logistico",
         ]
+        self.db = db
 
     def _validar_datos_empleado(self, datos: Dict[str, Any]) -> bool:
         """
@@ -94,7 +95,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             traceback.print_exc()
             return False
 
-    def obtener_por_id(self, db: Session, id: str) -> Optional[Empleado]:
+    def obtener_por_id(self, id: str) -> Optional[Empleado]:
         """
         Obtiene un empleado por su ID.
 
@@ -113,7 +114,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             print(f"Error al obtener empleado por ID {id}: {str(e)}")
             return None
 
-    def obtener_por_documento(self, db: Session, documento: str) -> Optional[Empleado]:
+    def obtener_por_documento(self, documento: str) -> Optional[Empleado]:
         """
         Obtiene un empleado por su número de documento.
 
@@ -132,7 +133,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             print(f"Error al obtener empleado por documento {documento}: {str(e)}")
             return None
 
-    def obtener_por_email(self, db: Session, correo: str) -> Optional[Empleado]:
+    def obtener_por_email(self, correo: str) -> Optional[Empleado]:
         """
         Obtiene un empleado por su correo electrónico.
 
@@ -152,7 +153,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             return None
 
     def obtener_por_cargo(
-        self, db: Session, cargo: str, saltar: int = 0, limite: int = 100
+        self, cargo: str, saltar: int = 0, limite: int = 100
     ) -> Tuple[List[Empleado], int]:
         """
         Obtiene empleados por cargo con paginación.
@@ -180,7 +181,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             return [], 0
 
     def obtener_activos(
-        self, db: Session, saltar: int = 0, limite: int = 100
+        self, saltar: int = 0, limite: int = 100
     ) -> Tuple[List[Empleado], int]:
         """
         Obtiene empleados activos con paginación.
@@ -203,7 +204,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             return [], 0
 
     def obtener_por_sede(
-        self, db: Session, id_sede: UUID, saltar: int = 0, limite: int = 100
+        self, id_sede: UUID, saltar: int = 0, limite: int = 100
     ) -> Tuple[List[Empleado], int]:
         """
         Obtiene empleados por sede con paginación.
@@ -230,9 +231,8 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             print(f"Error al obtener empleados por sede {id_sede}: {str(e)}")
             return [], 0
 
-    def crear_registro(
+    def crear_empleado(
         self,
-        db: Session,
         *,
         datos_entrada: Union[EmpleadoCreate, Dict[str, Any]],
         usuario_id: UUID,
@@ -262,7 +262,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             return None
 
         print(f"🔍 Verificando documento: {datos.get('documento')}")
-        if "documento" in datos and self.obtener_por_documento(db, datos["documento"]):
+        if "documento" in datos and self.obtener_por_documento(datos["documento"]):
             print(
                 f" Error: Ya existe un empleado con este número de documento: {datos['documento']}"
             )
@@ -332,7 +332,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             print(f" Error al crear empleado: {str(e)}")
             return None
 
-    def actualizar(
+    def actualizar_empleado(
         self,
         db: Session,
         *,
@@ -380,7 +380,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             db.rollback()
             return None
 
-    def desactivar(self, db: Session, *, id: UUID, actualizado_por: UUID) -> bool:
+    def desactivar_empleado(self, *, id: UUID, actualizado_por: UUID) -> bool:
         """
         Desactiva un empleado por su ID.
         Args:
@@ -403,6 +403,4 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
         except Exception:
             db.rollback()
             return False
-
-
-empleado = EmpleadoCRUD()
+ 

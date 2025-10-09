@@ -4,7 +4,7 @@ API REST con FastAPI - Sin interfaz de consola
 """
 
 import uvicorn
-from apis import auth, usuario, cliente
+from apis import auth, usuario, cliente, empleado, sede, paquete, transporte, detalle_entrega
 from database.config import create_tables
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +28,11 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(usuario.router)
 app.include_router(cliente.router)
+app.include_router(empleado.router)
+app.include_router(sede.router)
+app.include_router(paquete.router)
+app.include_router(transporte.router)
+app.include_router(detalle_entrega.router)
 
 
 @app.on_event("startup")
