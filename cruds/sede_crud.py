@@ -9,10 +9,11 @@ from .base_crud import CRUDBase
 class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
     """Operaciones CRUD para la entidad Sede con validaciones."""
 
-    def __init__(self):
+    def __init__(self, db: Session):
         super().__init__(Sede)
+        self.db = db
 
-    def obtener_por_id(self, db: Session, id: Union[UUID, str]) -> Optional[Sede]:
+    def obtener_por_id(self, id: Union[UUID, str]) -> Optional[Sede]:
         """
         Obtiene una sede por su ID.
 
@@ -27,17 +28,17 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
             if not id:
                 return None
 
-            if db.is_active and db.in_transaction():
+            if self.db.is_active and self.db.in_transaction():
                 try:
-                    db.rollback()
+                    self.db.rollback()
                 except:
                     pass
 
-            return db.query(Sede).filter(Sede.id_sede == id).first()
+            return self.db.query(Sede).filter(Sede.id_sede == id).first()
         except SQLAlchemyError as e:
             print(f"Error de base de datos al obtener sede por ID {id}: {str(e)}")
             try:
-                db.rollback()
+                self.db.rollback()
             except:
                 pass
             return None
@@ -46,7 +47,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
             return None
 
     def obtener_por_ciudad(
-        self, db: Session, ciudad: str, saltar: int = 0, limite: int = 100
+        self, ciudad: str, saltar: int = 0, limite: int = 100
     ) -> List[Sede]:
         """
         Obtiene sedes por ciudad con paginación.
@@ -64,14 +65,14 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
             if not ciudad or not ciudad.strip():
                 return []
 
-            if db.is_active and db.in_transaction():
+            if self.db.is_active and self.db.in_transaction():
                 try:
-                    db.rollback()
+                    self.db.rollback()
                 except:
                     pass
 
             return (
-                db.query(Sede)
+                self.db.query(Sede)
                 .filter(Sede.ciudad.ilike(f"%{ciudad.strip()}%"))
                 .offset(saltar)
                 .limit(limite)
@@ -82,7 +83,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
                 f"Error de base de datos al obtener sedes por ciudad {ciudad}: {str(e)}"
             )
             try:
-                db.rollback()
+                self.db.rollback()
             except:
                 pass
             return []
@@ -90,9 +91,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
             print(f"Error al obtener sedes por ciudad {ciudad}: {str(e)}")
             return []
 
-    def obtener_activas(
-        self, db: Session, saltar: int = 0, limite: int = 100
-    ) -> List[Sede]:
+    def obtener_activas(self, saltar: int = 0, limite: int = 100) -> List[Sede]:
         """
         Obtiene sedes activas con paginación.
 
@@ -106,7 +105,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
         """
         try:
             return (
-                db.query(Sede)
+                self.self.db.query(Sede)
                 .filter(Sede.activo == True)
                 .offset(saltar)
                 .limit(limite)
@@ -116,9 +115,8 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
             print(f"Error al obtener sedes activas: {str(e)}")
             return []
 
-    def crear_registro(
+    def crear_sede(
         self,
-        db: Session,
         *,
         datos_entrada: Union[SedeCreate, Dict[str, Any]],
         creado_por: UUID,
@@ -135,9 +133,9 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
             Optional[Sede]: La sede recién creada o None si hay error
         """
         try:
-            if db.is_active and db.in_transaction():
+            if self.db.is_active and self.db.in_transaction():
                 try:
-                    db.rollback()
+                    self.db.rollback()
                 except:
                     pass
 
@@ -150,7 +148,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
 
             if "nombre" in datos:
                 sede_existente = (
-                    db.query(Sede).filter(Sede.nombre == datos["nombre"]).first()
+                    self.db.query(Sede).filter(Sede.nombre == datos["nombre"]).first()
                 )
                 if sede_existente:
                     print(
@@ -160,29 +158,28 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
 
             datos["creado_por"] = str(creado_por)
             db_obj = Sede(**datos)
-            db.add(db_obj)
-            db.commit()
-            db.refresh(db_obj)
+            self.db.add(db_obj)
+            self.db.commit()
+            self.db.refresh(db_obj)
             return db_obj
 
         except SQLAlchemyError as e:
             try:
-                db.rollback()
+                self.db.rollback()
             except:
                 pass
             print(f"Error de base de datos al crear sede: {str(e)}")
             return None
         except Exception as e:
             try:
-                db.rollback()
+                self.db.rollback()
             except:
                 pass
             print(f"Error al crear sede: {str(e)}")
             return None
 
-    def actualizar(
+    def actualizar_sede(
         self,
-        db: Session,
         *,
         objeto_db: Sede,
         datos_entrada: Union[SedeUpdate, Dict[str, Any]],
@@ -210,7 +207,7 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
 
             if "nombre" in datos_actualizados:
                 sede_existente = (
-                    db.query(Sede)
+                    self.db.query(Sede)
                     .filter(
                         Sede.nombre == datos_actualizados["nombre"],
                         Sede.id_sede != objeto_db.id_sede,
@@ -229,19 +226,17 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
                 if hasattr(objeto_db, campo):
                     setattr(objeto_db, campo, valor)
 
-            db.add(objeto_db)
-            db.commit()
-            db.refresh(objeto_db)
+            self.db.add(objeto_db)
+            self.db.commit()
+            self.db.refresh(objeto_db)
             return objeto_db
 
         except Exception as e:
-            db.rollback()
+            self.db.rollback()
             print(f"Error al actualizar sede: {str(e)}")
             return None
 
-    def desactivar(
-        self, db: Session, *, id: UUID, actualizado_por: UUID
-    ) -> Optional[Sede]:
+    def desactivar_sede(self, *, id: UUID, actualizado_por: UUID) -> Optional[Sede]:
         """
         Desactiva una sede.
 
@@ -254,24 +249,24 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
             Optional[Sede]: La sede desactivada o None si hay error
         """
         try:
-            sede = self.obtener_por_id(db, id)
+            sede = self.obtener_por_id(id)
             if not sede:
                 print(f"Error: No se encontró la sede con ID {id}")
                 return None
 
             sede.activo = False
             sede.actualizado_por = str(actualizado_por)
-            db.add(sede)
-            db.commit()
-            db.refresh(sede)
+            self.db.add(sede)
+            self.db.commit()
+            self.db.refresh(sede)
             return sede
 
         except Exception as e:
-            db.rollback()
+            self.db.rollback()
             print(f"Error al desactivar sede: {str(e)}")
             return None
 
-    def obtener_por_nombre(self, db: Session, nombre: str) -> Optional[Sede]:
+    def obtener_por_nombre(self, nombre: str) -> Optional[Sede]:
         """
         Obtiene una sede por su nombre.
 
@@ -286,11 +281,10 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
             if not nombre or not nombre.strip():
                 return None
             return (
-                db.query(Sede).filter(Sede.nombre.ilike(f"%{nombre.strip()}%")).first()
+                self.db.query(Sede)
+                .filter(Sede.nombre.ilike(f"%{nombre.strip()}%"))
+                .first()
             )
         except Exception as e:
             print(f"Error al obtener sede por nombre {nombre}: {str(e)}")
             return None
-
-
-sede = SedeCRUD()
