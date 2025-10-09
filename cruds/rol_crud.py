@@ -18,13 +18,13 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
     así como operaciones específicas para buscar roles por nombre.
     """
 
-    def __init__(self):
+    def __init__(self, db: Session):
+        self.db = db
         super().__init__(Rol)
         self.model = Rol
 
-    def obtener_por_nombre(
+    def obtener_rol_por_nombre(
         self,
-        db: Session,
         nombre: str,
         exacto: bool = True,
         case_sensitive: bool = False,
@@ -44,7 +44,7 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
         if not nombre or not isinstance(nombre, str):
             logger.warning("Se intentó buscar un rol con un nombre inválido")
             return None
-        query = db.query(self.model)
+        query = self.db.query(self.model)
         if exacto:
             if case_sensitive:
                 query = query.filter(self.model.nombre_rol == nombre)
@@ -57,11 +57,10 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
                 query = query.filter(self.model.nombre_rol.ilike(f"%{nombre}%"))
         return query.first()
 
-    def obtener_por_id(self, db: Session, id_rol: Union[str, UUID]) -> Optional[Rol]:
+    def obtener_por_id(self, id_rol: Union[str, UUID]) -> Optional[Rol]:
         """
         Obtiene un rol por su ID.
         Args:
-            db: Sesión de base de datos
             id_rol: ID del rol a buscar (como string o UUID)
         Returns:
             El rol encontrado o None si no existe
@@ -69,39 +68,36 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
         try:
             if isinstance(id_rol, UUID):
                 id_rol = str(id_rol)
-            return db.query(self.model).filter(self.model.id_rol == id_rol).first()
+            return self.db.query(self.model).filter(self.model.id_rol == id_rol).first()
         except (ValueError, AttributeError) as e:
             logger.error(f"ID de rol inválido: {id_rol}")
             return None
 
     def obtener_todos(
-        self, db: Session, skip: int = 0, limit: int = 100, solo_activos: bool = True
+        self, skip: int = 0, limit: int = 100, solo_activos: bool = True
     ) -> List[Rol]:
         """
         Obtiene todos los roles con paginación.
         Args:
-            db: Sesión de base de datos
             skip: Número de registros a omitir
             limit: Número máximo de registros a devolver
             solo_activos: Si es True, devuelve solo roles activos
         Returns:
             Lista de roles
         """
-        query = db.query(self.model)
+        query = self.db.query(self.model)
         if solo_activos:
             query = query.filter(self.model.activo == True)
         return query.offset(skip).limit(limit).all()
 
     def crear(
         self,
-        db: Session,
         obj_in: Union[RolCreate, Dict[str, Any]],
         creado_por: UUID = None,
     ) -> Optional[Rol]:
         """
         Crea un nuevo rol.
         Args:
-            db: Sesión de base de datos
             obj_in: Datos del rol a crear (puede ser un diccionario o un objeto RolCreate)
             creado_por: ID del usuario que crea el rol (opcional)
         Returns:
@@ -115,7 +111,7 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
             nombre = str(obj_in.get("nombre_rol", "")).strip().lower()
             if not nombre:
                 raise ValueError("El nombre del rol es requerido")
-            if self.obtener_por_nombre(db, nombre):
+            if self.obtener_por_nombre(nombre):
                 raise ValueError(f"Ya existe un rol con el nombre: {nombre}")
             db_obj = self.model(
                 id_rol=uuid4(),
@@ -139,11 +135,10 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
             logger.error(f"Error inesperado al crear rol: {str(e)}", exc_info=True)
             raise
 
-    def actualizar(self, db: Session, *, db_obj: Rol, obj_in: RolUpdate) -> Rol:
+    def actualizar(self, *, db_obj: Rol, obj_in: RolUpdate) -> Rol:
         """
         Actualiza un rol existente.
         Args:
-            db: Sesión de base de datos
             db_obj: Rol existente a actualizar
             obj_in: Datos para actualizar el rol
         Returns:
@@ -155,7 +150,7 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
         if "nombre_rol" in update_data and update_data["nombre_rol"]:
             nuevo_nombre = update_data["nombre_rol"].lower()
             if nuevo_nombre != db_obj.nombre_rol.lower() and self.obtener_por_nombre(
-                db, nuevo_nombre
+                nuevo_nombre
             ):
                 raise ValueError(f"Ya existe un rol con el nombre: {nuevo_nombre}")
             update_data["nombre_rol"] = nuevo_nombre
@@ -178,7 +173,7 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
         Raises:
             ValueError: Si el rol está asignado a usuarios o es un rol de sistema
         """
-        rol = self.obtener_por_id(db, id_rol)
+        rol = self.obtener_por_id(id_rol)
         if not rol:
             return False
         roles_sistema = ["administrador", "empleado", "cliente"]
@@ -190,20 +185,17 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
         db.commit()
         return True
 
-    def obtener_activos(
-        self, db: Session, skip: int = 0, limit: int = 100
-    ) -> List[Rol]:
+    def obtener_activos(self, skip: int = 0, limit: int = 100) -> List[Rol]:
         """
         Obtiene una lista de roles activos.
         Args:
-            db: Sesión de base de datos
             skip: Número de registros a omitir (paginación)
             limit: Número máximo de registros a devolver
         Returns:
             Lista de roles activos
         """
         return (
-            db.query(self.model)
+            self.db.query(self.model)
             .filter(self.model.activo == True)
             .offset(skip)
             .limit(limit)
@@ -211,12 +203,11 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
         )
 
     def obtener_por_permiso(
-        self, db: Session, permiso: str, skip: int = 0, limit: int = 100
+        self, permiso: str, skip: int = 0, limit: int = 100
     ) -> tuple[List[Rol], int]:
         """
         Obtiene roles que tienen un permiso específico.
         Args:
-            db: Sesión de base de datos
             permiso: Permiso a buscar
             skip: Número de registros a omitir (para paginación)
             limit: Número máximo de registros a devolver
@@ -225,12 +216,9 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
         """
         if not permiso:
             return [], 0
-        consulta = db.query(self.model).filter(self.model.activo == True)
+        consulta = self.db.query(self.model).filter(self.model.activo == True)
         if hasattr(self.model, "permisos"):
             consulta = consulta.filter(self.model.permisos.any(permiso))
         total = consulta.count()
         resultados = consulta.offset(skip).limit(limit).all()
         return resultados, total
-
-
-rol = RolCRUD()
