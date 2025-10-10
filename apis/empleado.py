@@ -1,6 +1,7 @@
 """
 API de empleados - Endpoints para gestión de empleados
 """
+
 from typing import List
 from uuid import UUID
 from database.config import get_db
@@ -14,7 +15,7 @@ from schemas.empleado_schema import (
     EmpleadoResponse,
 )
 from schemas.auth_schema import RespuestaAPI
-    
+
 router = APIRouter(prefix="/empleados", tags=["Empleados"])
 
 
@@ -23,9 +24,9 @@ async def obtener_empleados(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
     """Obtener todos los empleados con paginación."""
-    try:    
+    try:
         empleado_crud = EmpleadoCRUD(db)
-        empleados = empleado_crud.obtener_clientes(skip=skip, limit=limit)
+        empleados = empleado_crud.obtener_empleados(skip=skip, limit=limit)
         return empleados
     except Exception as e:
         raise HTTPException(
@@ -76,7 +77,7 @@ async def obtener_empleados_por_tipo(
     """Obtener todos los empleados por tipo con paginación."""
     try:
         empleado_crud = EmpleadoCRUD(db)
-        empleados = empleado_crud.obtener_por_tipo(tipo, skip=skip, limit=limit)
+        empleados = empleado_crud.obtener_por_cargo(tipo, skip=skip, limit=limit)
         return empleados
     except Exception as e:
         raise HTTPException(
@@ -110,12 +111,16 @@ async def obtener_empleado_por_documento(
 async def crear_empleado(
     empleado_data: EmpleadoCreate,
     db: Session = Depends(get_db),
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    creado_por: UUID = "ID Usuario con la sesión activa",
 ):
-    """Crear un nuevo empleado."""
+    """
+    Crear un nuevo empleado.
+    - Resuelve id_tipo_documento (usa TipoDocumentoCRUD)
+    - Pasa un dict al EmpleadoCRUD.crear_empleado con id_tipo_documento incluido
+    """
     try:
         tipo_doc_crud = TipoDocumentoCRUD(db)
-        tipo_documento = tipo_doc_crud.obtener_por_codigo(
+        tipo_documento = tipo_doc_crud.obtener_por_id(
             str(empleado_data.id_tipo_documento)
         )
 
@@ -124,14 +129,29 @@ async def crear_empleado(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Tipo de documento no válido",
             )
+        if hasattr(empleado_data, "model_dump"):
+            datos = empleado_data.model_dump()
+        else:
+            datos = empleado_data.dict()
+
+        datos["id_tipo_documento"] = tipo_documento.id_tipo_documento
 
         empleado_crud = EmpleadoCRUD(db)
         empleado = empleado_crud.crear_empleado(
-            datos_entrada=empleado_data.dict(exclude={"id_tipo_documento"}),
-            usuario_id=usuario_id,
-            id_tipo_documento=tipo_documento.id_tipo_documento,
+            datos_entrada=datos,
+            creado_por=creado_por,
         )
+
+        if not empleado:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se pudo crear el empleado (revisar logs).",
+            )
+
         return empleado
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -144,7 +164,7 @@ async def actualizar_empleado(
     id_empleado: UUID,
     empleado_data: EmpleadoUpdate,
     db: Session = Depends(get_db),
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: UUID = "ID Usuario con la sesión activa",
 ):
     """Actualizar un empleado existente."""
     try:
@@ -160,7 +180,7 @@ async def actualizar_empleado(
             and empleado_data.id_tipo_documento
         ):
             tipo_doc_crud = TipoDocumentoCRUD(db)
-            tipo_documento = tipo_doc_crud.obtener_por_codigo(
+            tipo_documento = tipo_doc_crud.obtener_por_id(
                 str(empleado_data.id_tipo_documento).strip().upper()
             )
             if not tipo_documento:
@@ -178,7 +198,7 @@ async def actualizar_empleado(
         empleado_actualizado = empleado_crud.actualizar_empleado(
             objeto_db=empleado,
             datos_entrada=empleado_data_dict,
-            actualizado_por=usuario_id,
+            actualizado_por=actualizado_por,
         )
 
         if not empleado_actualizado:
@@ -202,10 +222,10 @@ async def actualizar_empleado(
 @router.delete("/{id_empleado}", response_model=RespuestaAPI)
 async def eliminar_empleado(
     id_empleado: UUID,
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: UUID = "ID Usuario con la sesión activa",
     db: Session = Depends(get_db),
 ):
-    """Eliminar un cliente. Soft delete."""
+    """Eliminar un empleado. Soft delete."""
     try:
         empleado_crud = EmpleadoCRUD(db)
         empleado = empleado_crud.obtener_por_id(id_empleado)
@@ -214,7 +234,7 @@ async def eliminar_empleado(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Empleado no encontrado"
             )
         eliminado = empleado_crud.desactivar_empleado(
-            empleado_id=id_empleado, actualizado_por=usuario_id
+            empleado_id=id_empleado, actualizado_por=actualizado_por
         )
         if eliminado:
             return RespuestaAPI(mensaje="Empleado eliminado exitosamente", exito=True)

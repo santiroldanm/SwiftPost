@@ -10,7 +10,7 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
     """Operaciones CRUD para la entidad Paquete con validaciones."""
 
     def __init__(self, db: Session):
-        super().__init__(Paquete)
+        super().__init__(Paquete, db)
         self.estados_permitidos = [
             "registrado",
             "en_transito",
@@ -25,11 +25,10 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         self.peso_maximo = 50.0
         self.valor_minimo = 0.0
         self.valor_maximo = 1000000.0
-        self.db= db   
-        
+        self.db = db
+
     def obtener_todos(
         self,
-        db: Session,
         *,
         skip: int = 0,
         limit: int = 100,
@@ -55,7 +54,7 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         Returns:
             Lista de objetos Paquete que coinciden con los criterios
         """
-        query = db.query(Paquete)
+        query = self.db.query(Paquete)
 
         if activos:
             query = query.filter(Paquete.activo == True)
@@ -139,180 +138,256 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
             print(f"Error de validación: {str(e)}")
             return False
 
-    def obtener_por_id_paquete(
-        self, db: Session, id_paquete: UUID
-    ) -> Optional[Paquete]:
+    def obtener_por_id_paquete(self, id_paquete: UUID) -> Optional[Paquete]:
         """Obtiene un paquete por su ID."""
         if not id_paquete:
             return None
-        return db.query(Paquete).filter(Paquete.id_paquete == id_paquete).first()
+        return self.db.query(Paquete).filter(Paquete.id_paquete == id_paquete).first()
 
     def obtener_por_cliente(
-        self, db: Session, id_cliente: UUID, saltar: int = 0, limite: int = 100
-    ) -> Tuple[List[Paquete], int]:
+        self, id_cliente: UUID, skip: int = 0, limit: int = 100
+    ) -> List[Paquete]:
         """
-        Obtiene paquetes por ID de cliente con paginación.
-        Args:
-            db: Sesión de base de datos
-            id_cliente: ID del cliente
-            saltar: Número de registros a omitir (para paginación)
-            limite: Número máximo de registros a devolver
-        Returns:
-            Tupla con (lista de paquetes, total de registros)
+                Obtiene paquetes por ID de cliente con paginación.
+                Args:
+                    db: Sesión de base de datos
+                    id_cliente: ID del cliente
+                    skip
+        : Número de registros a omitir (para paginación)
+                    limit: Número máximo de registros a devolver
+                Returns:
+                    Tupla con (lista de paquetes)
         """
         if not id_cliente:
             return [], 0
-        consulta = db.query(Paquete).filter(Paquete.id_cliente == id_cliente)
-        total = consulta.count()
-        resultados = consulta.offset(saltar).limit(limite).all()
-        return resultados, total
+        consulta = self.db.query(Paquete).filter(Paquete.id_cliente == id_cliente)
+        resultados = consulta.offset(skip).limit(limit).all()
+        return resultados
 
     def obtener_por_estado(
-        self, db: Session, estado: str, saltar: int = 0, limite: int = 100
-    ) -> Tuple[List[Paquete], int]:
+        self, estado: str, skip: int = 0, limit: int = 100
+    ) -> List[Paquete]:
         """
-        Obtiene paquetes por estado con paginación.
-        Args:
-            db: Sesión de base de datos
-            estado: Estado del paquete
-            saltar: Número de registros a omitir (para paginación)
-            limite: Número máximo de registros a devolver
-        Returns:
-            Tupla con (lista de paquetes, total de registros)
+                Obtiene paquetes por estado con paginación.
+                Args:
+                    estado: Estado del paquete
+                    skip
+        : Número de registros a omitir (para paginación)
+                    limit: Número máximo de registros a devolver
+                Returns:
+                    Tupla con (lista de paquetes)
         """
         if estado not in self.estados_permitidos:
             return [], 0
-        consulta = db.query(Paquete).filter(Paquete.estado == estado)
-        total = consulta.count()
-        resultados = consulta.offset(saltar).limit(limite).all()
-        return resultados, total
+        consulta = self.db.query(Paquete).filter(Paquete.estado == estado)
+        resultados = consulta.offset(skip).limit(limit).all()
+        return resultados
 
     def obtener_por_tipo(
-        self, db: Session, tipo: str, saltar: int = 0, limite: int = 100
-    ) -> Tuple[List[Paquete], int]:
+        self, tipo: str, skip: int = 0, limit: int = 100
+    ) -> List[Paquete]:
         """
-        Obtiene paquetes por tipo con paginación.
-        Args:
-            db: Sesión de base de datos
-            tipo: Tipo de paquete
-            saltar: Número de registros a omitir (para paginación)
-            limite: Número máximo de registros a devolver
-        Returns:
-            Tupla con (lista de paquetes, total de registros)
+                Obtiene paquetes por tipo con paginación.
+                Args:
+                    tipo: Tipo de paquete
+                    skip
+        : Número de registros a omitir (para paginación)
+                    limit: Número máximo de registros a devolver
+                Returns:
+                    Tupla con (lista de paquetes)
         """
         if tipo not in self.tipos_permitidos:
             return [], 0
-        consulta = db.query(Paquete).filter(Paquete.tipo == tipo)
-        total = consulta.count()
-        resultados = consulta.offset(saltar).limit(limite).all()
-        return resultados, total
+        consulta = self.db.query(Paquete).filter(Paquete.tipo == tipo)
+        resultados = consulta.offset(skip).limit(limit).all()
+        return resultados
 
-    def crear_registro(
+    def crear_paquete(
         self,
-        db: Session,
         *,
         datos_entrada: Union[PaqueteCreate, Dict[str, Any]],
+        id_cliente: UUID,
         creado_por: UUID,
     ) -> Optional[Paquete]:
         """
-        Crea un nuevo paquete con validación de datos.
-        Args:
-            db: Sesión de base de datos
-            datos_entrada: Datos para crear el paquete (puede ser un objeto PaqueteCreate o un diccionario)
-            creado_por: ID del usuario que crea el registro
-        Returns:
-            El paquete creado o None si hay un error
+        Crea un paquete. id_cliente y creado_por pueden ser uuid.UUID o strings convertibles.
+        Retorna Paquete o None en caso de error (imprime el motivo).
         """
-        if hasattr(datos_entrada, "model_dump"):
-            datos = datos_entrada.model_dump()
-        elif hasattr(datos_entrada, "dict"):
-            datos = datos_entrada.dict()
-        else:
-            datos = dict(datos_entrada)
-        datos["creado_por"] = creado_por
-        if "fecha_creacion" not in datos:
-            datos["fecha_creacion"] = datetime.now()
-        if not self._validar_datos_paquete(datos):
-            return None
-        if "estado" not in datos:
-            datos["estado"] = "registrado"
-        try:
-            if isinstance(datos.get("fecha_creacion"), type(datetime.now)):
-                datos["fecha_creacion"] = datos["fecha_creacion"]()
+        from uuid import UUID as StdUUID
+        from datetime import datetime
 
-            campos_permitidos = {
-                "id_paquete",
-                "id_cliente",
-                "peso",
-                "tamaño",
-                "fragilidad",
-                "contenido",
-                "tipo",
-                "estado",
-                "activo",
-                "fecha_creacion",
-                "fecha_actualizacion",
-                "creado_por",
-                "actualizado_por",
-            }
-            datos_filtrados = {k: v for k, v in datos.items() if k in campos_permitidos}
+        try:
+            if hasattr(datos_entrada, "model_dump"):
+                datos = datos_entrada.model_dump()
+            elif hasattr(datos_entrada, "dict"):
+                datos = datos_entrada.dict()
+            elif isinstance(datos_entrada, dict):
+                datos = dict(datos_entrada)
+            else:
+                datos = dict(datos_entrada)
+        except Exception as e:
+            print("Error: datos_entrada no convertible a dict:", e)
+            return None
+
+        if hasattr(self, "_validar_datos_paquete"):
+            try:
+                if not self._validar_datos_paquete(datos):
+                    print("Error: validación del paquete falló")
+                    return None
+            except Exception as e:
+                print("Error en validación de paquete:", e)
+                return None
+
+        try:
+            id_cliente = (
+                id_cliente
+                if isinstance(id_cliente, StdUUID)
+                else StdUUID(str(id_cliente))
+            )
+            creado_por = (
+                creado_por
+                if isinstance(creado_por, StdUUID)
+                else StdUUID(str(creado_por))
+            )
+        except Exception as e:
+            print("Error: id_cliente o creado_por no son UUID válidos:", e)
+            return None
+
+        datos_filtrados = {
+            k: v
+            for k, v in dict(datos).items()
+            if k not in ("id_paquete", "fecha_creacion", "fecha_actualizacion")
+        }
+
+        datos_filtrados["id_cliente"] = id_cliente
+        datos_filtrados["creado_por"] = creado_por
+        datos_filtrados["actualizado_por"] = None
+        datos_filtrados.setdefault("fecha_creacion", datetime.now())
+        datos_filtrados.setdefault("activo", True)
+
+        try:
             paquete = Paquete(**datos_filtrados)
-            db.add(paquete)
-            db.commit()
-            db.refresh(paquete)
+            self.db.add(paquete)
+            self.db.commit()
+            self.db.refresh(paquete)
             return paquete
         except Exception as e:
-            db.rollback()
-            print(f"Error al crear paquete: {str(e)}")
+            self.db.rollback()
+            print("Error al crear paquete:", e)
             return None
 
     def actualizar(
         self,
-        db: Session,
         *,
         objeto_db: Paquete,
-        datos_entrada: Union[PaqueteUpdate, Dict[str, Any]],
-        actualizado_por: UUID,
+        datos_entrada: Union[Dict[str, Any], Any],
+        actualizado_por: Union[str, UUID],
     ) -> Optional[Paquete]:
         """
-        Actualiza un paquete existente con validación de datos.
-        Args:
-            db: Sesión de base de datos
-            objeto_db: Objeto de paquete a actualizar
-            datos_entrada: Datos para actualizar
-            actualizado_por: ID del usuario que actualiza el registro
-        Returns:
-            El paquete actualizado o None si hay un error
+        Actualiza un paquete existente.
+        Lanza ValueError con mensajes claros en caso de fallo (endpoint debe capturarlo y devolver 400).
         """
-        if isinstance(datos_entrada, dict):
-            datos_actualizados = datos_entrada
-        else:
-            datos_actualizados = datos_entrada.dict(exclude_unset=True)
-        datos_completos = objeto_db.__dict__.copy()
-        datos_completos.update(datos_actualizados)
-        if not self._validar_datos_paquete(datos_completos):
-            return None
+        try:
+            if isinstance(datos_entrada, dict):
+                datos_actualizados: Dict[str, Any] = dict(datos_entrada)
+            elif hasattr(datos_entrada, "model_dump"):
+                datos_actualizados = datos_entrada.model_dump(exclude_unset=True)
+            elif hasattr(datos_entrada, "dict"):
+                datos_actualizados = datos_entrada.dict(exclude_unset=True)
+            else:
+                datos_actualizados = dict(datos_entrada)
+        except Exception as e:
+            raise ValueError(f"Payload inválido: {e}")
+
+        try:
+            if hasattr(objeto_db, "to_dict"):
+                datos_completos = objeto_db.to_dict()
+            else:
+                datos_completos = {
+                    col.name: getattr(objeto_db, col.name)
+                    for col in objeto_db.__table__.columns
+                }
+            datos_completos.update(datos_actualizados)
+        except Exception as e:
+            raise ValueError(f"Error preparando datos para validación: {e}")
+
+        if hasattr(self, "_validar_datos_paquete"):
+            try:
+                ok = self._validar_datos_paquete(datos_completos)
+            except Exception as e:
+                raise ValueError(f"Error en validación interna: {e}")
+            if not ok:
+                raise ValueError(
+                    "Validación del paquete falló (revisa reglas de negocio)."
+                )
+
+        try:
+            actualizado_uuid = (
+                actualizado_por
+                if isinstance(actualizado_por, UUID)
+                else UUID(str(actualizado_por))
+            )
+        except Exception as e:
+            raise ValueError(f"actualizado_por no es un UUID válido: {e}")
+
+        try:
+            usuario_existe = False
+            try:
+                from cruds.usuario_crud import UsuarioCRUD
+
+                usuario_crud = UsuarioCRUD(self.db)
+                usuario_existe = (
+                    usuario_crud.obtener_por_id(actualizado_uuid) is not None
+                )
+            except Exception:
+                try:
+                    from entities.usuario import Usuario
+
+                    usuario_existe = (
+                        self.db.query(Usuario)
+                        .filter(Usuario.id_usuario == str(actualizado_uuid))
+                        .first()
+                        is not None
+                    )
+                except Exception:
+                    usuario_existe = False
+
+            if not usuario_existe:
+                raise ValueError(
+                    f"Usuario para 'actualizado_por' no encontrado: {actualizado_uuid}"
+                )
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(f"Error al verificar usuario de actualización: {e}")
+
         try:
             for campo, valor in datos_actualizados.items():
                 if hasattr(objeto_db, campo):
                     setattr(objeto_db, campo, valor)
-            objeto_db.actualizado_por = actualizado_por
+
+            objeto_db.actualizado_por = actualizado_uuid
             objeto_db.fecha_actualizacion = datetime.utcnow()
-            db.add(objeto_db)
-            db.commit()
-            db.refresh(objeto_db)
+
+            self.db.add(objeto_db)
+            self.db.commit()
+            self.db.refresh(objeto_db)
             return objeto_db
-        except Exception:
-            db.rollback()
-            return None
+
+        except Exception as e:
+            try:
+                self.db.rollback()
+            except Exception:
+                pass
+            print("Error al actualizar paquete:", e)
+            raise ValueError(f"Error al actualizar paquete: {e}")
 
     def actualizar_estado(
-        self, db: Session, *, id: UUID, nuevo_estado: str, actualizado_por: UUID
+        self, *, id: UUID, nuevo_estado: str, actualizado_por: UUID
     ) -> Optional[Paquete]:
         """
         Actualiza el estado de un paquete.
         Args:
-            db: Sesión de base de datos
             id: ID del paquete a actualizar
             nuevo_estado: Nuevo estado del paquete
             actualizado_por: ID del usuario que actualiza el estado
@@ -322,19 +397,72 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         if nuevo_estado not in self.estados_permitidos:
             return None
         try:
-            paquete = self.obtener_por_id(db, id)
+            paquete = self.obtener_por_id(id)
             if not paquete:
                 return None
             paquete.estado = nuevo_estado
-            paquete.actualizado_por = actualizado_por
+            paquete.actualizado_por = str(actualizado_por)
             paquete.fecha_actualizacion = datetime.utcnow()
             if nuevo_estado == "entregado" and not paquete.fecha_entrega:
                 paquete.fecha_entrega = datetime.utcnow()
-            db.add(paquete)
-            db.commit()
-            db.refresh(paquete)
+            self.db.add(paquete)
+            self.db.commit()
+            self.db.refresh(paquete)
             return paquete
         except Exception:
-            db.rollback()
+            self.db.rollback()
             return None
- 
+
+    def obtener_por_id(self, id_paquete: UUID) -> Optional[Paquete]:
+        """
+        Obtiene un paquete por su ID (id_paquete).
+        Retorna el objeto Paquete o None si no existe.
+        """
+        if not id_paquete:
+            return None
+
+        try:
+            paquete = (
+                self.db.query(Paquete).filter(Paquete.id_paquete == id_paquete).first()
+            )
+            return paquete
+        except Exception as e:
+            print(f"Error al obtener paquete por id_paquete: {e}")
+            return None
+
+    def desactivar_paquete(self, *, id_paquete: UUID, actualizado_por: UUID) -> bool:
+        """
+        Desactiva un paquete (soft delete).
+
+        Args:
+            id_paquete: ID del paquete a desactivar
+            actualizado_por: ID del usuario que realiza la desactivación
+
+        Returns:
+            bool: True si se desactivó correctamente, False en caso contrario
+        """
+        try:
+            paquete = self.obtener_por_id(id_paquete)
+
+            if not paquete:
+                print(f" Error: Paquete no encontrado con ID: {id_paquete}")
+                return False
+
+            if not paquete.activo:
+                print(f" Advertencia: El paquete ya está inactivo")
+                return False
+
+            paquete.activo = False
+            paquete.actualizado_por = str(actualizado_por)
+            paquete.fecha_actualizacion = datetime.utcnow()
+
+            self.db.commit()
+            return True
+
+        except Exception as e:
+            self.db.rollback()
+            print(f" Error al desactivar paquete: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return False

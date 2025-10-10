@@ -44,14 +44,21 @@ class Empleado(Base):
 
     __tablename__ = "empleados"
     id_empleado = Column(
-        String(36),
-        ForeignKey("usuarios.id_usuario"),
+        PG_UUID(as_uuid=True),
         primary_key=True,
-        comment="ID del empleado, igual al ID del usuario asociado",
+        default=uuid.uuid4,
+        comment="ID único del empleado",
     )
 
+    usuario_id = Column(
+        String(36),
+        ForeignKey("usuarios.id_usuario"),
+        unique=True,
+        nullable=False,
+        comment="ID del usuario asociado a este empleado",
+    )
     usuario = relationship(
-        "Usuario", back_populates="empleado", foreign_keys=[id_empleado], uselist=False
+        "Usuario", back_populates="empleado", foreign_keys=[usuario_id], uselist=False
     )
 
     creado_por = Column(
@@ -61,14 +68,16 @@ class Empleado(Base):
         comment="ID del usuario que creó el registro",
     )
     creado_por_rel = relationship(
-        "Usuario", foreign_keys=[creado_por], backref="empleados_creados"
+        "Usuario",
+        foreign_keys=[creado_por],
+        overlaps="empleado,usuario,empleados_actualizados",
     )
     id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=True)
     primer_nombre = Column(String(50), nullable=False)
     segundo_nombre = Column(String(50), nullable=True)
     primer_apellido = Column(String(50), nullable=False)
     segundo_apellido = Column(String(50), nullable=True)
-    tipo_documento = Column(
+    id_tipo_documento = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("tipos_documentos.id_tipo_documento"),
         nullable=False,
@@ -84,7 +93,17 @@ class Empleado(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-
+    actualizado_por = Column(
+        String(36),
+        ForeignKey("usuarios.id_usuario"),
+        nullable=True,
+        comment="ID del usuario que actualizó el registro",
+    )
+    actualizado_por_rel = relationship(
+        "Usuario",
+        foreign_keys=[actualizado_por],
+        overlaps="empleado,usuario,empleados_creados",
+    )
     tipo_documento_rel = relationship("TipoDocumento", back_populates="empleados")
     sedes = relationship("Sede", back_populates="empleados")
 
@@ -121,7 +140,7 @@ class EmpleadoBase(BaseModel):
     segundo_apellido: Optional[str] = Field(
         None, min_length=1, max_length=50, description="Segundo apellido del empleado"
     )
-    tipo_documento: uuid.UUID = Field(..., description="ID del tipo de documento")
+    id_tipo_documento: uuid.UUID = Field(..., description="ID del tipo de documento")
     documento: str = Field(
         ..., min_length=5, max_length=20, description="Número de documento del empleado"
     )

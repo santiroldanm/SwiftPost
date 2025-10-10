@@ -8,6 +8,7 @@ import uuid
 
 
 class EmpleadoBase(BaseModel):
+    usuario_id: str = Field(..., description="ID del usuario asociado al cliente")
     primer_nombre: str = Field(
         ..., min_length=1, max_length=50, description="Primer nombre del empleado"
     )
@@ -20,7 +21,7 @@ class EmpleadoBase(BaseModel):
     segundo_apellido: Optional[str] = Field(
         None, min_length=1, max_length=50, description="Segundo apellido del empleado"
     )
-    tipo_documento: uuid.UUID = Field(..., description="ID del tipo de documento")
+    id_tipo_documento: uuid.UUID = Field(..., description="ID del tipo de documento")
     documento: str = Field(
         ..., min_length=5, max_length=20, description="Número de documento del empleado"
     )
