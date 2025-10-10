@@ -19,6 +19,8 @@ class Paquete(Base):
         fragilidad: Nivel de fragilidad del paquete
         contenido: Contenido(descripción) del paquete
         tipo: Tipo de paquete (Normal, Express)
+        valor_declarado: Valor declarado del paquete para fines de seguro
+        estado: Estado del paquete (registrado, en_transito, entregado, etc.)
         activo: Estado del paquete (activo/inactivo)
         fecha_creacion: Fecha y hora de creación
         fecha_actualizacion: Fecha y hora de última actualización
@@ -36,11 +38,14 @@ class Paquete(Base):
     fragilidad = Column(String(8), nullable=False)
     contenido = Column(Text, nullable=False)
     tipo = Column(String(10), nullable=False)
+    valor_declarado = Column(Float, nullable=False, default=0.0)
     estado = Column(String(20), nullable=False, default="registrado")
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    creado_por = Column(String(36), ForeignKey("usuarios.id_usuario"), nullable=False)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
     actualizado_por = Column(
         String(36), ForeignKey("usuarios.id_usuario"), nullable=True
     )
@@ -207,7 +212,6 @@ class PaqueteResponse(PaqueteBase):
 
 class PaqueteListResponse(BaseModel):
     paquetes: List[PaqueteResponse]
-    total: int
     pagina: int
     por_pagina: int
 

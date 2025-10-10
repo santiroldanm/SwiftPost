@@ -51,9 +51,11 @@ class DetalleEntrega(Base):
     activo = Column(Boolean, default=True, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
     fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    creado_por = Column(String(36), ForeignKey("usuarios.id_usuario"), nullable=False)
+    creado_por = Column(
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
+    )
     actualizado_por = Column(
-        String(36), ForeignKey("usuarios.id_usuario"), nullable=False
+        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
     )
 
     sede_remitente_rel = relationship("Sede", foreign_keys=[id_sede_remitente])
@@ -174,7 +176,6 @@ class DetalleEntregaResponse(DetalleEntregaBase):
 
 class DetalleEntregaListResponse(BaseModel):
     detalles: List[DetalleEntregaResponse]
-    total: int
     pagina: int
     por_pagina: int
 

@@ -24,12 +24,12 @@ async def obtener_sedes(skip: int = 0, limit: int = 10, db: Session = Depends(ge
     """Obtener todos los sedes con paginación."""
     try:
         sede_crud = SedeCRUD(db)
-        sedes = sede_crud.obtener_clientes(skip=skip, limit=limit)
+        sedes = sede_crud.obtener_todos(skip=skip, limit=limit)
         return sedes
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener clientes: {str(e)}",
+            detail=f"Error al obtener sede: {str(e)}",
         )
 
 
@@ -40,12 +40,12 @@ async def obtener_sedes_activos(
     """Obtener todos los sedes activos con paginación."""
     try:
         sede_crud = SedeCRUD(db)
-        sedes = sede_crud.obtener_activos(skip=skip, limit=limit)
+        sedes = sede_crud.obtener_activas(skip=skip, limit=limit)
         return sedes
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener empleados activos: {str(e)}",
+            detail=f"Error al obtener sedes activas: {str(e)}",
         )
 
 
@@ -64,23 +64,23 @@ async def obtener_sede_por_id(id_sede: UUID, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener empleado: {str(e)}",
+            detail=f"Error al obtener sede: {str(e)}",
         )
 
 
-@router.get("/tipo/{tipo}", response_model=List[SedeResponse])
-async def obtener_sedes_por_tipo(
-    tipo: str, skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+@router.get("/ciudad/{ciudad}", response_model=List[SedeResponse])
+async def obtener_sedes_por_ciudad(
+    ciudad: str, skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
-    """Obtener todos los sedes por tipo con paginación."""
+    """Obtener todos los sedes por ciudad con paginación."""
     try:
         sede_crud = SedeCRUD(db)
-        sedes = sede_crud.obtener_por_tipo(tipo, skip=skip, limit=limit)
+        sedes = sede_crud.obtener_por_ciudad(ciudad, skip=skip, limit=limit)
         return sedes
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener empleados por tipo: {str(e)}",
+            detail=f"Error al obtener sedes por ciudad: {str(e)}",
         )
 
 
@@ -107,16 +107,31 @@ async def obtener_sede_por_nombre(nombre_sede: str, db: Session = Depends(get_db
 async def crear_sede(
     sede_data: SedeCreate,
     db: Session = Depends(get_db),
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    creado_por: UUID = "ID Usuario con la sesión activa",
 ):
-    """Crear un nuevo sede."""
+    """Crear una nueva sede."""
     try:
         sede_crud = SedeCRUD(db)
         sede = sede_crud.crear_sede(
-            datos_entrada=sede_data.model_dump(),
-            usuario_id=usuario_id,
+            datos_entrada=sede_data,
+            creado_por=creado_por,
         )
+
+        if not sede:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se pudo crear la sede. Verifica que el nombre no esté duplicado.",
+            )
+
         return sede
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -129,7 +144,7 @@ async def actualizar_sede(
     id_sede: UUID,
     sede_data: SedeUpdate,
     db: Session = Depends(get_db),
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: UUID = "ID Usuario con la sesión activa",
 ):
     """Actualizar una sede existente."""
     try:
@@ -142,35 +157,39 @@ async def actualizar_sede(
 
         sede_actualizado = sede_crud.actualizar_sede(
             objeto_db=sede,
-            datos_entrada=sede_data.__dict__,
-            actualizado_por=usuario_id,
+            datos_entrada=sede_data,
+            actualizado_por=actualizado_por,
         )
 
         if not sede_actualizado:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="No se pudo actualizar el empleado",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se pudo actualizar la sede. Verifica que el nombre no esté duplicado.",
             )
 
         return sede_actualizado
 
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
-        print(f"Error al actualizar cliente: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar cliente: {str(e)}",
+            detail=f"Error al actualizar la sede: {str(e)}",
         )
 
 
 @router.delete("/{id_sede}", response_model=RespuestaAPI)
 async def eliminar_sede(
     id_sede: UUID,
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: UUID = "ID Usuario con la sesión activa",
     db: Session = Depends(get_db),
 ):
-    """Eliminar un cliente. Soft delete."""
+    """Eliminar una sede. Soft delete."""
     try:
         sede_crud = SedeCRUD(db)
         sede = sede_crud.obtener_por_id(id_sede)
@@ -179,19 +198,19 @@ async def eliminar_sede(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Sede no encontrada"
             )
         eliminado = sede_crud.desactivar_sede(
-            sede_id=id_sede, actualizado_por=usuario_id
+            sede_id=id_sede, actualizado_por=actualizado_por
         )
         if eliminado:
-            return RespuestaAPI(mensaje="Sede eliminada exitosamente", exito=True)
+            return RespuestaAPI(mensaje="Sede desactivada exitosamente", exito=True)
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error al eliminar sede",
+                detail="Error al desactivar la sede",
             )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar sede: {str(e)}",
+            detail=f"Error al desactivar la sede: {str(e)}",
         )

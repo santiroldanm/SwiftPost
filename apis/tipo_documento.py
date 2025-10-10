@@ -56,9 +56,7 @@ async def obtener_tipo_documento_por_id(
 
 
 @router.get("/codigo/{codigo}", response_model=TipoDocumentoResponse)
-async def obtener_tipo_documento_por_codigo(
-    codigo: str, db: Session = Depends(get_db)
-):
+async def obtener_tipo_documento_por_codigo(codigo: str, db: Session = Depends(get_db)):
     """Obtener un tipo de documento por su código (ej: CC, TI, CE)."""
     try:
         tipo_doc_crud = TipoDocumentoCRUD(db)
@@ -76,7 +74,9 @@ async def obtener_tipo_documento_por_codigo(
         )
 
 
-@router.post("/", response_model=TipoDocumentoResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=TipoDocumentoResponse, status_code=status.HTTP_201_CREATED
+)
 async def crear_tipo_documento(
     tipo_data: TipoDocumentoCreate,
     db: Session = Depends(get_db),
@@ -86,7 +86,6 @@ async def crear_tipo_documento(
     try:
         tipo_doc_crud = TipoDocumentoCRUD(db)
 
-        # Validar si ya existe un tipo con el mismo código
         if tipo_doc_crud.obtener_por_codigo(tipo_data.codigo):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -122,7 +121,6 @@ async def actualizar_tipo_documento(
                 detail="Tipo de documento no encontrado",
             )
 
-        # Evitar duplicados si se cambia el código
         if tipo_data.codigo and tipo_data.codigo != tipo_documento.codigo:
             if tipo_doc_crud.obtener_por_codigo(tipo_data.codigo):
                 raise HTTPException(
@@ -163,7 +161,9 @@ async def eliminar_tipo_documento(
 
         eliminado = tipo_doc_crud.eliminar_tipo_documento(id_tipo_documento)
         if eliminado:
-            return RespuestaAPI(mensaje="Tipo de documento eliminado exitosamente", exito=True)
+            return RespuestaAPI(
+                mensaje="Tipo de documento eliminado exitosamente", exito=True
+            )
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

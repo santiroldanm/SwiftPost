@@ -1,7 +1,5 @@
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List
 from database.config import Base
 from datetime import datetime
 import uuid
@@ -34,78 +32,5 @@ class Rol(Base):
         "Usuario", back_populates="rol", cascade="all, delete-orphan"
     )
 
-
-class RolBase(BaseModel):
-    """
-    Clase base para validación de roles
-    """
-
-    nombre_rol: str = Field(
-        ...,
-        min_length=3,
-        max_length=50,
-        description="Nombre del rol (cliente, empleado, administrador)",
-    )
-
-    class Config:
-        orm_mode = True
-
-    @validator("nombre_rol")
-    def validar_nombre(cls, v):
-        roles_validos = ["cliente", "empleado", "administrador"]
-        if v.lower() not in roles_validos:
-            raise ValueError(
-                "El nombre del rol debe ser cliente, empleado o administrador"
-            )
-        return v.title()
-
-
-class RolCreate(RolBase):
-    """
-    Clase para validación de creación de roles
-    """
-
-    pass
-
-
-class RolUpdate(BaseModel):
-    """
-    Clase para validación de actualización de roles
-    """
-
-    nombre_rol: Optional[str] = Field(None, min_length=3, max_length=50)
-    activo: Optional[bool] = None
-
-    class Config:
-        orm_mode = True
-
-    @validator("nombre_rol")
-    def validar_nombre(cls, v):
-        roles_validos = ["cliente", "empleado", "administrador"]
-        if v.lower() not in roles_validos:
-            raise ValueError(
-                "El nombre del rol debe ser cliente, empleado o administrador"
-            )
-        return v.title()
-
-
-class RolResponse(RolBase):
-    """
-    Esquema para respuesta de rol
-    """
-
-    id_rol: uuid.UUID
-    activo: bool
-    fecha_creacion: datetime
-    fecha_actualizacion: datetime
-
-
-class RolListResponse(BaseModel):
-    """
-    Esquema para lista de roles
-    """
-
-    roles: List[RolResponse]
-    total: int
-    pagina: int
-    por_pagina: int
+    def __repr__(self):
+        return f"<Rol(id_rol={self.id_rol}, nombre_rol={self.nombre_rol}, activo={self.activo})>"

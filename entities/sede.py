@@ -196,7 +196,7 @@ class SedeUpdate(BaseModel):
 
 
 class SedeResponse(SedeBase):
-    id_sede: int
+    id_sede: uuid.UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     creado_por: str

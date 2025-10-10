@@ -10,7 +10,7 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
     """Operaciones CRUD para la entidad Cliente con validaciones."""
 
     def __init__(self, db: Session):
-        super().__init__(Cliente)
+        super().__init__(Cliente, db)
         self.longitud_minima_nombre = 2
         self.longitud_maxima_nombre = 50
         self.longitud_minima_direccion = 5

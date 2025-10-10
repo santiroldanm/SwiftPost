@@ -53,7 +53,6 @@ def autenticar_usuario(
     """
     limpiar_cache_roles()
 
-    # Crear instancia de UsuarioCRUD
     usuario_crud = UsuarioCRUD(db)
     usuario = usuario_crud.obtener_por_nombre_usuario(db, nombre_usuario=nombre_usuario)
 

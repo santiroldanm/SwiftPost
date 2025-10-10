@@ -49,7 +49,12 @@ class Usuario(Base):
         back_populates="usuario",
         uselist=False,
         cascade="all, delete-orphan",
-        foreign_keys="Empleado.id_empleado",
+        foreign_keys="Empleado.usuario_id",
+    )
+    empleados_actualizados = relationship(
+        "Empleado",
+        foreign_keys="[Empleado.actualizado_por]",
+        overlaps="empleado,usuario",
     )
 
     def __repr__(self):
