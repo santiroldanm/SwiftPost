@@ -4,7 +4,16 @@ API REST con FastAPI - Sin interfaz de consola
 """
 
 import uvicorn
-from apis import auth, usuario, cliente, empleado, sede, paquete, transporte, detalle_entrega
+from apis import (
+    auth,
+    usuario,
+    cliente,
+    empleado,
+    sede,
+    paquete,
+    transporte,
+    detalle_entrega,
+)
 from database.config import create_tables
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

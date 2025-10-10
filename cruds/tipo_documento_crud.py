@@ -16,8 +16,37 @@ class TipoDocumentoCRUD(
     """Operaciones CRUD para TipoDocumento."""
 
     def __init__(self, db: Session):
-        super().__init__(TipoDocumento)
+        super().__init__(TipoDocumento, db)
         self.db = db
+
+    def obtener_por_id(
+        self, id_tipo_documento: Union[str, UUID]
+    ) -> Optional[TipoDocumento]:
+        """
+        Obtiene un tipo de documento por su ID.
+
+        Args:
+            id_tipo_documento: ID del tipo de documento (puede ser str o UUID)
+
+        Returns:
+            Optional[TipoDocumento]: El tipo de documento encontrado o None si no existe
+        """
+        try:
+            if not id_tipo_documento:
+                return None
+
+            id_str = str(id_tipo_documento)
+
+            return (
+                self.db.query(TipoDocumento)
+                .filter(TipoDocumento.id_tipo_documento == id_str)
+                .first()
+            )
+        except Exception as e:
+            print(
+                f"Error al obtener tipo de documento por ID {id_tipo_documento}: {str(e)}"
+            )
+            return None
 
     def obtener_por_nombre(self, nombre: str) -> Optional[TipoDocumento]:
         """Obtiene un tipo de documento por nombre."""
@@ -47,10 +76,8 @@ class TipoDocumentoCRUD(
         self, saltar: int = 0, limite: int = 100
     ) -> List[TipoDocumento]:
         """Obtiene tipos de documento activos."""
-        print("\n=== DEBUG: Iniciando obtener_activos ===")
-        print(f"Tipo de db: {type(db)}")
         try:
-            test = db.query(TipoDocumento).first()
+            test = self.db.query(TipoDocumento).first()
             print(f"Test query result: {test}")
         except Exception as e:
             print(f"Error al ejecutar consulta de prueba: {e}")

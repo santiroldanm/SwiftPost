@@ -42,7 +42,7 @@ async def obtener_transportes(
         )
 
 
-@router.get("/activos", response_model=TransporteListResponse)
+@router.get("/activos", response_model=List[TransporteResponse])
 async def obtener_transportes_activos(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
@@ -50,11 +50,7 @@ async def obtener_transportes_activos(
     try:
         transporte_crud = TransporteCRUD(db)
         transportes = transporte_crud.obtener_activos(skip=skip, limit=limit)
-        return {
-            "transportes": transportes,
-            "pagina": (skip // limit) + 1,
-            "por_pagina": limit,
-        }
+        return transportes
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -81,7 +77,7 @@ async def obtener_transporte_por_id(id_transporte: UUID, db: Session = Depends(g
         )
 
 
-@router.get("/tipo/{tipo}", response_model=TransporteListResponse)
+@router.get("/tipo/{tipo}", response_model=List[TransporteResponse])
 async def obtener_transportes_por_tipo(
     tipo: str, skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
@@ -89,11 +85,7 @@ async def obtener_transportes_por_tipo(
     try:
         transporte_crud = TransporteCRUD(db)
         transportes = transporte_crud.obtener_por_tipo(tipo, skip=skip, limit=limit)
-        return {
-            "transportes": transportes,
-            "pagina": (skip // limit) + 1,
-            "por_pagina": limit,
-        }
+        return transportes
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -132,7 +124,6 @@ async def crear_transporte(
     try:
         transporte_crud = TransporteCRUD(db)
 
-        # Verificar si ya existe un vehículo con la misma placa
         if transporte_crud.obtener_por_placa(transporte_data.placa):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -169,30 +160,15 @@ async def actualizar_transporte(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Vehículo no encontrado"
             )
 
-        if transporte_data.placa and transporte_data.placa != transporte.placa:
-            transporte_existente = transporte_crud.obtener_por_placa(
-                transporte_data.placa
-            )
-            if (
-                transporte_existente
-                and transporte_existente.id_transporte != id_transporte
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="La placa ya está en uso por otro vehículo",
-                )
-
-        datos_actualizacion = transporte_data.model_dump(exclude_unset=True)
-
         transporte_actualizado = transporte_crud.actualizar(
             db_obj=transporte,
-            obj_in=TransporteUpdate(**datos_actualizacion),
+            obj_in=transporte_data,
             actualizado_por=usuario_id,
         )
 
         if not transporte_actualizado:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No se pudo actualizar el vehículo",
             )
 
@@ -200,8 +176,12 @@ async def actualizar_transporte(
 
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
-        print(f"Error al actualizar vehículo: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al actualizar vehículo: {str(e)}",
@@ -233,7 +213,7 @@ async def eliminar_transporte(
 
         # Realizar el soft delete
         eliminado = transporte_crud.desactivar_transporte(
-            db_obj=transporte, actualizado_por=usuario_id
+            id_transporte=id_transporte, actualizado_por=usuario_id
         )
 
         if eliminado:

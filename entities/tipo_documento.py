@@ -42,7 +42,7 @@ class TipoDocumento(Base):
     empleados = relationship(
         "Empleado",
         back_populates="tipo_documento_rel",
-        foreign_keys="[Empleado.tipo_documento]",
+        foreign_keys="[Empleado.id_tipo_documento]",
     )
 
     creador = relationship("Usuario", foreign_keys=[creado_por])

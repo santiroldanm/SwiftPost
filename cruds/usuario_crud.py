@@ -13,6 +13,7 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
     """Operaciones CRUD para Usuario."""
 
     def __init__(self, db: Session):
+        super().__init__(Usuario, db)
         self.db = db
 
     def obtener_usuarios(self, skip: int = 0, limit: int = 100) -> List[Usuario]:
@@ -203,3 +204,6 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
             or getattr(getattr(usuario, "rol", None), "nombre_rol", "").lower()
             == "administrador"
         )
+
+
+usuario = UsuarioCRUD(Usuario)

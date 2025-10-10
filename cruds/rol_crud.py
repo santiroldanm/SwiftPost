@@ -19,8 +19,8 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
     """
 
     def __init__(self, db: Session):
+        super().__init__(Rol, db)
         self.db = db
-        super().__init__(Rol)
         self.model = Rol
 
     def obtener_rol_por_nombre(
