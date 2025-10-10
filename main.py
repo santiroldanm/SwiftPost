@@ -13,6 +13,8 @@ from apis import (
     paquete,
     transporte,
     detalle_entrega,
+    rol,
+    tipo_documento,
 )
 from database.config import create_tables
 from fastapi import FastAPI
@@ -42,7 +44,8 @@ app.include_router(sede.router)
 app.include_router(paquete.router)
 app.include_router(transporte.router)
 app.include_router(detalle_entrega.router)
-app.include_router()
+app.include_router(rol.router)
+app.include_router(tipo_documento.router)
 
 
 @app.on_event("startup")

@@ -1,14 +1,11 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any, Union
 from uuid import UUID, uuid4
-from sqlalchemy.orm import Session, Query
-from sqlalchemy import or_, and_
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-import logging
-from entities.rol import Rol, RolCreate, RolUpdate, RolBase
+from entities.rol import Rol
+from schemas.rol_schema import RolCreate, RolUpdate
 from .base_crud import CRUDBase
-
-logger = logging.getLogger(__name__)
 
 
 class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
@@ -68,157 +65,154 @@ class RolCRUD(CRUDBase[Rol, RolCreate, RolUpdate]):
         try:
             if isinstance(id_rol, UUID):
                 id_rol = str(id_rol)
-            return self.db.query(self.model).filter(self.model.id_rol == id_rol).first()
-        except (ValueError, AttributeError) as e:
-            logger.error(f"ID de rol inválido: {id_rol}")
+            return self.db.query(Rol).filter(Rol.id_rol == id_rol).first()
+        except Exception as e:
+            print(f"Error al obtener rol por ID: {e}")
             return None
 
-    def obtener_todos(
-        self, skip: int = 0, limit: int = 100, solo_activos: bool = True
-    ) -> List[Rol]:
+    def obtener_roles(self, skip: int = 0, limit: int = 100) -> List[Rol]:
         """
         Obtiene todos los roles con paginación.
         Args:
             skip: Número de registros a omitir
             limit: Número máximo de registros a devolver
-            solo_activos: Si es True, devuelve solo roles activos
         Returns:
             Lista de roles
         """
-        query = self.db.query(self.model)
-        if solo_activos:
-            query = query.filter(self.model.activo == True)
-        return query.offset(skip).limit(limit).all()
+        try:
+            return self.db.query(Rol).offset(skip).limit(limit).all()
+        except Exception as e:
+            print(f"Error al obtener roles: {e}")
+            return []
 
-    def crear(
+    def crear_rol(
         self,
-        obj_in: Union[RolCreate, Dict[str, Any]],
-        creado_por: UUID = None,
+        datos_entrada: Union[RolCreate, Dict[str, Any]],
+        usuario_id: Union[str, UUID],
     ) -> Optional[Rol]:
         """
         Crea un nuevo rol.
         Args:
-            obj_in: Datos del rol a crear (puede ser un diccionario o un objeto RolCreate)
-            creado_por: ID del usuario que crea el rol (opcional)
+            datos_entrada: Datos del rol a crear
+            usuario_id: ID del usuario que crea el rol
         Returns:
             El rol creado o None si hubo un error
-        Raises:
-            ValueError: Si ya existe un rol con el mismo nombre o los datos son inválidos
         """
         try:
-            if not isinstance(obj_in, dict):
-                obj_in = obj_in.dict(exclude_unset=True)
-            nombre = str(obj_in.get("nombre_rol", "")).strip().lower()
+            if not isinstance(datos_entrada, dict):
+                datos_entrada = (
+                    datos_entrada.model_dump()
+                    if hasattr(datos_entrada, "model_dump")
+                    else datos_entrada.dict()
+                )
+
+            nombre = str(datos_entrada.get("nombre_rol", "")).strip()
             if not nombre:
                 raise ValueError("El nombre del rol es requerido")
-            if self.obtener_por_nombre(nombre):
+
+            if self.obtener_rol_por_nombre(nombre):
                 raise ValueError(f"Ya existe un rol con el nombre: {nombre}")
-            db_obj = self.model(
-                id_rol=uuid4(),
+
+            db_obj = Rol(
+                id_rol=str(uuid4()),
                 nombre_rol=nombre,
-                descripcion=obj_in.get("descripcion", "").strip(),
-                activo=bool(obj_in.get("activo", True)),
-                fecha_creacion=datetime.utcnow(),
-                creado_por=creado_por,
+                activo=True,
+                fecha_creacion=datetime.now(),
             )
-            db.add(db_obj)
-            db.commit()
-            db.refresh(db_obj)
-            logger.info(f"Rol creado exitosamente: {db_obj.id_rol}")
+            self.db.add(db_obj)
+            self.db.commit()
+            self.db.refresh(db_obj)
             return db_obj
-        except SQLAlchemyError as e:
-            db.rollback()
-            logger.error(f"Error al crear el rol: {str(e)}", exc_info=True)
-            raise ValueError("Error al crear el rol en la base de datos")
         except Exception as e:
-            db.rollback()
-            logger.error(f"Error inesperado al crear rol: {str(e)}", exc_info=True)
+            self.db.rollback()
+            print(f"Error al crear rol: {e}")
             raise
 
-    def actualizar(self, *, db_obj: Rol, obj_in: RolUpdate) -> Rol:
+    def actualizar_rol(
+        self,
+        rol_db: Rol,
+        datos_actualizacion: Dict[str, Any],
+        actualizado_por: Union[str, UUID],
+    ) -> Rol:
         """
         Actualiza un rol existente.
         Args:
-            db_obj: Rol existente a actualizar
-            obj_in: Datos para actualizar el rol
+            rol_db: Rol existente a actualizar
+            datos_actualizacion: Datos para actualizar
+            actualizado_por: ID del usuario que actualiza
         Returns:
             El rol actualizado
-        Raises:
-            ValueError: Si ya existe otro rol con el mismo nombre
         """
-        update_data = obj_in.dict(exclude_unset=True)
-        if "nombre_rol" in update_data and update_data["nombre_rol"]:
-            nuevo_nombre = update_data["nombre_rol"].lower()
-            if nuevo_nombre != db_obj.nombre_rol.lower() and self.obtener_por_nombre(
-                nuevo_nombre
+        try:
+            if (
+                "nombre_rol" in datos_actualizacion
+                and datos_actualizacion["nombre_rol"]
             ):
-                raise ValueError(f"Ya existe un rol con el nombre: {nuevo_nombre}")
-            update_data["nombre_rol"] = nuevo_nombre
-        for field, value in update_data.items():
-            setattr(db_obj, field, value)
-        db_obj.fecha_actualizacion = datetime.utcnow()
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
+                nuevo_nombre = datos_actualizacion["nombre_rol"]
+                if nuevo_nombre.lower() != rol_db.nombre_rol.lower():
+                    if self.obtener_rol_por_nombre(nuevo_nombre):
+                        raise ValueError(
+                            f"Ya existe un rol con el nombre: {nuevo_nombre}"
+                        )
 
-    def eliminar(self, db: Session, id_rol: str) -> bool:
+            for campo, valor in datos_actualizacion.items():
+                if hasattr(rol_db, campo):
+                    setattr(rol_db, campo, valor)
+
+            rol_db.fecha_actualizacion = datetime.now()
+            self.db.add(rol_db)
+            self.db.commit()
+            self.db.refresh(rol_db)
+            return rol_db
+        except Exception as e:
+            self.db.rollback()
+            print(f"Error al actualizar rol: {e}")
+            raise
+
+    def eliminar_rol(self, id_rol: Union[str, UUID]) -> bool:
         """
-        Elimina un rol por su ID.
+        Elimina un rol por su ID (soft delete).
         Args:
-            db: Sesión de base de datos
             id_rol: ID del rol a eliminar
         Returns:
             True si se eliminó correctamente, False si no se encontró el rol
-        Raises:
-            ValueError: Si el rol está asignado a usuarios o es un rol de sistema
         """
-        rol = self.obtener_por_id(id_rol)
-        if not rol:
+        try:
+            rol = self.obtener_por_id(id_rol)
+            if not rol:
+                return False
+
+            roles_sistema = ["administrador", "empleado", "cliente"]
+            if rol.nombre_rol.lower() in roles_sistema:
+                raise ValueError("No se puede eliminar un rol de sistema")
+
+            rol.activo = False
+            rol.fecha_actualizacion = datetime.now()
+            self.db.add(rol)
+            self.db.commit()
+            return True
+        except Exception as e:
+            self.db.rollback()
+            print(f"Error al eliminar rol: {e}")
             return False
-        roles_sistema = ["administrador", "empleado", "cliente"]
-        if rol.nombre_rol.lower() in roles_sistema:
-            raise ValueError("No se puede eliminar un rol de sistema")
-        if hasattr(rol, "usuarios") and rol.usuarios and len(rol.usuarios) > 0:
-            raise ValueError("No se puede eliminar un rol que está asignado a usuarios")
-        db.delete(rol)
-        db.commit()
-        return True
 
     def obtener_activos(self, skip: int = 0, limit: int = 100) -> List[Rol]:
         """
         Obtiene una lista de roles activos.
         Args:
-            skip: Número de registros a omitir (paginación)
+            skip: Número de registros a omitir
             limit: Número máximo de registros a devolver
         Returns:
             Lista de roles activos
         """
-        return (
-            self.db.query(self.model)
-            .filter(self.model.activo == True)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
-
-    def obtener_por_permiso(
-        self, permiso: str, skip: int = 0, limit: int = 100
-    ) -> tuple[List[Rol], int]:
-        """
-        Obtiene roles que tienen un permiso específico.
-        Args:
-            permiso: Permiso a buscar
-            skip: Número de registros a omitir (para paginación)
-            limit: Número máximo de registros a devolver
-        Returns:
-            Tupla con (lista de roles con el permiso, total de registros)
-        """
-        if not permiso:
-            return [], 0
-        consulta = self.db.query(self.model).filter(self.model.activo == True)
-        if hasattr(self.model, "permisos"):
-            consulta = consulta.filter(self.model.permisos.any(permiso))
-        total = consulta.count()
-        resultados = consulta.offset(skip).limit(limit).all()
-        return resultados, total
+        try:
+            return (
+                self.db.query(Rol)
+                .filter(Rol.activo == True)
+                .offset(skip)
+                .limit(limit)
+                .all()
+            )
+        except Exception as e:
+            print(f"Error al obtener roles activos: {e}")
+            return []
