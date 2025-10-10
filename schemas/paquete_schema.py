@@ -1,78 +1,10 @@
-from sqlalchemy import Column, String, Float, Boolean, DateTime, ForeignKey, Text
-from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel
 from typing import Optional, List
-from database.config import Base
-from datetime import datetime
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from datetime import datetime, date
+from uuid import UUID
+from pydantic import Field, validator
+import re
 import uuid
-
-
-class Paquete(Base):
-    """
-    Modelo de Paquete que representa la tabla 'paquetes'
-    Atributos:
-        id_paquete: Identificador único del paquete
-        id_cliente: Identificador del cliente propietario del paquete
-        peso: Peso del paquete
-        tamaño: Tamaño del paquete
-        fragilidad: Nivel de fragilidad del paquete
-        contenido: Contenido(descripción) del paquete
-        tipo: Tipo de paquete (Normal, Express)
-        valor_declarado: Valor declarado del paquete para fines de seguro
-        estado: Estado del paquete (registrado, en_transito, entregado, etc.)
-        activo: Estado del paquete (activo/inactivo)
-        fecha_creacion: Fecha y hora de creación
-        fecha_actualizacion: Fecha y hora de última actualización
-        creado_por: Usuario que creó el paquete
-        actualizado_por: Usuario que actualizó el paquete
-    """
-
-    __tablename__ = "paquetes"
-    id_paquete = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    id_cliente = Column(
-        PG_UUID(as_uuid=True), ForeignKey("clientes.id_cliente"), nullable=False
-    )
-    peso = Column(Float, nullable=False)
-    tamaño = Column(String(10), nullable=False)
-    fragilidad = Column(String(8), nullable=False)
-    contenido = Column(Text, nullable=False)
-    tipo = Column(String(10), nullable=False)
-    valor_declarado = Column(Float, nullable=False, default=0.0)
-    estado = Column(String(20), nullable=False, default="registrado")
-    activo = Column(Boolean, default=True, nullable=False)
-    fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
-    fecha_actualizacion = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    creado_por = Column(
-        PG_UUID(as_uuid=True), ForeignKey("usuarios.id_usuario"), nullable=False
-    )
-    actualizado_por = Column(
-        String(36), ForeignKey("usuarios.id_usuario"), nullable=True
-    )
-
-    cliente = relationship(
-        "Cliente", back_populates="paquetes", foreign_keys=[id_cliente]
-    )
-
-    detalle_entrega = relationship(
-        "DetalleEntrega", back_populates="paquete", uselist=False
-    )
-    creador = relationship("Usuario", foreign_keys=[creado_por])
-    actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
-
-    def __repr__(self):
-        return f"<Paquete(id_paquete={self.id_paquete}, cliente={self.id_cliente}, peso={self.peso}, tamaño={self.tamaño}, fragilidad={self.fragilidad}, contenido={self.contenido}, tipo={self.tipo})>"
-
-    def to_dict(self):
-        return {
-            "id_paquete": self.id_paquete,
-            "cliente": self.id_cliente,
-            "peso": self.peso,
-            "tamaño": self.tamaño,
-            "fragilidad": self.fragilidad,
-            "contenido": self.contenido,
-            "tipo": self.tipo,
-        }
 
 
 class PaqueteBase(BaseModel):

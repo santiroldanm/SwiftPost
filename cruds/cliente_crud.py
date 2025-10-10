@@ -9,12 +9,13 @@ from .base_crud import CRUDBase
 class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
     """Operaciones CRUD para la entidad Cliente con validaciones."""
 
-    def __init__(self):
-        super().__init__(Cliente)
+    def __init__(self, db: Session):
+        super().__init__(Cliente, db)
         self.longitud_minima_nombre = 2
         self.longitud_maxima_nombre = 50
         self.longitud_minima_direccion = 5
         self.longitud_maxima_direccion = 200
+        self.db = db
 
     def _validar_datos_cliente(self, datos: Dict[str, Any]) -> bool:
         """
@@ -25,7 +26,6 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
             bool: True si todos los datos son válidos, False de lo contrario
         """
         try:
-            print("\n=== VALIDACIÓN DE DATOS DEL CLIENTE ===")
             if not self._validar_longitud_texto(
                 "primer_nombre", datos.get("primer_nombre", "")
             ):
@@ -63,9 +63,6 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
             if not self._validar_documento(datos.get("numero_documento", "")):
                 print("Error: El número de documento no es válido")
                 return False
-            if "id_tipo_documento" not in datos or not datos["id_tipo_documento"]:
-                print("Error: Falta el ID del tipo de documento")
-                return False
             direccion = datos.get("direccion", "")
             if not direccion:
                 print("Error: La dirección es requerida")
@@ -90,121 +87,130 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
             print(f"Error inesperado durante la validación: {str(e)}")
             return False
 
-    def obtener_por_documento(
-        self, db: Session, numero_documento: str
-    ) -> Optional[Cliente]:
+    def obtener_clientes(self, skip: int = 0, limit: int = 100) -> List[Cliente]:
+        """
+        Obtener lista de clientes con paginación
+
+        Args:
+            skip: Número de registros a omitir
+            limit: Límite de registros a retornar
+
+        Returns:
+            Lista de clientes
+        """
+        return self.db.query(Cliente).offset(skip).limit(limit).all()
+
+    def obtener_por_id(self, id: Union[UUID, str]) -> Optional[Cliente]:
+        """Obtiene un cliente por su ID."""
+        try:
+            if not id:
+                return None
+            """ Convertir a string para la consulta """
+            id_str = str(id) if isinstance(id, UUID) else id
+            return self.db.query(Cliente).filter(Cliente.id_cliente == id_str).first()
+        except Exception as e:
+            print(f"Error al obtener cliente por ID {id}: {str(e)}")
+            return None
+
+    def obtener_por_documento(self, numero_documento: str) -> Optional[Cliente]:
         """Obtiene un cliente por su número de documento."""
         if not numero_documento or not self._validar_documento(numero_documento):
             return None
         return (
-            db.query(Cliente)
+            self.db.query(Cliente)
             .filter(Cliente.numero_documento == numero_documento)
             .first()
         )
 
-    def get_activos(self, db: Session, saltar: int = 0, limite: int = 100):
-        return self.obtener_activos(db, saltar=saltar, limite=limite)
-
-    def obtener_por_email(self, db: Session, correo: str) -> Optional[Cliente]:
+    def obtener_por_email(self, correo: str) -> Optional[Cliente]:
         """Obtiene un cliente por su correo electrónico."""
         if not correo or not self._validar_email(correo):
             return None
-        return db.query(Cliente).filter(Cliente.correo == correo.lower()).first()
+        return self.db.query(Cliente).filter(Cliente.correo == correo.lower()).first()
 
     def obtener_por_tipo(
-        self, db: Session, tipo: str, saltar: int = 0, limite: int = 100
-    ) -> Tuple[List[Cliente], int]:
+        self, tipo: str, skip: int = 0, limit: int = 100
+    ) -> List[Cliente]:
         """Obtiene clientes por tipo (remitente/receptor) con paginación."""
         if tipo not in ["remitente", "receptor"]:
-            return [], 0
-        consulta = db.query(Cliente).filter(
+            return []
+        consulta = self.db.query(Cliente).filter(
             Cliente.tipo == tipo, Cliente.activo == True
         )
-        total = consulta.count()
-        resultados = consulta.offset(saltar).limit(limite).all()
-        return resultados, total
+        resultados = consulta.offset(skip).limit(limit).all()
+        return resultados
 
-    def obtener_activos(
-        self, db: Session, saltar: int = 0, limite: int = 100
-    ) -> Tuple[List[Cliente], int]:
+    def obtener_activos(self, skip: int = 0, limit: int = 100) -> List[Cliente]:
         """Obtiene clientes activos con paginación."""
-        consulta = db.query(Cliente).filter(Cliente.activo == True)
-        total = consulta.count()
-        resultados = consulta.offset(saltar).limit(limite).all()
-        return resultados, total
+        consulta = self.db.query(Cliente).filter(Cliente.activo == True)
+        resultados = consulta.offset(skip).limit(limit).all()
+        return resultados
 
-    def obtener_por_usuario(self, db: Session, usuario_id: UUID) -> Optional[Cliente]:
+    def obtener_por_usuario(self, usuario_id: UUID) -> Optional[Cliente]:
         """Obtiene un cliente por su ID de usuario."""
         if not usuario_id:
             return None
-        return db.query(Cliente).filter(Cliente.usuario_id == str(usuario_id)).first()
+        return (
+            self.db.query(Cliente).filter(Cliente.usuario_id == str(usuario_id)).first()
+        )
 
-    def crear(
+    def crear_cliente(
         self,
-        db: Session,
         *,
         datos_entrada: ClienteCreate,
         usuario_id: UUID,
+        id_tipo_documento: UUID,
     ) -> Optional[Cliente]:
         """Crea un nuevo cliente con validación de datos."""
         try:
-            print("\n=== DEBUG: Iniciando creación de cliente ===")
-            print(f"Datos de entrada: {datos_entrada}")
             if isinstance(datos_entrada, dict):
                 datos = datos_entrada.copy()
             else:
                 datos = datos_entrada.dict()
-            print(f"Datos convertidos a diccionario: {datos}")
             if not self._validar_datos_cliente(datos):
                 print("Error: Validación de datos fallida")
                 return None
-            if self.obtener_por_documento(db, datos["numero_documento"]):
+            if self.obtener_por_documento(datos["numero_documento"]):
                 print(
                     f"Error: Ya existe un cliente con el documento {datos['numero_documento']}"
                 )
                 return None
-            if self.obtener_por_email(db, datos["correo"]):
+            if self.obtener_por_email(datos["correo"]):
                 print(f"Error: Ya existe un cliente con el correo {datos['correo']}")
                 return None
             datos_creacion = {
                 "primer_nombre": datos["primer_nombre"],
                 "primer_apellido": datos["primer_apellido"],
                 "numero_documento": datos["numero_documento"],
-                "id_tipo_documento": datos["id_tipo_documento"],
+                "id_tipo_documento": id_tipo_documento,
                 "correo": datos["correo"].lower(),
                 "telefono": datos["telefono"],
                 "direccion": datos["direccion"],
                 "tipo": datos["tipo"],
                 "creado_por": str(usuario_id),
-                "usuario_id": str(usuario_id),
+                "usuario_id": datos["usuario_id"],
                 "activo": True,
-                "fecha_creacion": datetime.utcnow(),
+                "fecha_creacion": datetime.now(),
             }
-            print(
-                f"Creando cliente con usuario_id: {datos_creacion['usuario_id']} (tipo: {type(datos_creacion['usuario_id'])})"
-            )
             if "segundo_nombre" in datos and datos["segundo_nombre"]:
                 datos_creacion["segundo_nombre"] = datos["segundo_nombre"]
             if "segundo_apellido" in datos and datos["segundo_apellido"]:
                 datos_creacion["segundo_apellido"] = datos["segundo_apellido"]
-            print(f"Datos para crear el cliente: {datos_creacion}")
             cliente = Cliente(**datos_creacion)
-            db.add(cliente)
-            db.commit()
-            db.refresh(cliente)
-            print(f"Cliente creado exitosamente con ID: {cliente.id_cliente}")
+            self.db.add(cliente)
+            self.db.commit()
+            self.db.refresh(cliente)
             return cliente
         except Exception as e:
             print(f"Error al crear el cliente: {e}")
             import traceback
 
             traceback.print_exc()
-            db.rollback()
+            self.db.rollback()
             return None
 
-    def actualizar(
+    def actualizar_cliente(
         self,
-        db: Session,
         *,
         objeto_db: Cliente,
         datos_entrada: Union[ClienteUpdate, Dict[str, Any]],
@@ -224,7 +230,7 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
         if (
             "correo" in datos_actualizados
             and datos_actualizados["correo"] != objeto_db.correo
-            and self.obtener_por_email(db, datos_actualizados["correo"])
+            and self.obtener_por_email(datos_actualizados["correo"])
         ):
             return None
         try:
@@ -232,34 +238,52 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
                 if hasattr(objeto_db, campo):
                     setattr(objeto_db, campo, valor)
             objeto_db.actualizado_por = actualizado_por
-            objeto_db.fecha_actualizacion = datetime.utcnow()
-            db.add(objeto_db)
-            db.commit()
-            db.refresh(objeto_db)
+            objeto_db.fecha_actualizacion = datetime.now()
+            self.db.add(objeto_db)
+            self.db.commit()
+            self.db.refresh(objeto_db)
             return objeto_db
         except Exception:
-            db.rollback()
+            self.db.rollback()
             return None
 
-    def desactivar(self, db: Session, *, id: UUID, actualizado_por: UUID) -> bool:
+    def desactivar(self, *, id: UUID, actualizado_por: UUID) -> bool:
         """Desactiva un cliente por su ID."""
         try:
-            cliente = self.obtener_por_id(db, id)
+            cliente = self.obtener_por_id(id)
             if not cliente or not cliente.activo:
                 return False
             cliente.activo = False
             cliente.actualizado_por = actualizado_por
             cliente.fecha_actualizacion = datetime.utcnow()
-            db.add(cliente)
-            db.commit()
+            self.db.add(cliente)
+            self.db.commit()
             return True
         except Exception:
-            db.rollback()
+            self.db.rollback()
             return False
 
-    def buscar_por_nombre(
-        self, db: Session, nombre: str, limite: int = 10
-    ) -> List[Cliente]:
+    def eliminar_cliente(self, cliente_id: UUID, actualizado_por: UUID) -> bool:
+        """
+        Marca un cliente como eliminado (soft delete).
+        """
+        try:
+            cliente = self.obtener_por_id(cliente_id)
+            if not cliente:
+                return False
+
+            cliente.activo = False
+            cliente.fecha_actualizacion = datetime.now()
+            cliente.actualizado_por = actualizado_por
+            self.db.commit()
+            self.db.refresh(cliente)
+            return True
+
+        except Exception as e:
+            self.db.rollback()
+            raise ValueError(f"Error al eliminar cliente: {str(e)}")
+
+    def buscar_por_nombre(self, nombre: str, limite: int = 10) -> List[Cliente]:
         """
         Busca clientes por nombre (primer nombre o primer apellido).
 
@@ -278,7 +302,7 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
             nombre_busqueda = f"%{nombre.strip().lower()}%"
 
             return (
-                db.query(Cliente)
+                self.db.query(Cliente)
                 .filter(
                     (Cliente.primer_nombre.ilike(nombre_busqueda))
                     | (Cliente.primer_apellido.ilike(nombre_busqueda))
@@ -292,6 +316,3 @@ class ClienteCRUD(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
         except Exception as e:
             print(f"Error al buscar clientes por nombre: {str(e)}")
             return []
-
-
-cliente = ClienteCRUD()

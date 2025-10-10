@@ -14,7 +14,7 @@ TipoActualizacion = TypeVar("TipoActualizacion", bound=BaseModel)
 class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
     """Clase base para operaciones CRUD con validaciones básicas."""
 
-    def __init__(self, modelo: Type[TipoModelo]):
+    def __init__(self, modelo: Type[TipoModelo], db: Session):
         """Inicializa CRUDBase con el modelo de base de datos."""
         self.modelo = modelo
         self.longitud_minima_texto = 3
@@ -22,6 +22,7 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
         self.longitud_maxima_email = 255
         self.formato_telefono = r"^\+?[0-9\s-]{8,15}$"
         self.formato_documento = r"^[0-9]{8,15}$"
+        self.db = db
 
     def _validar_longitud_texto(self, campo: str, valor: str) -> bool:
         """Valida que el texto cumpla con la longitud requerida."""
@@ -56,40 +57,34 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
             return False
         return bool(re.match(self.formato_documento, documento))
 
-    def obtener_por_id(self, db: Session, id: UUID) -> Optional[TipoModelo]:
+    def obtener_por_id(self, id: UUID) -> Optional[TipoModelo]:
         """Obtiene un registro por su ID."""
         if not id:
             return None
-        return db.query(self.modelo).filter(self.modelo.id == id).first()
+        return self.db.query(self.modelo).filter(self.modelo.id == id).first()
 
-    def obtener_todos(
-        self, db: Session, *, saltar: int = 0, limite: int = 100
-    ) -> Tuple[List[TipoModelo], int]:
+    def obtener_todos(self, *, skip: int = 0, limit: int = 100) -> List[TipoModelo]:
         """Obtiene múltiples registros con paginación."""
-        consulta = db.query(self.modelo)
-        total = consulta.count()
-        resultados = consulta.offset(saltar).limit(limite).all()
-        return resultados, total
+        consulta = self.db.query(self.modelo)
+        resultados = consulta.offset(skip).limit(limit).all()
+        return resultados
 
-    def crear_registro(
-        self, db: Session, *, datos_entrada: TipoCreacion
-    ) -> Optional[TipoModelo]:
+    def crear_registro(self, *, datos_entrada: TipoCreacion) -> Optional[TipoModelo]:
         """Crea un nuevo registro con validación básica."""
         try:
-            datos = datos_entrada.dict()
+            datos = datos_entrada.model_dump()
             objeto_db = self.modelo(**datos)
-            db.add(objeto_db)
-            db.commit()
-            db.refresh(objeto_db)
+            self.db.add(objeto_db)
+            self.db.commit()
+            self.db.refresh(objeto_db)
             return objeto_db
         except Exception as e:
-            db.rollback()
+            self.db.rollback()
             print(f"Error al crear registro: {str(e)}")
             return None
 
     def actualizar_registro(
         self,
-        db: Session,
         *,
         objeto_db: TipoModelo,
         datos_entrada: Union[TipoActualizacion, Dict[str, Any]],
@@ -104,57 +99,60 @@ class CRUDBase(Generic[TipoModelo, TipoCreacion, TipoActualizacion]):
                 if hasattr(objeto_db, campo):
                     setattr(objeto_db, campo, valor)
             if hasattr(objeto_db, "fecha_actualizacion"):
-                objeto_db.fecha_actualizacion = datetime.utcnow()
-            db.add(objeto_db)
-            db.commit()
-            db.refresh(objeto_db)
+                objeto_db.fecha_actualizacion = datetime.now()
+            self.db.add(objeto_db)
+            self.db.commit()
+            self.db.refresh(objeto_db)
             return objeto_db
         except Exception as e:
-            db.rollback()
+            self.db.rollback()
             print(f"Error al actualizar registro: {str(e)}")
             return None
 
-    def eliminar_registro(self, db: Session, *, id: UUID) -> bool:
+    def eliminar_registro(self, *, id: UUID) -> bool:
         """Elimina un registro por su ID."""
         try:
-            objeto = db.query(self.modelo).filter(self.modelo.id == id).first()
+            objeto = self.db.query(self.modelo).filter(self.modelo.id == id).first()
             if not objeto:
                 return False
-            db.delete(objeto)
-            db.commit()
+            self.db.delete(objeto)
+            self.db.commit()
             return True
         except Exception as e:
-            db.rollback()
+            self.db.rollback()
             print(f"Error al eliminar registro: {str(e)}")
             return False
 
-    def obtener_por_campo(
-        self, db: Session, *, campo: str, valor: Any
-    ) -> Optional[TipoModelo]:
+    def obtener_por_campo(self, *, campo: str, valor: Any) -> Optional[TipoModelo]:
         """Obtiene un registro por un campo específico."""
         if not hasattr(self.modelo, campo):
             return None
         return (
-            db.query(self.modelo).filter(getattr(self.modelo, campo) == valor).first()
+            self.db.query(self.modelo)
+            .filter(getattr(self.modelo, campo) == valor)
+            .first()
         )
 
     def obtener_varios_por_campo(
-        self, db: Session, *, campo: str, valor: Any, saltar: int = 0, limite: int = 100
-    ) -> Tuple[List[TipoModelo], int]:
+        self, *, campo: str, valor: Any, skip: int = 0, limit: int = 100
+    ) -> List[TipoModelo]:
         """Obtiene múltiples registros filtrados por un campo específico."""
         if not hasattr(self.modelo, campo):
-            return [], 0
-        consulta = db.query(self.modelo).filter(getattr(self.modelo, campo) == valor)
-        total = consulta.count()
-        resultados = consulta.offset(saltar).limit(limite).all()
-        return resultados, total
+            return []
+        consulta = self.db.query(self.modelo).filter(
+            getattr(self.modelo, campo) == valor
+        )
+        resultados = consulta.offset(skip).limit(limit).all()
+        return resultados
 
-    def contar(self, db: Session) -> int:
+    def contar(self) -> int:
         """Cuenta el total de registros."""
-        return db.query(self.modelo).count()
+        return self.db.query(self.modelo).count()
 
-    def existe(self, db: Session, id: UUID) -> bool:
+    def existe(self, id: UUID) -> bool:
         """Verifica si un registro existe por su ID."""
         if not id:
             return False
-        return db.query(self.modelo).filter(self.modelo.id == id).first() is not None
+        return (
+            self.db.query(self.modelo).filter(self.modelo.id == id).first() is not None
+        )

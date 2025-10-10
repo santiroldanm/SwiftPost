@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
+from datetime import datetime
 from sqlalchemy.orm import Session
 from entities.transporte import Transporte, TransporteCreate, TransporteUpdate
 from .base_crud import CRUDBase
@@ -8,24 +9,50 @@ from .base_crud import CRUDBase
 class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
     """Clase para operaciones CRUD de Transporte."""
 
-    def obtener_por_placa(self, db: Session, placa: str) -> Optional[Transporte]:
+    def __init__(self, db: Session):
+        super().__init__(Transporte, db)
+        self.db = db
+
+    def obtener_por_id(self, id_transporte: UUID) -> Optional[Transporte]:
+        """
+        Obtiene un transporte por su ID.
+
+        Args:
+            id_transporte: ID del transporte a buscar
+
+        Returns:
+            Optional[Transporte]: El transporte encontrado o None si no existe
+        """
+        try:
+            if not id_transporte:
+                return None
+            return (
+                self.db.query(Transporte)
+                .filter(Transporte.id_transporte == id_transporte)
+                .first()
+            )
+        except Exception as e:
+            print(f"Error al obtener transporte por ID {id_transporte}: {str(e)}")
+            return None
+
+    def obtener_por_placa(self, placa: str) -> Optional[Transporte]:
         """
         Busca un transporte por su placa.
         Args:
-            db: Sesión de base de datos
             placa: Número de placa del vehículo
         Returns:
             Transporte: El transporte encontrado o None si no existe
         """
-        return db.query(Transporte).filter(Transporte.placa == placa).first()
+        return (
+            self.db.query(Transporte).filter(Transporte.placa == placa.upper()).first()
+        )
 
     def obtener_por_estado(
-        self, db: Session, estado: str, skip: int = 0, limit: int = 100
+        self, estado: str, skip: int = 0, limit: int = 100
     ) -> List[Transporte]:
         """
         Obtiene una lista de transportes filtrados por estado.
         Args:
-            db: Sesión de base de datos
             estado: Estado del transporte a filtrar
             skip: Número de registros a omitir (paginación)
             limit: Número máximo de registros a devolver
@@ -33,7 +60,7 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
             List[Transporte]: Lista de transportes que coinciden con el estado
         """
         return (
-            db.query(Transporte)
+            self.db.query(Transporte)
             .filter(Transporte.estado == estado)
             .offset(skip)
             .limit(limit)
@@ -41,12 +68,11 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         )
 
     def obtener_por_tipo(
-        self, db: Session, tipo: str, skip: int = 0, limit: int = 100
+        self, tipo: str, skip: int = 0, limit: int = 100
     ) -> List[Transporte]:
         """
         Obtiene una lista de transportes filtrados por tipo.
         Args:
-            db: Sesión de base de datos
             tipo: Tipo de transporte a filtrar
             skip: Número de registros a omitir (paginación)
             limit: Número máximo de registros a devolver
@@ -54,63 +80,52 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
             List[Transporte]: Lista de transportes que coinciden con el tipo
         """
         return (
-            db.query(Transporte)
-            .filter(Transporte.tipo == tipo)
+            self.db.query(Transporte)
+            .filter(Transporte.tipo_vehiculo == tipo.capitalize())
             .offset(skip)
             .limit(limit)
             .all()
         )
 
-    def obtener_activos(
-        self, db: Session, skip: int = 0, limit: int = 100
-    ) -> List[Transporte]:
+    def obtener_activos(self, skip: int = 0, limit: int = 100) -> List[Transporte]:
         """
         Obtiene una lista de transportes activos.
         Args:
-            db: Sesión de base de datos
+            skip: Número de registros a omitir (paginación)
             skip: Número de registros a omitir (paginación)
             limit: Número máximo de registros a devolver
         Returns:
             List[Transporte]: Lista de transportes activos
         """
         return (
-            db.query(Transporte)
+            self.db.query(Transporte)
             .filter(Transporte.activo == True)
             .offset(skip)
             .limit(limit)
             .all()
         )
 
-    def crear(
-        self, db: Session, *, obj_in: TransporteCreate, creado_por: UUID
-    ) -> Transporte:
+    def crear(self, *, obj_in: TransporteCreate, creado_por: UUID) -> Transporte:
         """
         Crea un nuevo registro de transporte.
         Args:
-            db: Sesión de base de datos
             obj_in: Datos del transporte a crear
             creado_por: ID del usuario que realiza la creación
         Returns:
             Transporte: El transporte recién creado
         """
-        db_obj = Transporte(**obj_in.dict(), creado_por=creado_por)
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        db_obj = Transporte(**obj_in.model_dump(), creado_por=creado_por)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
         return db_obj
 
     def actualizar_estado(
-        self,
-        db: Session,
-        *,
-        db_obj: Transporte,
-        nuevo_estado: str,
-        actualizado_por: UUID
+        self, *, db_obj: Transporte, nuevo_estado: str, actualizado_por: UUID
     ) -> Transporte:
         """
         Actualiza el estado de un transporte existente.
         Args:
-            db: Sesión de base de datos
             db_obj: Instancia del transporte a actualizar
             nuevo_estado: Nuevo estado del transporte
             actualizado_por: ID del usuario que realiza la actualización
@@ -119,54 +134,96 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
         """
         db_obj.estado = nuevo_estado
         db_obj.actualizado_por = actualizado_por
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
         return db_obj
 
     def actualizar(
         self,
-        db: Session,
         *,
         db_obj: Transporte,
         obj_in: Union[TransporteUpdate, Dict[str, Any]],
-        actualizado_por: UUID
-    ) -> Transporte:
+        actualizado_por: UUID,
+    ) -> Optional[Transporte]:
         """
         Actualiza los datos de un transporte existente.
+
         Args:
-            db: Sesión de base de datos
             db_obj: Instancia del transporte a actualizar
-            obj_in: Datos a actualizar (puede ser un diccionario o instancia de TransporteUpdate)
+            obj_in: Datos a actualizar
             actualizado_por: ID del usuario que realiza la actualización
-        Returns:
-            Transporte: El transporte actualizado
-        """
-        if isinstance(obj_in, dict):
-            update_data = obj_in
-        else:
-            update_data = obj_in.dict(exclude_unset=True)
-        update_data["actualizado_por"] = actualizado_por
-        return super().update(db, db_obj=db_obj, obj_in=update_data)
 
-    def desactivar(self, db: Session, *, id: UUID, actualizado_por: UUID) -> Transporte:
+        Returns:
+            Optional[Transporte]: El transporte actualizado o None si hay error
         """
-        Desactiva un transporte estableciendo su estado activo como falso.
+        try:
+            if isinstance(obj_in, dict):
+                update_data = obj_in
+            else:
+                update_data = obj_in.model_dump(exclude_unset=True)
+
+            if "placa" in update_data:
+                del update_data["placa"]
+
+            for campo, valor in update_data.items():
+                if hasattr(db_obj, campo):
+                    setattr(db_obj, campo, valor)
+
+            db_obj.actualizado_por = str(actualizado_por)
+            db_obj.fecha_actualizacion = datetime.now()
+
+            self.db.commit()
+            self.db.refresh(db_obj)
+            return db_obj
+
+        except ValueError as e:
+            self.db.rollback()
+            print(f" Error de validación: {e}")
+            return None
+        except Exception as e:
+            self.db.rollback()
+            print(f" Error al actualizar transporte: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return None
+
+    def desactivar_transporte(
+        self, *, id_transporte: UUID, actualizado_por: UUID
+    ) -> bool:
+        """
+        Desactiva un transporte (soft delete).
+
         Args:
-            db: Sesión de base de datos
-            id: ID del transporte a desactivar
+            id_transporte: ID del transporte a desactivar
             actualizado_por: ID del usuario que realiza la desactivación
+
         Returns:
-            Transporte: El transporte desactivado
+            bool: True si se desactivó correctamente, False en caso contrario
         """
-        transporte = self.get(db, id)
-        if transporte:
+        try:
+            transporte = self.obtener_por_id(id_transporte)
+
+            if not transporte:
+                print(f" Error: Transporte no encontrado con ID: {id_transporte}")
+                return False
+
+            if not transporte.activo:
+                print(f" Advertencia: El transporte ya está inactivo")
+                return False
+
             transporte.activo = False
-            transporte.actualizado_por = actualizado_por
-            db.add(transporte)
-            db.commit()
-            db.refresh(transporte)
-        return transporte
+            transporte.actualizado_por = str(actualizado_por)
+            transporte.fecha_actualizacion = datetime.now()
 
+            self.db.commit()
+            return True
 
-transporte = TransporteCRUD(Transporte)
+        except Exception as e:
+            self.db.rollback()
+            print(f" Error al desactivar transporte: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return False

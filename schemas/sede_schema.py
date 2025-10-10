@@ -1,78 +1,10 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey, Float
-from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel
 from typing import Optional, List
-from database.config import Base
-from datetime import datetime
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-import uuid
+from datetime import datetime, date
+from uuid import UUID
+from pydantic import Field, validator
 import re
-
-
-class Sede(Base):
-    """
-    Modelo de Sede que representa la tabla 'sedes'
-    Atributos:
-        id_sede: Identificador único de la sede
-        nombre: Nombre de la sede
-        ciudad: Ciudad donde se encuentra la sede
-        direccion: Dirección física de la sede
-        telefono: Número de teléfono de la sede
-        activo: Estado de la sede (activo/inactivo)
-        fecha_creacion: Fecha y hora de creación
-        fecha_actualizacion: Fecha y hora de última actualización
-        creado_por: Usuario que creó la sede
-        actualizado_por: Usuario que actualizó la sede
-    """
-
-    __tablename__ = "sedes"
-    id_sede = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    nombre = Column(String(100), nullable=False)
-    ciudad = Column(String(50), nullable=False)
-    direccion = Column(String(200), nullable=False)
-    telefono = Column(String(15), nullable=False)
-    """ Coordenadas tridimensionales para cálculo de distancias """
-    latitud = Column(Float, nullable=True, comment="Latitud en grados decimales")
-    longitud = Column(Float, nullable=True, comment="Longitud en grados decimales")
-    altitud = Column(
-        Float, nullable=True, comment="Altitud en metros sobre el nivel del mar"
-    )
-    activo = Column(Boolean, default=True, nullable=False)
-    fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
-    fecha_actualizacion = Column(
-        DateTime, default=datetime.now, onupdate=datetime.now, nullable=False
-    )
-    creado_por = Column(String(36), ForeignKey("usuarios.id_usuario"), nullable=False)
-    actualizado_por = Column(
-        String(36), ForeignKey("usuarios.id_usuario"), default=None
-    )
-
-    detalles_remitente = relationship(
-        "DetalleEntrega", foreign_keys="DetalleEntrega.id_sede_remitente", viewonly=True
-    )
-    detalles_receptor = relationship(
-        "DetalleEntrega", foreign_keys="DetalleEntrega.id_sede_receptora", viewonly=True
-    )
-
-    transportes = relationship(
-        "Transporte", foreign_keys="Transporte.id_sede", viewonly=True
-    )
-
-    empleados = relationship("Empleado", foreign_keys="Empleado.id_sede", viewonly=True)
-    creador = relationship("Usuario", foreign_keys=[creado_por])
-    actualizador = relationship("Usuario", foreign_keys=[actualizado_por])
-
-    def __repr__(self):
-        return f"<Sede(id_sede={self.id_sede}, nombre={self.nombre}, ciudad={self.ciudad}, direccion={self.direccion}, telefono={self.telefono})>"
-
-    def to_dict(self):
-        return {
-            "id": self.id_sede,
-            "nombre": self.nombre,
-            "ciudad": self.ciudad,
-            "direccion": self.direccion,
-            "telefono": self.telefono,
-        }
+import uuid
 
 
 class SedeBase(BaseModel):
@@ -196,7 +128,7 @@ class SedeUpdate(BaseModel):
 
 
 class SedeResponse(SedeBase):
-    id_sede: uuid.UUID
+    id_sede: UUID
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     creado_por: str

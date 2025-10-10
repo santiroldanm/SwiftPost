@@ -1,133 +1,14 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Float,
-    Boolean,
-    DateTime,
-    ForeignKey,
-    Date,
-)
-from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel
 from typing import Optional, List
-from database.config import Base
 from datetime import datetime, date
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-import uuid
+from uuid import UUID
+from pydantic import Field, validator
 import re
-
-
-class Empleado(Base):
-    """
-    Modelo de Empleado que representa la tabla 'empleados'
-    Atributos:
-        id_empleado: Identificador único del empleado
-        id_sede: Identificador de la sede donde trabaja
-        primer_nombre: Primer nombre del empleado
-        segundo_nombre: Segundo nombre del empleado (opcional)
-        primer_apellido: Primer apellido del empleado
-        segundo_apellido: Segundo apellido del empleado (opcional)
-        documento: Identificador del tipo de documento
-        fecha_nacimiento: Fecha de nacimiento del empleado
-        telefono: Número de teléfono del empleado
-        correo: Correo electrónico del empleado
-        direccion: Dirección de residencia del empleado
-        tipo_empleado: Tipo de empleado (mensajero, logistico, secretario)
-        salario: Salario del empleado
-        fecha_ingreso: Fecha de ingreso a la empresa
-        activo: Estado del empleado (activo/inactivo)
-        fecha_creacion: Fecha y hora de creación
-        fecha_actualizacion: Fecha y hora de última actualización
-        actualizado_por: Usuario que actualizó el empleado
-    """
-
-    __tablename__ = "empleados"
-    id_empleado = Column(
-        PG_UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-        comment="ID único del empleado",
-    )
-
-    usuario_id = Column(
-        String(36),
-        ForeignKey("usuarios.id_usuario"),
-        unique=True,
-        nullable=False,
-        comment="ID del usuario asociado a este empleado",
-    )
-    usuario = relationship(
-        "Usuario", back_populates="empleado", foreign_keys=[usuario_id], uselist=False
-    )
-
-    creado_por = Column(
-        String(36),
-        ForeignKey("usuarios.id_usuario"),
-        nullable=False,
-        comment="ID del usuario que creó el registro",
-    )
-    creado_por_rel = relationship(
-        "Usuario",
-        foreign_keys=[creado_por],
-        overlaps="empleado,usuario,empleados_actualizados",
-    )
-    id_sede = Column(PG_UUID(as_uuid=True), ForeignKey("sedes.id_sede"), nullable=True)
-    primer_nombre = Column(String(50), nullable=False)
-    segundo_nombre = Column(String(50), nullable=True)
-    primer_apellido = Column(String(50), nullable=False)
-    segundo_apellido = Column(String(50), nullable=True)
-    id_tipo_documento = Column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("tipos_documentos.id_tipo_documento"),
-        nullable=False,
-    )
-    documento = Column(String(20), nullable=False)
-    fecha_nacimiento = Column(Date, nullable=False)
-    telefono = Column(String(15), nullable=False)
-    correo = Column(String(100), nullable=False, unique=True)
-    direccion = Column(String(200), nullable=False)
-    tipo_empleado = Column(String(20), nullable=False)
-    salario = Column(Float, nullable=False)
-    fecha_ingreso = Column(Date, nullable=False)
-    activo = Column(Boolean, default=True, nullable=False)
-    fecha_creacion = Column(DateTime, default=datetime.now, nullable=False)
-    fecha_actualizacion = Column(DateTime, default=None, onupdate=datetime.now)
-    actualizado_por = Column(
-        String(36),
-        ForeignKey("usuarios.id_usuario"),
-        nullable=True,
-        comment="ID del usuario que actualizó el registro",
-    )
-    actualizado_por_rel = relationship(
-        "Usuario",
-        foreign_keys=[actualizado_por],
-        overlaps="empleado,usuario,empleados_creados",
-    )
-    tipo_documento_rel = relationship("TipoDocumento", back_populates="empleados")
-    sedes = relationship("Sede", back_populates="empleados")
-
-    def __repr__(self):
-        return f"<Empleado(id={self.id_empleado}, sede={self.id_sede}, primer_nombre={self.primer_nombre}, segundo_nombre={self.segundo_nombre}, primer_apellido={self.primer_apellido}, segundo_apellido={self.segundo_apellido}, tipo={self.tipo_empleado}, documento={self.documento}, fecha_nacimiento={self.fecha_nacimiento}, telefono={self.telefono}, correo={self.correo}, direccion={self.direccion}, salario={self.salario}, fecha_ingreso={self.fecha_ingreso})>"
-
-    def to_dict(self):
-        return {
-            "id_empleado": self.id_empleado,
-            "primer_nombre": self.primer_nombre,
-            "segundo_nombre": self.segundo_nombre,
-            "primer_apellido": self.primer_apellido,
-            "segundo_apellido": self.segundo_apellido,
-            "fecha_nacimiento": self.fecha_nacimiento,
-            "telefono": self.telefono,
-            "correo": self.correo,
-            "direccion": self.direccion,
-            "tipo_empleado": self.tipo_empleado,
-            "salario": self.salario,
-            "fecha_ingreso": self.fecha_ingreso,
-        }
+import uuid
 
 
 class EmpleadoBase(BaseModel):
+    usuario_id: str = Field(..., description="ID del usuario asociado al cliente")
     primer_nombre: str = Field(
         ..., min_length=1, max_length=50, description="Primer nombre del empleado"
     )
