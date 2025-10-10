@@ -144,7 +144,6 @@ class PaqueteResponse(PaqueteBase):
 
 class PaqueteListResponse(BaseModel):
     paquetes: List[PaqueteResponse]
-    total: int
     pagina: int
     por_pagina: int
 

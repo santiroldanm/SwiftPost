@@ -2,11 +2,9 @@ from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from entities.tipo_documento import (
-    TipoDocumento,
-    TipoDocumentoCreate,
-    TipoDocumentoUpdate,
-)
+from datetime import datetime
+from entities.tipo_documento import TipoDocumento
+from schemas.tipo_documento_schema import TipoDocumentoCreate, TipoDocumentoUpdate
 from .base_crud import CRUDBase
 
 
@@ -16,24 +14,54 @@ class TipoDocumentoCRUD(
     """Operaciones CRUD para TipoDocumento."""
 
     def __init__(self, db: Session):
-        super().__init__(TipoDocumento)
+        super().__init__(TipoDocumento, db)
         self.db = db
+
+    def obtener_por_id(
+        self, id_tipo_documento: Union[str, UUID]
+    ) -> Optional[TipoDocumento]:
+        """
+        Obtiene un tipo de documento por su ID.
+        Args:
+            id_tipo_documento: ID del tipo de documento (UUID)
+        Returns:
+            El tipo de documento encontrado o None si no existe
+        """
+        try:
+            if not id_tipo_documento:
+                return None
+            return (
+                self.db.query(TipoDocumento)
+                .filter(TipoDocumento.id_tipo_documento == id_tipo_documento)
+                .first()
+            )
+        except Exception as e:
+            print(f"Error al obtener tipo de documento por ID: {e}")
+            return None
 
     def obtener_por_nombre(self, nombre: str) -> Optional[TipoDocumento]:
         """Obtiene un tipo de documento por nombre."""
-        return (
-            self.db.query(TipoDocumento)
-            .filter(TipoDocumento.nombre.lower() == nombre.lower())
-            .first()
-        )
+        try:
+            return (
+                self.db.query(TipoDocumento)
+                .filter(func.lower(TipoDocumento.nombre) == nombre.lower())
+                .first()
+            )
+        except Exception as e:
+            print(f"Error al obtener tipo de documento por nombre: {e}")
+            return None
 
     def obtener_por_codigo(self, codigo: str) -> Optional[TipoDocumento]:
         """Obtiene un tipo de documento por código."""
-        return (
-            self.db.query(TipoDocumento)
-            .filter(func.lower(TipoDocumento.codigo) == codigo.lower())
-            .first()
-        )
+        try:
+            return (
+                self.db.query(TipoDocumento)
+                .filter(func.lower(TipoDocumento.codigo) == codigo.lower())
+                .first()
+            )
+        except Exception as e:
+            print(f"Error al obtener tipo de documento por código: {e}")
+            return None
 
     def obtener_todos(self, skip: int = 0, limit: int = 100) -> List[TipoDocumento]:
         """Obtiene todos los tipos de documento."""
@@ -43,71 +71,87 @@ class TipoDocumentoCRUD(
             print(f"Error al obtener tipos de documento: {e}")
             return []
 
-    def obtener_activos(
-        self, saltar: int = 0, limite: int = 100
-    ) -> List[TipoDocumento]:
+    def obtener_activos(self, skip: int = 0, limit: int = 100) -> List[TipoDocumento]:
         """Obtiene tipos de documento activos."""
-        print("\n=== DEBUG: Iniciando obtener_activos ===")
-        print(f"Tipo de db: {type(db)}")
         try:
-            test = db.query(TipoDocumento).first()
-            print(f"Test query result: {test}")
-        except Exception as e:
-            print(f"Error al ejecutar consulta de prueba: {e}")
-            return []
-        try:
-            tipos = (
-                db.query(TipoDocumento)
+            return (
+                self.db.query(TipoDocumento)
                 .filter(TipoDocumento.activo == True)
-                .offset(saltar)
-                .limit(limite)
+                .offset(skip)
+                .limit(limit)
                 .all()
             )
-            print(f"=== DEBUG: Tipos de documento encontrados: {len(tipos)} ===")
-            for i, t in enumerate(tipos, 1):
-                print(
-                    f"{i}. ID: {t.id_tipo_documento}, Nombre: {t.nombre}, Código: {t.codigo}"
-                )
-            return tipos
         except Exception as e:
-            print(f"Error en obtener_activos: {e}")
+            print(f"Error al obtener tipos de documento activos: {e}")
             return []
 
-    def crear(
-        self, *, datos_entrada: TipoDocumentoCreate, creado_por: UUID
-    ) -> TipoDocumento:
-        """Crea un nuevo tipo de documento."""
-        db_obj = TipoDocumento(**datos_entrada.dict(), creado_por=creado_por)
-        self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
-        return db_obj
-
-    def actualizar(
+    def crear_tipo_documento(
         self,
-        *,
-        objeto_db: TipoDocumento,
-        datos_entrada: Union[TipoDocumentoUpdate, Dict[str, Any]],
-        actualizado_por: UUID,
-    ) -> TipoDocumento:
-        """Actualiza un tipo de documento."""
-        if isinstance(datos_entrada, dict):
-            datos_actualizados = datos_entrada
-        else:
-            datos_actualizados = datos_entrada.dict(exclude_unset=True)
-        datos_actualizados["actualizado_por"] = actualizado_por
-        return super().actualizar(objeto_db=objeto_db, datos_entrada=datos_actualizados)
+        datos_entrada: Union[TipoDocumentoCreate, Dict[str, Any]],
+        usuario_id: Union[str, UUID],
+    ) -> Optional[TipoDocumento]:
+        """Crea un nuevo tipo de documento."""
+        try:
+            if not isinstance(datos_entrada, dict):
+                datos_entrada = (
+                    datos_entrada.model_dump()
+                    if hasattr(datos_entrada, "model_dump")
+                    else datos_entrada.dict()
+                )
 
-    def desactivar(self, *, id: UUID, actualizado_por: UUID) -> TipoDocumento:
-        """Desactiva un tipo de documento."""
-        tipo_documento = self.obtener_por_id(id)
-        if tipo_documento:
+            db_obj = TipoDocumento(
+                **datos_entrada,
+                creado_por=str(usuario_id),
+                actualizado_por=str(usuario_id),
+                fecha_creacion=datetime.now(),
+                activo=True,
+            )
+            self.db.add(db_obj)
+            self.db.commit()
+            self.db.refresh(db_obj)
+            return db_obj
+        except Exception as e:
+            self.db.rollback()
+            print(f"Error al crear tipo de documento: {e}")
+            raise
+
+    def actualizar_tipo_documento(
+        self,
+        tipo_db: TipoDocumento,
+        datos_actualizacion: Dict[str, Any],
+        actualizado_por: Union[str, UUID],
+    ) -> Optional[TipoDocumento]:
+        """Actualiza un tipo de documento."""
+        try:
+            for campo, valor in datos_actualizacion.items():
+                if hasattr(tipo_db, campo):
+                    setattr(tipo_db, campo, valor)
+
+            tipo_db.actualizado_por = str(actualizado_por)
+            tipo_db.fecha_actualizacion = datetime.now()
+
+            self.db.add(tipo_db)
+            self.db.commit()
+            self.db.refresh(tipo_db)
+            return tipo_db
+        except Exception as e:
+            self.db.rollback()
+            print(f"Error al actualizar tipo de documento: {e}")
+            raise
+
+    def eliminar_tipo_documento(self, id_tipo_documento: Union[str, UUID]) -> bool:
+        """Elimina (desactiva) un tipo de documento."""
+        try:
+            tipo_documento = self.obtener_por_id(id_tipo_documento)
+            if not tipo_documento:
+                return False
+
             tipo_documento.activo = False
-            tipo_documento.actualizado_por = actualizado_por
+            tipo_documento.fecha_actualizacion = datetime.now()
             self.db.add(tipo_documento)
             self.db.commit()
-            self.db.refresh(tipo_documento)
-        return tipo_documento
-
-
-tipo_documento = TipoDocumentoCRUD(TipoDocumento)
+            return True
+        except Exception as e:
+            self.db.rollback()
+            print(f"Error al eliminar tipo de documento: {e}")
+            return False
