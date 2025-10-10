@@ -59,7 +59,7 @@ El servidor estará disponible en:
 - Documentación ReDoc: http://localhost:8000/redoc
 
 ## Estructura del Proyecto
-
+```text
 SwiftPost/
 ├── apis/                  # Endpoints de la API REST
 │   ├── auth.py           # Autenticación y tokens
