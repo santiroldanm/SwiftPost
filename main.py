@@ -33,6 +33,7 @@ app.include_router(sede.router)
 app.include_router(paquete.router)
 app.include_router(transporte.router)
 app.include_router(detalle_entrega.router)
+app.include_router()
 
 
 @app.on_event("startup")
@@ -81,3 +82,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
