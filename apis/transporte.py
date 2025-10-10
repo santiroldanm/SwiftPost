@@ -204,14 +204,12 @@ async def eliminar_transporte(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Vehículo no encontrado"
             )
 
-        # Verificar si el vehículo está en uso
         if transporte.estado == "en_uso":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No se puede eliminar un vehículo que está en uso",
             )
 
-        # Realizar el soft delete
         eliminado = transporte_crud.desactivar_transporte(
             id_transporte=id_transporte, actualizado_por=usuario_id
         )
