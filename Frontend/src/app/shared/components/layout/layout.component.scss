@@ -1,0 +1,22 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #FAE8D4;
+}
+
+.main-content {
+  flex: 1;
+  padding-left: 260px;
+  transition: padding-left 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+
+  &.sidebar-collapsed {
+    padding-left: 70px;
+  }
+}
+
+.content {
+  padding: 24px 32px;
+  min-height: calc(100vh - 70px);
+}
