@@ -12,15 +12,21 @@ export interface Empleado {
   segundo_nombre?: string;
   primer_apellido: string;
   segundo_apellido?: string;
-  numero_documento: string;
+  documento: string; // Cambiado de numero_documento a documento
   id_tipo_documento: string;
   usuario_id: string;
-  cargo: string;
+  tipo_empleado: string; // Cambiado de cargo a tipo_empleado (mensajero, logistico, secretario)
   salario: number;
-  fecha_contratacion: string;
-  id_sede: string;
+  fecha_ingreso: string; // Cambiado de fecha_contratacion a fecha_ingreso
+  fecha_nacimiento: string; // Nuevo campo requerido
+  telefono: string; // Nuevo campo requerido
+  correo: string; // Nuevo campo requerido
+  direccion: string; // Nuevo campo requerido
+  id_sede?: string; // Opcional según el schema
+  activo?: boolean; // Campo para indicar si el empleado está activo
   fecha_creacion?: string;
   fecha_actualizacion?: string;
+  creado_por?: string;
   actualizado_por?: string;
 }
 
@@ -31,7 +37,7 @@ export interface Empleado {
   providedIn: 'root'
 })
 export class EmpleadoService {
-  private endpoint = '/empleados/';
+  private endpoint = '/empleados';
 
   constructor(private apiService: ApiService) {}
 
@@ -39,7 +45,7 @@ export class EmpleadoService {
    * Obtiene todos los empleados con paginación
    */
   obtenerEmpleados(skip: number = 0, limit: number = 10): Observable<Empleado[]> {
-    return this.apiService.get<any>(this.endpoint, { skip, limit }).pipe(
+    return this.apiService.get<any>(`${this.endpoint}/`, { skip, limit }).pipe(
       map((response: any) => Array.isArray(response) ? response : (response?.empleados || response || []))
     );
   }
@@ -73,7 +79,7 @@ export class EmpleadoService {
    * Obtiene empleados por cargo
    */
   obtenerEmpleadosPorCargo(cargo: string, skip: number = 0, limit: number = 10): Observable<Empleado[]> {
-    return this.apiService.get<any>(`${this.endpoint}/cargo/${cargo}`, { skip, limit }).pipe(
+    return this.apiService.get<any>(`${this.endpoint}/tipo/${cargo}`, { skip, limit }).pipe(
       map((response: any) => Array.isArray(response) ? response : (response?.empleados || response || []))
     );
   }
@@ -82,8 +88,8 @@ export class EmpleadoService {
    * Busca empleados por número de documento
    */
   buscarPorDocumento(numeroDocumento: string): Observable<Empleado[]> {
-    return this.apiService.get<any>(`${this.endpoint}/buscar/documento/${numeroDocumento}`).pipe(
-      map((response: any) => Array.isArray(response) ? response : (response?.empleados || response || []))
+    return this.apiService.get<any>(`${this.endpoint}/documento/${numeroDocumento}`).pipe(
+      map((response: any) => Array.isArray(response) ? [response] : (response?.empleados || [response] || []))
     );
   }
 
@@ -97,22 +103,27 @@ export class EmpleadoService {
   /**
    * Crea un nuevo empleado
    */
-  crearEmpleado(empleado: Empleado): Observable<Empleado> {
-    return this.apiService.post<Empleado>(this.endpoint, empleado);
+  crearEmpleado(empleado: Empleado, creadoPor?: string): Observable<Empleado> {
+    const params = creadoPor ? { creado_por: creadoPor } : {};
+    return this.apiService.post<Empleado>(`${this.endpoint}/`, empleado, params);
   }
 
   /**
    * Actualiza un empleado existente
    */
-  actualizarEmpleado(id: string, empleado: Partial<Empleado>): Observable<Empleado> {
-    return this.apiService.put<Empleado>(`${this.endpoint}/${id}`, empleado);
+  actualizarEmpleado(id: string, empleado: Partial<Empleado>, actualizadoPor?: string): Observable<Empleado> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    // Remover actualizado_por del body si está presente
+    const { actualizado_por, ...body } = empleado as any;
+    return this.apiService.put<Empleado>(`${this.endpoint}/${id}`, body, params);
   }
 
   /**
    * Elimina (desactiva) un empleado
    */
-  eliminarEmpleado(id: string): Observable<ApiResponse> {
-    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`);
+  eliminarEmpleado(id: string, actualizadoPor?: string): Observable<ApiResponse> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`, params);
   }
 
   /**

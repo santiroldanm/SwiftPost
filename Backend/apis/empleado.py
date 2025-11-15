@@ -2,10 +2,10 @@
 API de empleados - Endpoints para gestión de empleados
 """
 
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from database.config import get_db
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from sqlalchemy.orm import Session
 from cruds.empleado_crud import EmpleadoCRUD
 from cruds.tipo_documento_crud import TipoDocumentoCRUD
@@ -111,7 +111,8 @@ async def obtener_empleado_por_documento(
 async def crear_empleado(
     empleado_data: EmpleadoCreate,
     db: Session = Depends(get_db),
-    creado_por: UUID = "ID Usuario con la sesión activa",
+    creado_por: Optional[UUID] = Query(None, description="UUID del usuario que crea el registro"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """
     Crear un nuevo empleado.
@@ -119,6 +120,16 @@ async def crear_empleado(
     - Pasa un dict al EmpleadoCRUD.crear_empleado con id_tipo_documento incluido
     """
     try:
+        if creado_por:
+            usuario_id = creado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         tipo_doc_crud = TipoDocumentoCRUD(db)
         tipo_documento = tipo_doc_crud.obtener_por_id(
             str(empleado_data.id_tipo_documento)
@@ -139,7 +150,7 @@ async def crear_empleado(
         empleado_crud = EmpleadoCRUD(db)
         empleado = empleado_crud.crear_empleado(
             datos_entrada=datos,
-            creado_por=creado_por,
+            creado_por=usuario_id,
         )
 
         if not empleado:
@@ -164,10 +175,21 @@ async def actualizar_empleado(
     id_empleado: UUID,
     empleado_data: EmpleadoUpdate,
     db: Session = Depends(get_db),
-    actualizado_por: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: Optional[UUID] = Query(None, description="UUID del usuario que realiza la actualización"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Actualizar un empleado existente."""
     try:
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         empleado_crud = EmpleadoCRUD(db)
         empleado = empleado_crud.obtener_por_id(id_empleado)
         if not empleado:
@@ -198,7 +220,7 @@ async def actualizar_empleado(
         empleado_actualizado = empleado_crud.actualizar_empleado(
             objeto_db=empleado,
             datos_entrada=empleado_data_dict,
-            actualizado_por=actualizado_por,
+            actualizado_por=usuario_id,
         )
 
         if not empleado_actualizado:
@@ -222,11 +244,22 @@ async def actualizar_empleado(
 @router.delete("/{id_empleado}", response_model=RespuestaAPI)
 async def eliminar_empleado(
     id_empleado: UUID,
-    actualizado_por: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: Optional[UUID] = Query(None, description="UUID del usuario que realiza la eliminación"),
     db: Session = Depends(get_db),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Eliminar un empleado. Soft delete."""
     try:
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         empleado_crud = EmpleadoCRUD(db)
         empleado = empleado_crud.obtener_por_id(id_empleado)
         if not empleado:
@@ -234,7 +267,7 @@ async def eliminar_empleado(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Empleado no encontrado"
             )
         eliminado = empleado_crud.desactivar_empleado(
-            empleado_id=id_empleado, actualizado_por=actualizado_por
+            empleado_id=id_empleado, actualizado_por=usuario_id
         )
         if eliminado:
             return RespuestaAPI(mensaje="Empleado eliminado exitosamente", exito=True)
@@ -245,6 +278,11 @@ async def eliminar_empleado(
             )
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"UUID inválido: {str(e)}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

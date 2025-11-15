@@ -6,7 +6,7 @@ from typing import Optional
 from uuid import UUID
 from datetime import datetime
 from database.config import get_db
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from sqlalchemy.orm import Session
 from cruds.paquete_crud import PaqueteCRUD
 from schemas.paquete_schema import (
@@ -132,6 +132,7 @@ async def crear_paquete(
     creado_por: Optional[UUID] = Query(
         None, description="UUID del usuario que crea el registro"
     ),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Crear un nuevo paquete (id_cliente y creado_por deben ser UUID válidos)."""
     try:
@@ -158,7 +159,13 @@ async def crear_paquete(
 
         raw_creado_por = creado_por or datos.get("creado_por")
         if not raw_creado_por:
-            raise HTTPException(status_code=400, detail="creado_por es obligatorio")
+            if x_user_id:
+                try:
+                    raw_creado_por = UUID(x_user_id)
+                except ValueError:
+                    raw_creado_por = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+            else:
+                raw_creado_por = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
 
         try:
             creado_por_uuid = (
@@ -200,17 +207,22 @@ async def actualizar_paquete(
     id_paquete: UUID,
     paquete_data: PaqueteUpdate,
     db: Session = Depends(get_db),
-    actualizado_por: UUID | None = Query(
+    actualizado_por: Optional[UUID] = Query(
         None, description="UUID del usuario que realiza la actualización"
     ),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Actualizar un paquete existente."""
     try:
-        if actualizado_por is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="updated_by (actualizado_por) es requerido",
-            )
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
 
         paquete_crud = PaqueteCRUD(db)
         paquete = paquete_crud.obtener_por_id(id_paquete)
@@ -222,7 +234,7 @@ async def actualizar_paquete(
         paquete_actualizado = paquete_crud.actualizar(
             objeto_db=paquete,
             datos_entrada=paquete_data,
-            actualizado_por=actualizado_por,
+            actualizado_por=usuario_id,
         )
 
         if not paquete_actualizado:
@@ -245,11 +257,22 @@ async def actualizar_paquete(
 @router.delete("/{id_paquete}", response_model=RespuestaAPI)
 async def eliminar_paquete(
     id_paquete: UUID,
-    actualizado_por: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: Optional[UUID] = Query(None, description="UUID del usuario que realiza la eliminación"),
     db: Session = Depends(get_db),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Eliminar un paquete (soft delete)."""
     try:
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         paquete_crud = PaqueteCRUD(db)
         paquete = paquete_crud.obtener_por_id(id_paquete)
 
@@ -259,7 +282,7 @@ async def eliminar_paquete(
             )
 
         eliminado = paquete_crud.desactivar_paquete(
-            id_paquete=id_paquete, actualizado_por=actualizado_por
+            id_paquete=id_paquete, actualizado_por=usuario_id
         )
 
         if eliminado:
@@ -271,6 +294,11 @@ async def eliminar_paquete(
             )
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"UUID inválido: {str(e)}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

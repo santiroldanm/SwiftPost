@@ -28,7 +28,7 @@ export interface Paquete {
   providedIn: 'root'
 })
 export class PaqueteService {
-  private endpoint = '/paquetes/';
+  private endpoint = '/paquetes';
 
   constructor(private apiService: ApiService) {}
 
@@ -36,8 +36,14 @@ export class PaqueteService {
    * Obtiene todos los paquetes con paginación
    */
   obtenerPaquetes(skip: number = 0, limit: number = 10): Observable<Paquete[]> {
-    return this.apiService.get<any>(this.endpoint, { skip, limit }).pipe(
-      map(response => response?.paquetes || response || [])
+    return this.apiService.get<any>(`${this.endpoint}/`, { skip, limit }).pipe(
+      map(response => {
+        // El backend devuelve { paquetes: [...], pagina: ..., por_pagina: ... }
+        if (response?.paquetes) {
+          return response.paquetes;
+        }
+        return Array.isArray(response) ? response : [];
+      })
     );
   }
 
@@ -87,15 +93,25 @@ export class PaqueteService {
   /**
    * Crea un nuevo paquete
    */
-  crearPaquete(paquete: Paquete): Observable<Paquete> {
-    return this.apiService.post<Paquete>(this.endpoint, paquete);
+  crearPaquete(paquete: Paquete, creadoPor?: string, idCliente?: string): Observable<Paquete> {
+    const params: any = {};
+    if (creadoPor) {
+      params.creado_por = creadoPor;
+    }
+    if (idCliente) {
+      params.id_cliente = idCliente;
+    }
+    return this.apiService.post<Paquete>(`${this.endpoint}/`, paquete, params);
   }
 
   /**
    * Actualiza un paquete existente
    */
-  actualizarPaquete(id: string, paquete: Partial<Paquete>): Observable<Paquete> {
-    return this.apiService.put<Paquete>(`${this.endpoint}/${id}`, paquete);
+  actualizarPaquete(id: string, paquete: Partial<Paquete>, actualizadoPor?: string): Observable<Paquete> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    // Remover actualizado_por del body si está presente, ya que se envía como query param
+    const { actualizado_por, ...body } = paquete;
+    return this.apiService.put<Paquete>(`${this.endpoint}/${id}`, body, params);
   }
 
   /**
@@ -108,8 +124,9 @@ export class PaqueteService {
   /**
    * Elimina (desactiva) un paquete
    */
-  eliminarPaquete(id: string): Observable<ApiResponse> {
-    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`);
+  eliminarPaquete(id: string, actualizadoPor?: string): Observable<ApiResponse> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`, params);
   }
 
   /**

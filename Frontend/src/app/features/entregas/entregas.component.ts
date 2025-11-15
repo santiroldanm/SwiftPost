@@ -59,10 +59,19 @@ export class EntregasComponent implements OnInit {
     this.cargando = true;
     this.error = '';
     
-    this.detalleEntregaService.obtenerDetallesEntrega(0, 100).subscribe({
+    // Construir filtros para el backend
+    const filtros: any = {};
+    if (this.filtroEstado !== 'todos') {
+      filtros.estado = this.filtroEstado;
+    }
+    
+    console.log('Cargando entregas con filtros:', filtros);
+    
+    this.detalleEntregaService.obtenerDetallesEntrega(0, 100, filtros).subscribe({
       next: (response) => {
         this.entregas = response?.detalles || [];
         this.cargando = false;
+        console.log('Entregas cargadas desde backend:', this.entregas.length, 'registros');
       },
       error: (err) => {
         this.error = 'Error al cargar entregas';
@@ -76,6 +85,7 @@ export class EntregasComponent implements OnInit {
     this.sedeService.obtenerSedes(0, 100).subscribe({
       next: (sedes) => {
         this.sedes = Array.isArray(sedes) ? sedes : [];
+        console.log('Sedes cargadas:', this.sedes);
       },
       error: (err) => console.error('Error al cargar sedes:', err)
     });
@@ -102,10 +112,11 @@ export class EntregasComponent implements OnInit {
   get entregasFiltradas(): any[] {
     let filtradas = this.entregas;
     
-    // Filtrar por estado
-    if (this.filtroEstado !== 'todos') {
-      filtradas = filtradas.filter(e => e.estado_envio === this.filtroEstado);
-    }
+    // Filtrar solo entregas activas por defecto
+    filtradas = filtradas.filter(e => e.activo !== false);
+    
+    // El filtro por estado ahora se hace en el backend al cargar
+    // Solo mantenemos el filtro de búsqueda en frontend para búsqueda en tiempo real
     
     // Filtrar por búsqueda
     if (this.searchTerm.trim()) {
@@ -216,6 +227,12 @@ export class EntregasComponent implements OnInit {
       case 'Entregado': return 'badge-success';
       default: return 'badge-secondary';
     }
+  }
+
+  onFiltroEstadoChange(): void {
+    console.log('Filtro de estado cambiado a:', this.filtroEstado);
+    console.log('Recargando entregas desde backend...');
+    this.cargarEntregas();
   }
 
   exportarDatos(): void {

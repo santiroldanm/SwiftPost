@@ -15,6 +15,7 @@ from apis import (
     detalle_entrega,
     rol,
     tipo_documento,
+    analytics,
 )
 from database.config import create_tables
 from fastapi import FastAPI
@@ -46,6 +47,7 @@ app.include_router(transporte.router)
 app.include_router(detalle_entrega.router)
 app.include_router(rol.router)
 app.include_router(tipo_documento.router)
+app.include_router(analytics.router)
 
 
 @app.on_event("startup")

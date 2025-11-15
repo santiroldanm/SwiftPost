@@ -293,12 +293,18 @@
 
           </div>
 
+          @if (errorMessage) {
+            <div class="error-message" style="color: red; margin: 10px 0; padding: 10px; background-color: #ffebee; border-radius: 4px;">
+              {{ errorMessage }}
+            </div>
+          }
+
           <div class="modal-footer">
             <button type="button" class="btn btn-outline" (click)="closeModal()">
               Cancelar
             </button>
-            <button type="submit" class="btn btn-primary">
-              {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+            <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+              {{ isLoading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Guardar') }}
             </button>
           </div>
         </form>

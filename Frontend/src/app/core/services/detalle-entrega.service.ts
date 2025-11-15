@@ -36,10 +36,24 @@ export class DetalleEntregaService {
   constructor(private apiService: ApiService) {}
 
   /**
-   * Obtiene todos los detalles de entrega con paginación
+   * Obtiene todos los detalles de entrega con paginación y filtros opcionales
    */
-  obtenerDetallesEntrega(skip: number = 0, limit: number = 10): Observable<any> {
+  obtenerDetallesEntrega(skip: number = 0, limit: number = 10, filtros?: { estado?: string }): Observable<any> {
+    // Si hay filtro de estado, usar el endpoint específico
+    if (filtros?.estado && filtros.estado !== 'todos') {
+      return this.obtenerPorEstado(filtros.estado, skip, limit);
+    }
+    
+    // Sin filtros, obtener todas
     return this.apiService.get<any>(this.endpoint, { skip, limit });
+  }
+
+  /**
+   * Obtiene entregas por estado
+   */
+  obtenerPorEstado(estado: string, skip: number = 0, limit: number = 10): Observable<any> {
+    console.log(`Obteniendo entregas con estado: ${estado}`);
+    return this.apiService.get<any>(`${this.endpoint}/estado/${estado}`, { skip, limit });
   }
 
   /**

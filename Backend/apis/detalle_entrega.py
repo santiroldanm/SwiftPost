@@ -62,6 +62,28 @@ async def obtener_entregas_pendientes(
         )
 
 
+@router.get("/estado/{estado}", response_model=DetalleEntregaListResponse)
+async def obtener_entregas_por_estado(
+    estado: str, skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+):
+    """Obtener entregas por estado con paginación."""
+    try:
+        detalle_crud = DetalleEntregaCRUD(db)
+        detalles = detalle_crud.obtener_por_estado(
+            estado=estado, skip=skip, limit=limit
+        )
+        return {
+            "detalles": detalles,
+            "pagina": (skip // limit) + 1,
+            "por_pagina": limit,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener entregas por estado: {str(e)}",
+        )
+
+
 @router.get("/{id_detalle}", response_model=DetalleEntregaResponse)
 async def obtener_detalle_por_id(id_detalle: UUID, db: Session = Depends(get_db)):
     """Obtener un detalle de entrega por su ID."""

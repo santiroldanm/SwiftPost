@@ -1,20 +1,22 @@
-import { Component, OnInit, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PaqueteService, Paquete } from '../../../core/services/paquete.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ClienteService, Cliente } from '../../../core/services/cliente.service';
+import { FormStorageService } from '../../../core/services/form-storage.service';
 
 @Component({
   selector: 'app-paquete-list',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  providers: [PaqueteService, AuthService],
   templateUrl: './paquete-list.component.html',
-  styleUrls: ['./paquete-list.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default
+  styleUrls: ['./paquete-list.component.scss']
 })
 export class PaqueteListComponent implements OnInit, AfterViewInit {
+  private destroyRef = inject(DestroyRef);
   searchTerm = '';
   selectedCategory = 'all';
   showModal = false;
@@ -25,58 +27,71 @@ export class PaqueteListComponent implements OnInit, AfterViewInit {
   filtroEstado = 'todos';
   filtroFragilidad = 'todos';
 
-  paqueteForm: Paquete = {
+  paqueteForm: Paquete & { id_cliente?: string } = {
     peso: 0,
     tamaño: '',
-    fragilidad: 'No',
+    fragilidad: 'normal',
     contenido: '',
     tipo: '',
     valor_declarado: 0,
-    estado: 'Registrado'
+    estado: 'registrado'
   };
 
   paquetes: Paquete[] = [];
+  clientes: Cliente[] = [];
 
   constructor(
     private paqueteService: PaqueteService,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef,
-    private route: ActivatedRoute
+    private clienteService: ClienteService,
+    private route: ActivatedRoute,
+    private formStorage: FormStorageService
   ) {}
 
   ngOnInit(): void {
     this.cargarPaquetes();
+    this.cargarClientes();
     
     // Escuchar cambios de ruta para recargar datos
-    this.route.params.subscribe(() => {
-      this.cargarPaquetes();
-    });
+    this.route.params
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.cargarPaquetes();
+      });
+  }
+
+  cargarClientes(): void {
+    this.clienteService.obtenerClientes(0, 100)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (clientes) => {
+          this.clientes = Array.isArray(clientes) ? clientes : [];
+        },
+        error: (error) => console.error('Error al cargar clientes:', error)
+      });
   }
 
   ngAfterViewInit(): void {
-    // Forzar recarga de datos después de que la vista esté inicializada
-    setTimeout(() => {
-      this.cargarPaquetes();
-    }, 100);
+    // Ya no es necesario el setTimeout, Angular maneja esto automáticamente
   }
 
   cargarPaquetes(): void {
     this.isLoading = true;
     this.errorMessage = '';
     
-    this.paqueteService.obtenerPaquetes(0, 50).subscribe({
-      next: (paquetes) => {
-        this.paquetes = paquetes;
-        this.isLoading = false;
-        this.cdr.detectChanges(); // Forzar actualización de la vista
-      },
-      error: (error) => {
-        console.error('Error al cargar paquetes:', error);
-        this.errorMessage = 'Error al cargar los paquetes';
-        this.isLoading = false;
-        this.cdr.detectChanges(); // Forzar actualización de la vista
-      }
-    });
+    this.paqueteService.obtenerPaquetes(0, 50)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (paquetes) => {
+          this.paquetes = paquetes;
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error al cargar paquetes:', error);
+          this.errorMessage = this.getErrorMessage(error) || 'Error al cargar los paquetes';
+          this.isLoading = false;
+        }
+      });
   }
 
   getStatusClass(status: string | undefined): string {
@@ -95,15 +110,25 @@ export class PaqueteListComponent implements OnInit, AfterViewInit {
 
   openNewPaqueteModal() {
     this.isEditMode = false;
-    this.paqueteForm = {
-      peso: 0,
-      tamaño: '',
-      fragilidad: 'No',
-      contenido: '',
-      tipo: '',
-      valor_declarado: 0,
-      estado: 'Registrado'
-    };
+    
+    // Intentar recuperar datos guardados
+    const savedData = this.formStorage.getFormData('paquete_nuevo');
+    
+    if (savedData) {
+      this.paqueteForm = savedData;
+      console.log('Datos del formulario de paquete recuperados');
+    } else {
+      this.paqueteForm = {
+        peso: 1, // Debe ser > 0
+        tamaño: 'pequeño',
+        fragilidad: 'baja',
+        contenido: '',
+        tipo: 'normal',
+        valor_declarado: 0,
+        estado: 'registrado',
+        id_cliente: ''
+      };
+    }
     this.showModal = true;
   }
 
@@ -114,6 +139,10 @@ export class PaqueteListComponent implements OnInit, AfterViewInit {
   }
 
   closeModal() {
+    // Guardar datos del formulario antes de cerrar si no está en modo edición
+    if (!this.isEditMode) {
+      this.formStorage.saveFormData('paquete_nuevo', this.paqueteForm);
+    }
     this.showModal = false;
   }
 
@@ -123,39 +152,102 @@ export class PaqueteListComponent implements OnInit, AfterViewInit {
     
     if (this.isEditMode && this.paqueteForm.id_paquete) {
       // Actualizar paquete existente
-      const updateData = {
-        ...this.paqueteForm,
-        actualizado_por: currentUser?.id_usuario
-      };
+      if (!currentUser?.id_usuario) {
+        this.errorMessage = 'Usuario no autenticado';
+        this.isLoading = false;
+        return;
+      }
       
-      this.paqueteService.actualizarPaquete(this.paqueteForm.id_paquete, updateData).subscribe({
+      // Normalizar valores a minúsculas según el backend
+      const updateData: any = {};
+      if (this.paqueteForm.peso !== undefined && this.paqueteForm.peso !== null) updateData.peso = Number(this.paqueteForm.peso);
+      if (this.paqueteForm.tamaño) updateData.tamaño = this.paqueteForm.tamaño.toLowerCase().trim();
+      if (this.paqueteForm.fragilidad) updateData.fragilidad = this.paqueteForm.fragilidad.toLowerCase().trim();
+      if (this.paqueteForm.contenido) updateData.contenido = this.paqueteForm.contenido.trim();
+      if (this.paqueteForm.tipo) updateData.tipo = this.paqueteForm.tipo.toLowerCase().trim();
+      if (this.paqueteForm.valor_declarado !== undefined && this.paqueteForm.valor_declarado !== null) updateData.valor_declarado = Number(this.paqueteForm.valor_declarado);
+      if (this.paqueteForm.estado) updateData.estado = this.paqueteForm.estado.toLowerCase().trim();
+      
+      const cleanData = updateData;
+      
+      this.paqueteService.actualizarPaquete(
+        this.paqueteForm.id_paquete, 
+        cleanData, 
+        currentUser.id_usuario
+      )
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: (paquete) => {
           this.cargarPaquetes();
           this.closeModal();
           this.isLoading = false;
+          this.errorMessage = '';
         },
         error: (error) => {
           console.error('Error al actualizar paquete:', error);
-          this.errorMessage = 'Error al actualizar el paquete';
+          this.errorMessage = this.getErrorMessage(error) || 'Error al actualizar el paquete';
           this.isLoading = false;
         }
       });
     } else {
       // Crear nuevo paquete
-      const newPaquete = {
-        ...this.paqueteForm,
-        creado_por: currentUser?.id_usuario
-      };
+      if (!currentUser?.id_usuario) {
+        this.errorMessage = 'Usuario no autenticado';
+        this.isLoading = false;
+        return;
+      }
       
-      this.paqueteService.crearPaquete(newPaquete).subscribe({
+      if (!this.paqueteForm.id_cliente) {
+        this.errorMessage = 'Debe seleccionar un cliente';
+        this.isLoading = false;
+        return;
+      }
+      
+      // Validar campos requeridos
+      if (!this.paqueteForm.peso || this.paqueteForm.peso <= 0) {
+        this.errorMessage = 'El peso debe ser mayor a 0';
+        this.isLoading = false;
+        return;
+      }
+      if (!this.paqueteForm.tamaño || !this.paqueteForm.fragilidad || !this.paqueteForm.contenido || !this.paqueteForm.tipo) {
+        this.errorMessage = 'Por favor complete todos los campos requeridos';
+        this.isLoading = false;
+        return;
+      }
+
+      // Normalizar valores a minúsculas según el backend
+      const newPaquete = {
+        peso: Number(this.paqueteForm.peso),
+        tamaño: this.paqueteForm.tamaño.toLowerCase().trim(),
+        fragilidad: this.paqueteForm.fragilidad.toLowerCase().trim(),
+        contenido: this.paqueteForm.contenido.trim(),
+        tipo: this.paqueteForm.tipo.toLowerCase().trim(),
+        valor_declarado: Number(this.paqueteForm.valor_declarado || 0),
+        estado: (this.paqueteForm.estado || 'registrado').toLowerCase().trim()
+      };
+
+      // El backend acepta id_cliente en el body o como query parameter
+      // Lo enviamos como query parameter para mayor claridad
+      console.log('Creando paquete con datos:', newPaquete);
+      console.log('ID Cliente:', this.paqueteForm.id_cliente);
+      console.log('Creado por:', currentUser.id_usuario);
+      
+      this.paqueteService.crearPaquete(newPaquete, currentUser.id_usuario, this.paqueteForm.id_cliente)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: (paquete) => {
+          console.log('Paquete creado exitosamente:', paquete);
+          // Limpiar datos guardados después de guardar exitosamente
+          this.formStorage.clearFormData('paquete_nuevo');
           this.cargarPaquetes();
           this.closeModal();
           this.isLoading = false;
+          this.errorMessage = '';
         },
         error: (error) => {
           console.error('Error al crear paquete:', error);
-          this.errorMessage = 'Error al crear el paquete';
+          console.error('Detalles del error:', error.error);
+          this.errorMessage = this.getErrorMessage(error) || 'Error al crear el paquete';
           this.isLoading = false;
         }
       });
@@ -165,14 +257,26 @@ export class PaqueteListComponent implements OnInit, AfterViewInit {
   deletePaquete(id: string | undefined) {
     if (!id) return;
     
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id_usuario) {
+      this.errorMessage = 'Usuario no autenticado';
+      return;
+    }
+    
     if (confirm('¿Estás seguro de eliminar este paquete?')) {
-      this.paqueteService.eliminarPaquete(id).subscribe({
+      this.isLoading = true;
+      this.paqueteService.eliminarPaquete(id, currentUser.id_usuario)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: () => {
           this.cargarPaquetes();
+          this.isLoading = false;
+          this.errorMessage = '';
         },
         error: (error) => {
           console.error('Error al eliminar paquete:', error);
-          this.errorMessage = 'Error al eliminar el paquete';
+          this.errorMessage = this.getErrorMessage(error) || 'Error al eliminar el paquete';
+          this.isLoading = false;
         }
       });
     }
@@ -246,5 +350,18 @@ export class PaqueteListComponent implements OnInit, AfterViewInit {
     this.filtroEstado = 'todos';
     this.filtroFragilidad = 'todos';
     this.searchTerm = '';
+  }
+
+  private getErrorMessage(error: any): string {
+    const errorDetail = error?.error?.detail || error?.error?.message || error?.message;
+    if (typeof errorDetail === 'string') {
+      return errorDetail;
+    } else if (errorDetail && typeof errorDetail === 'object') {
+      if (Array.isArray(errorDetail)) {
+        return errorDetail.join(', ');
+      }
+      return JSON.stringify(errorDetail);
+    }
+    return 'Error desconocido';
   }
 }

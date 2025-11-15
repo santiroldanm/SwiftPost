@@ -1,37 +1,37 @@
-import { Injectable } from '@angular/core';
-import { CanActivate, ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
 /**
  * Guard para proteger rutas que requieren autenticación
  */
-@Injectable({
-  providedIn: 'root'
-})
-export class AuthGuard implements CanActivate {
+export const authGuard: CanActivateFn = (
+  route: ActivatedRouteSnapshot,
+  state: RouterStateSnapshot
+): boolean => {
+  const router = inject(Router);
+  const platformId = inject(PLATFORM_ID);
   
-  constructor(private router: Router) {}
-  
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Observable<boolean> | Promise<boolean> | boolean {
-    
-    // Verificar si existe un token de autenticación
-    const token = localStorage.getItem('auth_token');
-    const userId = localStorage.getItem('user_id');
-    
-    if (token && userId) {
-      // Usuario autenticado, permitir acceso
-      return true;
-    }
-    
-    // Usuario no autenticado, redirigir al login
-    console.warn('Acceso denegado. Redirigiendo al login...');
-    this.router.navigate(['/login'], {
-      queryParams: { returnUrl: state.url }
-    });
-    
+  // Solo verificar en el navegador
+  if (!isPlatformBrowser(platformId)) {
     return false;
   }
-}
+  
+  // Verificar si existe un token de autenticación
+  const token = localStorage.getItem('auth_token');
+  const userId = localStorage.getItem('user_id');
+  
+  if (token && userId) {
+    // Usuario autenticado, permitir acceso
+    return true;
+  }
+  
+  // Usuario no autenticado, redirigir al login
+  console.warn('Acceso denegado. Redirigiendo al login...');
+  router.navigate(['/login'], {
+    queryParams: { returnUrl: state.url }
+  });
+  
+  return false;
+};

@@ -81,13 +81,13 @@
       <div class="employee-card card">
 
         <div class="avatar">
-          <img src="" alt="Foto empleado">
+          <img src="/foto-empleado.png" alt="Foto empleado">
         </div>
 
         <div class="info">
           <h3>{{ emp.primer_nombre }} {{ emp.primer_apellido }}</h3>
-          <p class="role">{{ emp.cargo }}</p>
-          <p class="email">{{ emp.numero_documento }}</p>
+          <p class="role">{{ emp.tipo_empleado }}</p>
+          <p class="email">{{ emp.documento }}</p>
         </div>
 
         <div class="card-actions">
@@ -183,19 +183,21 @@
                 name="id_tipo_documento"
                 required>
                 <option value="">Seleccionar tipo</option>
-                <option *ngFor="let tipo of tiposDocumento" [value]="tipo.id_tipo_documento">
-                  {{ tipo.codigo }} - {{ tipo.nombre }}
-                </option>
+                @for (tipo of tiposDocumento; track tipo.id_tipo_documento) {
+                  <option [value]="tipo.id_tipo_documento">
+                    {{ tipo.codigo }} - {{ tipo.nombre }}
+                  </option>
+                }
               </select>
             </div>
 
             <div class="form-group">
-              <label for="numero_documento">Número de Documento *</label>
+              <label for="documento">Número de Documento *</label>
               <input 
                 type="text" 
-                id="numero_documento" 
-                [(ngModel)]="employeeForm.numero_documento" 
-                name="numero_documento"
+                id="documento" 
+                [(ngModel)]="employeeForm.documento" 
+                name="documento"
                 placeholder="Ej: 1234567890"
                 required>
             </div>
@@ -203,20 +205,63 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="cargo">Cargo *</label>
-              <select 
-                id="cargo" 
-                [(ngModel)]="employeeForm.cargo" 
-                name="cargo"
+              <label for="fecha_nacimiento">Fecha de Nacimiento *</label>
+              <input 
+                type="date" 
+                id="fecha_nacimiento" 
+                [(ngModel)]="employeeForm.fecha_nacimiento" 
+                name="fecha_nacimiento"
                 required>
-                <option value="">Seleccionar cargo</option>
-                <option value="Mensajero">Mensajero</option>
-                <option value="Mensajera">Mensajera</option>
-                <option value="Administradora">Administradora</option>
-                <option value="Administrador">Administrador</option>
-                <option value="Operador Logistico">Operador Logístico</option>
-                <option value="Secretaria">Secretaria</option>
-                <option value="Secretario">Secretario</option>
+            </div>
+
+            <div class="form-group">
+              <label for="telefono">Teléfono *</label>
+              <input 
+                type="tel" 
+                id="telefono" 
+                [(ngModel)]="employeeForm.telefono" 
+                name="telefono"
+                placeholder="Ej: 3001234567"
+                required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="correo">Correo Electrónico *</label>
+              <input 
+                type="email" 
+                id="correo" 
+                [(ngModel)]="employeeForm.correo" 
+                name="correo"
+                placeholder="Ej: empleado@ejemplo.com"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="direccion">Dirección *</label>
+              <input 
+                type="text" 
+                id="direccion" 
+                [(ngModel)]="employeeForm.direccion" 
+                name="direccion"
+                placeholder="Ej: Calle 123 #45-67"
+                required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tipo_empleado">Tipo de Empleado *</label>
+              <select 
+                id="tipo_empleado" 
+                [(ngModel)]="employeeForm.tipo_empleado" 
+                name="tipo_empleado"
+                required>
+                <option value="">Seleccionar tipo</option>
+                <option value="mensajero">Mensajero</option>
+                <option value="logistico">Logístico</option>
+                <option value="secretario">Secretario</option>
               </select>
             </div>
 
@@ -229,42 +274,50 @@
                 name="salario"
                 placeholder="Ej: 1500000"
                 min="0"
+                step="0.01"
                 required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="id_sede">Sede *</label>
-              <select 
-                id="id_sede" 
-                [(ngModel)]="employeeForm.id_sede" 
-                name="id_sede"
+              <label for="fecha_ingreso">Fecha de Ingreso *</label>
+              <input 
+                type="date" 
+                id="fecha_ingreso" 
+                [(ngModel)]="employeeForm.fecha_ingreso" 
+                name="fecha_ingreso"
                 required>
-                <option value="">Seleccionar sede</option>
-                <option *ngFor="let sede of sedes" [value]="sede.id_sede">
-                  {{ sede.nombre }} - {{ sede.ciudad }}
-                </option>
-              </select>
             </div>
 
             <div class="form-group">
-              <label for="fecha_contratacion">Fecha de Contratación *</label>
-              <input 
-                type="date" 
-                id="fecha_contratacion" 
-                [(ngModel)]="employeeForm.fecha_contratacion" 
-                name="fecha_contratacion"
-                required>
+              <label for="id_sede">Sede</label>
+              <select 
+                id="id_sede" 
+                [(ngModel)]="employeeForm.id_sede" 
+                name="id_sede">
+                <option value="">Seleccionar sede (opcional)</option>
+                @for (sede of sedes; track sede.id_sede) {
+                  <option [value]="sede.id_sede">
+                    {{ sede.nombre }} - {{ sede.ciudad }}
+                  </option>
+                }
+              </select>
             </div>
           </div>
+
+          @if (errorMessage) {
+            <div class="error-message" style="color: red; margin: 10px 0; padding: 10px; background-color: #ffebee; border-radius: 4px;">
+              {{ errorMessage }}
+            </div>
+          }
 
           <div class="modal-footer">
             <button type="button" class="btn btn-outline" (click)="closeModal()">
               Cancelar
             </button>
-            <button type="submit" class="btn btn-primary">
-              {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+            <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+              {{ isLoading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Guardar') }}
             </button>
           </div>
         </form>

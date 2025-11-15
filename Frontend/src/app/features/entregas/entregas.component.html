@@ -22,7 +22,7 @@
         class="search-input">
     </div>
     <div class="action-buttons">
-      <select [(ngModel)]="filtroEstado" class="btn btn-outline" style="padding: 12px 16px;">
+      <select [(ngModel)]="filtroEstado" (ngModelChange)="onFiltroEstadoChange()" class="btn btn-outline" style="padding: 12px 16px;">
         <option value="todos">Todos</option>
         <option value="Pendiente">Pendiente</option>
         <option value="En transito">En Tránsito</option>

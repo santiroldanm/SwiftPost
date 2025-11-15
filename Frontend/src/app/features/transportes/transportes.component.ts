@@ -1,7 +1,8 @@
-import { Component, OnInit, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TransporteService, Transporte } from '../../core/services/transporte.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SedeService, Sede } from '../../core/services/sede.service';
@@ -10,12 +11,11 @@ import { SedeService, Sede } from '../../core/services/sede.service';
   selector: 'app-transportes',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  providers: [TransporteService, AuthService],
   templateUrl: './transportes.component.html',
-  styleUrls: ['./transportes.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default
+  styleUrls: ['./transportes.component.scss']
 })
 export class TransportesComponent implements OnInit, AfterViewInit {
+  private destroyRef = inject(DestroyRef);
   searchTerm = '';
   showModal = false;
   showFiltros = false;
@@ -43,7 +43,6 @@ export class TransportesComponent implements OnInit, AfterViewInit {
     private transporteService: TransporteService,
     private authService: AuthService,
     private sedeService: SedeService,
-    private cdr: ChangeDetectorRef,
     private route: ActivatedRoute
   ) {}
 
@@ -52,44 +51,47 @@ export class TransportesComponent implements OnInit, AfterViewInit {
     this.cargarSedes();
     
     // Escuchar cambios de ruta para recargar datos
-    this.route.params.subscribe(() => {
-      this.cargarTransportes();
-    });
+    this.route.params
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.cargarTransportes();
+      });
   }
 
   ngAfterViewInit(): void {
-    // Forzar recarga de datos después de que la vista esté inicializada
-    setTimeout(() => {
-      this.cargarTransportes();
-    }, 100);
+    // Ya no es necesario el setTimeout, Angular maneja esto automáticamente
   }
 
   cargarTransportes(): void {
     this.isLoading = true;
     this.errorMessage = '';
     
-    this.transporteService.obtenerTransportes(0, 100).subscribe({
-      next: (transportes) => {
-        this.transports = transportes;
-        this.isLoading = false;
-        this.cdr.detectChanges(); // Forzar actualización de la vista
-      },
-      error: (error) => {
-        console.error('Error al cargar transportes:', error);
-        this.errorMessage = 'Error al cargar los transportes';
-        this.isLoading = false;
-        this.cdr.detectChanges(); // Forzar actualización de la vista
-      }
-    });
+    this.transporteService.obtenerTransportes(0, 100)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (transportes) => {
+          // Filtrar solo transportes activos
+          this.transports = transportes.filter(t => t.activo !== false);
+          this.isLoading = false;
+          console.log('Transportes activos cargados:', this.transports.length);
+        },
+        error: (error) => {
+          console.error('Error al cargar transportes:', error);
+          this.errorMessage = this.getErrorMessage(error) || 'Error al cargar los transportes';
+          this.isLoading = false;
+        }
+      });
   }
 
   cargarSedes(): void {
-    this.sedeService.obtenerSedes(0, 100).subscribe({
-      next: (sedes) => {
-        this.sedes = Array.isArray(sedes) ? sedes : [];
-      },
-      error: (error) => console.error('Error al cargar sedes:', error)
-    });
+    this.sedeService.obtenerSedes(0, 100)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (sedes) => {
+          this.sedes = Array.isArray(sedes) ? sedes : [];
+        },
+        error: (error) => console.error('Error al cargar sedes:', error)
+      });
   }
 
 
@@ -164,43 +166,64 @@ export class TransportesComponent implements OnInit, AfterViewInit {
 
   saveTransport() {
     this.isLoading = true;
+    this.errorMessage = '';
     const currentUser = this.authService.getCurrentUser();
     
     if (this.isEditMode && this.transportForm.id_transporte) {
       // Actualizar transporte existente
-      const updateData = {
-        ...this.transportForm,
-        actualizado_por: currentUser?.id_usuario
-      };
+      if (!currentUser?.id_usuario) {
+        this.errorMessage = 'Usuario no autenticado';
+        this.isLoading = false;
+        return;
+      }
+
+      // Limpiar datos: remover campos que no deben enviarse
+      const { id_transporte, fecha_creacion, fecha_actualizacion, creado_por, ...updateData } = this.transportForm;
       
-      this.transporteService.actualizarTransporte(this.transportForm.id_transporte, updateData).subscribe({
+      this.transporteService.actualizarTransporte(this.transportForm.id_transporte, updateData, currentUser.id_usuario)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: () => {
           this.cargarTransportes();
           this.closeModal();
           this.isLoading = false;
+          this.errorMessage = '';
         },
         error: (error) => {
           console.error('Error al actualizar transporte:', error);
-          this.errorMessage = 'Error al actualizar el transporte';
+          this.errorMessage = this.getErrorMessage(error) || 'Error al actualizar el transporte';
           this.isLoading = false;
         }
       });
     } else {
       // Crear nuevo transporte
-      const newTransporte = {
-        ...this.transportForm,
-        creado_por: currentUser?.id_usuario
-      };
+      if (!currentUser?.id_usuario) {
+        this.errorMessage = 'Usuario no autenticado';
+        this.isLoading = false;
+        return;
+      }
+
+      if (!this.transportForm.id_sede) {
+        this.errorMessage = 'Debe seleccionar una sede';
+        this.isLoading = false;
+        return;
+      }
+
+      // Limpiar datos: remover campos que no deben enviarse en creación
+      const { id_transporte, fecha_creacion, fecha_actualizacion, actualizado_por, creado_por, ...newTransporte } = this.transportForm as any;
       
-      this.transporteService.crearTransporte(newTransporte).subscribe({
+      this.transporteService.crearTransporte(newTransporte, currentUser.id_usuario)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: () => {
           this.cargarTransportes();
           this.closeModal();
           this.isLoading = false;
+          this.errorMessage = '';
         },
         error: (error) => {
           console.error('Error al crear transporte:', error);
-          this.errorMessage = 'Error al crear el transporte';
+          this.errorMessage = this.getErrorMessage(error) || 'Error al crear el transporte';
           this.isLoading = false;
         }
       });
@@ -210,17 +233,29 @@ export class TransportesComponent implements OnInit, AfterViewInit {
   deleteTransport(id: string | undefined) {
     if (!id) return;
     
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id_usuario) {
+      this.errorMessage = 'Usuario no autenticado';
+      return;
+    }
+    
     if (confirm('¿Estás seguro de eliminar este transporte?')) {
-      this.transporteService.eliminarTransporte(id).subscribe({
+      this.isLoading = true;
+      this.transporteService.eliminarTransporte(id, currentUser.id_usuario)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: () => {
           this.cargarTransportes();
           if (this.currentSlide >= this.transports.length && this.currentSlide > 0) {
             this.currentSlide--;
           }
+          this.errorMessage = '';
+          this.isLoading = false;
         },
         error: (error) => {
           console.error('Error al eliminar transporte:', error);
-          this.errorMessage = 'Error al eliminar el transporte';
+          this.errorMessage = this.getErrorMessage(error) || 'Error al eliminar el transporte';
+          this.isLoading = false;
         }
       });
     }
@@ -297,5 +332,18 @@ export class TransportesComponent implements OnInit, AfterViewInit {
   limpiarFiltros(): void {
     this.filtroEstado = 'todos';
     this.searchTerm = '';
+  }
+
+  private getErrorMessage(error: any): string {
+    const errorDetail = error?.error?.detail || error?.error?.message || error?.message;
+    if (typeof errorDetail === 'string') {
+      return errorDetail;
+    } else if (errorDetail && typeof errorDetail === 'object') {
+      if (Array.isArray(errorDetail)) {
+        return errorDetail.join(', ');
+      }
+      return JSON.stringify(errorDetail);
+    }
+    return 'Error desconocido';
   }
 }
