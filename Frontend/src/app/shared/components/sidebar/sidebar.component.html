@@ -1,0 +1,70 @@
+<aside class="sidebar" [class.collapsed]="isCollapsed">
+  <div class="sidebar-header">
+    <div class="logo">
+      <img class="logo-hztl" src="/logo-hztl-blanco.png" alt="Logo SwiftPost">
+      <img class="logo-cuadro" src="/logo-blanco-cuadro.png" alt="Logo SwiftPost">
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <ul class="nav-list">
+      @for (item of menuItems; track item.route) {
+        <li class="nav-item">
+          @if (!item.children) {
+            <a 
+              [routerLink]="item.route" 
+              routerLinkActive="active"
+              class="nav-link"
+              [title]="item.label"
+              [routerLinkActiveOptions]="{exact: false}">
+              <span class="material-icons nav-icon">{{ item.icon }}</span>
+              @if (!isCollapsed) {
+                <span class="nav-label">{{ item.label }}</span>
+              }
+            </a>
+          }
+
+          @if (item.children) {
+            <div class="nav-group">
+              <button 
+                class="nav-link nav-toggle"
+                (click)="toggleSubmenu(item)"
+                [class.expanded]="item.expanded"
+                [title]="item.label">
+                <span class="material-icons nav-icon">{{ item.icon }}</span>
+                @if (!isCollapsed) {
+                  <span class="nav-label">{{ item.label }}</span>
+                  <span class="material-icons expand-icon">
+                    {{ item.expanded ? 'expand_less' : 'expand_more' }}
+                  </span>
+                }
+              </button>
+              
+              @if (item.expanded && !isCollapsed) {
+                <ul class="submenu">
+                  @for (child of item.children; track child.route) {
+                    <li class="submenu-item">
+                      <a 
+                        [routerLink]="child.route" 
+                        routerLinkActive="active"
+                        class="submenu-link">
+                        <span class="material-icons submenu-icon">{{ child.icon }}</span>
+                        <span class="submenu-label">{{ child.label }}</span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <button class="toggle-btn" (click)="toggleSidebar()" [title]="isCollapsed ? 'Expandir' : 'Contraer'">
+    <span class="material-icons">
+      {{ isCollapsed ? 'chevron_right' : 'chevron_left' }}
+    </span>
+  </button>
+</aside>

@@ -1,0 +1,279 @@
+<div class="producto-list">
+  <div class="page-header">
+    <div class="header-left">
+      <h2>Gestión de Paquetes</h2>
+      <p class="subtitle">Administra los paquetes registrados</p>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-primary" (click)="openNewPaqueteModal()">
+        <span class="material-icons">add</span>
+        Nuevo Paquete
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="search-box">
+      <span class="material-icons">search</span>
+      <input 
+        type="text" 
+        placeholder="Buscar paquetes..." 
+        [(ngModel)]="searchTerm"
+        class="search-input">
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-outline" (click)="toggleFiltros()">
+        <span class="material-icons">filter_list</span>
+        Filtros
+      </button>
+      <button class="btn btn-outline" (click)="exportarDatos()">
+        <span class="material-icons">download</span>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal de Filtros -->
+  @if (showFiltros) {
+    <div class="modal-overlay" (click)="toggleFiltros()">
+      <div class="modal-content filter-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Filtros Avanzados</h2>
+          <button class="close-btn" (click)="toggleFiltros()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="filtroEstado">Estado del Paquete</label>
+            <select id="filtroEstado" [(ngModel)]="filtroEstado" class="form-control">
+              <option value="todos">Todos</option>
+              <option value="registrado">Registrado</option>
+              <option value="en_transito">En Tránsito</option>
+              <option value="entregado">Entregado</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="filtroFragilidad">Fragilidad</label>
+            <select id="filtroFragilidad" [(ngModel)]="filtroFragilidad" class="form-control">
+              <option value="todos">Todos</option>
+              <option value="Si">Frágil</option>
+              <option value="No">No Frágil</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="limpiarFiltros()">
+            Limpiar
+          </button>
+          <button type="button" class="btn btn-primary" (click)="aplicarFiltros()">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="card recent-orders">
+      <div class="card-header">
+        <h3>Paquetes Registrados</h3>
+        <a href="#" class="view-all-link">Ver todas</a>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID Orden</th>
+                <th>Contenido</th>
+                <th>Monto</th>
+                <th>Peso</th>
+                <th>Tamaño</th>
+                <th>Fragilidad</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (paquete of filteredPaquetes; track paquete.id_paquete) {
+                <tr>
+                <td class="order-id">{{ paquete.id_paquete }}</td>
+                <td>{{ paquete.contenido }}</td>
+                <td class="amount">{{ paquete.valor_declarado }}</td>
+                <td>{{ paquete.peso }}</td>
+                <td>{{ paquete['tamaño'] }}</td>
+                <td>{{ paquete.fragilidad }}</td>
+                <td>
+                  <span class="status-badge" [ngClass]="getStatusClass(paquete.estado)">
+                    {{ paquete.estado }}
+                  </span>
+                </td>
+                <td class="date">{{ paquete.fecha_creacion }}</td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-primary" (click)="openEditPaqueteModal(paquete)">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deletePaquete(paquete.id_paquete)">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="pagination-btn" disabled>
+      <span class="material-icons">chevron_left</span>
+    </button>
+    <button class="pagination-btn active">1</button>
+    <button class="pagination-btn">2</button>
+    <button class="pagination-btn">3</button>
+    <button class="pagination-btn">
+      <span class="material-icons">chevron_right</span>
+    </button>
+  </div>
+
+  <!-- Modal -->
+  @if (showModal) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ isEditMode ? 'Editar Paquete' : 'Nuevo Paquete' }}</h2>
+          <button class="close-btn" (click)="closeModal()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+
+        <form class="modal-body" (ngSubmit)="savePaquete()">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="id">ID Orden *</label>
+              <input 
+                type="text" 
+                id="id" 
+                [(ngModel)]="paqueteForm.id_paquete" 
+                name="id"
+                placeholder="#1234"
+                [readonly]="true"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="date">Fecha *</label>
+              <input 
+                type="date" 
+                id="date" 
+                [(ngModel)]="paqueteForm.fecha_creacion" 
+                name="date"
+                required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="customer">Contenido *</label>
+            <input 
+              type="text" 
+              id="customer" 
+              [(ngModel)]="paqueteForm.contenido" 
+              name="customer"
+              placeholder="Contenido"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="product">Tipo *</label>
+            <input 
+              type="text" 
+              id="product" 
+              [(ngModel)]="paqueteForm.tipo" 
+              name="product"
+              placeholder="Tipo"
+              required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="amount">Monto *</label>
+              <input 
+                type="text" 
+                id="amount" 
+                [(ngModel)]="paqueteForm.valor_declarado" 
+                name="amount"
+                placeholder="$100"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="weight">Peso</label>
+              <input 
+                type="text" 
+                id="weight" 
+                [(ngModel)]="paqueteForm.peso" 
+                name="weight"
+                placeholder="2.5 kg">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tamaño">Fragilidad *</label>
+              <input 
+                type="text" 
+                id="tamaño" 
+                [(ngModel)]="paqueteForm.fragilidad" 
+                name="tamaño"
+                placeholder="Alta"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="tamaño">Tamaño *</label>
+              <input 
+                type="text" 
+                id="tamaño" 
+                [(ngModel)]="paqueteForm['tamaño']" 
+                name="tamaño"
+                placeholder="pequeño, mediano, grande, gigante">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="status">Estado *</label>
+            <select 
+              id="status" 
+              [(ngModel)]="paqueteForm.estado" 
+              name="status"
+              required>
+              <option value="Registrado">Registrado</option>
+              <option value="En tránsito">En tránsito</option>
+              <option value="Entregado">Entregado</option>
+              <option value="No entregado">No entregado</option>
+            </select>
+          </div>
+
+          
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" (click)="closeModal()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary">
+              {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>
