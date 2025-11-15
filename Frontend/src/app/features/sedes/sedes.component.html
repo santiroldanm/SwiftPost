@@ -1,0 +1,309 @@
+<div class="sedes-page">
+  
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2>Sedes SwiftPost</h2>
+      <p class="subtitle">Red de distribución en Colombia</p>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-primary" (click)="openNewSedeModal()">
+        <span class="material-icons">add_location</span>
+        Nueva Sede
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Summary -->
+  <div class="stats-summary">
+    <div class="stat-card">
+      <span class="material-icons">location_city</span>
+      <div>
+        <h4>{{ sedes.length }}</h4>
+        <p>Sedes Totales</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <span class="material-icons">check_circle</span>
+      <div>
+        <h4>{{ activeSedes }}</h4>
+        <p>Sedes Activas</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <span class="material-icons">people</span>
+      <div>
+        <h4>{{ totalEmpleados }}</h4>
+        <p>Empleados</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <span class="material-icons">inventory_2</span>
+      <div>
+        <h4>{{ totalPaquetes }}</h4>
+        <p>Paquetes/Mes</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="filters-section">
+    <div class="search-box">
+      <span class="material-icons">search</span>
+      <input
+        type="text"
+        placeholder="Buscar por nombre o ciudad..."
+        [(ngModel)]="searchTerm"
+        class="search-input">
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-outline" (click)="toggleFiltros()">
+        <span class="material-icons">filter_list</span>
+        Filtros
+      </button>
+      <button class="btn btn-outline" (click)="exportarDatos()">
+        <span class="material-icons">download</span>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal de Filtros -->
+  @if (showFiltros) {
+    <div class="modal-overlay" (click)="toggleFiltros()">
+      <div class="modal-content filter-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Filtros Avanzados</h2>
+          <button class="close-btn" (click)="toggleFiltros()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="filtroEstado">Estado de la Sede</label>
+            <select id="filtroEstado" [(ngModel)]="filtroEstado" class="form-control">
+              <option value="todos">Todas</option>
+              <option value="activas">Activas</option>
+              <option value="inactivas">Inactivas</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="limpiarFiltros()">
+            Limpiar
+          </button>
+          <button type="button" class="btn btn-primary" (click)="aplicarFiltros()">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Timeline/Route View -->
+  <div class="timeline-section">
+    <div class="timeline-header">
+      <span class="material-icons">route</span>
+      <h3>Sedes de Cobertura Nacional</h3>
+    </div>
+
+    <div class="timeline-container">
+      @for (sede of filteredSedes; track sede.id_sede; let i = $index; let isLast = $last) {
+        <div class="timeline-item" [class.expanded]="selectedSede?.id_sede === sede.id_sede">
+          
+          <!-- Timeline Node -->
+          <div class="timeline-node">
+            <div class="node-circle" 
+                 [class.status-active]="sede.activo"
+                 [class.status-inactive]="!sede.activo"
+                 (click)="selectSede(sede)">
+              <span class="material-icons">location_on</span>
+            </div>
+            @if (!isLast) {
+              <div class="node-line"></div>
+            }
+          </div>
+
+          <!-- Sede Card -->
+          <div class="sede-card-timeline" (click)="selectSede(sede)">
+            <div class="card-header">
+              <div class="header-content">
+                <h4>{{ sede.nombre }}</h4>
+                <span class="status-badge" 
+                      [class.status-active]="sede.activo"
+                      [class.status-inactive]="!sede.activo">
+                  {{ sede.activo ? 'Activa' : 'Inactiva' }}
+                </span>
+              </div>
+              <span class="city-tag">
+                <span class="material-icons">location_city</span>
+                {{ sede.ciudad }}
+              </span>
+            </div>
+
+            <div class="card-content">
+              <div class="info-row">
+                <span class="material-icons">place</span>
+                <p>{{ sede.direccion }}</p>
+              </div>
+              <div class="info-row">
+                <span class="material-icons">phone</span>
+                <p>{{ sede.telefono }}</p>
+              </div>
+            </div>
+
+            <!-- Expanded Details -->
+            @if (selectedSede?.id_sede === sede.id_sede) {
+              <div class="expanded-details">
+                @if (sede.latitud && sede.longitud) {
+                  <div class="detail-row">
+                    <span class="material-icons">my_location</span>
+                    <div>
+                      <label>Coordenadas</label>
+                      <p>{{ sede.latitud }}, {{ sede.longitud }}</p>
+                    </div>
+                  </div>
+                }
+                @if (sede.altitud) {
+                  <div class="detail-row">
+                    <span class="material-icons">terrain</span>
+                    <div>
+                      <label>Altitud</label>
+                      <p>{{ sede.altitud }} msnm</p>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="card-actions">
+              <button class="btn btn-sm btn-primary" (click)="openEditSedeModal(sede); $event.stopPropagation()">
+                <span class="material-icons">edit</span>
+                Editar
+              </button>
+              <button class="btn btn-sm btn-danger" (click)="deleteSede(sede.id_sede); $event.stopPropagation()">
+                <span class="material-icons">delete</span>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Modal -->
+  @if (showModal) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ isEditMode ? 'Editar Sede' : 'Nueva Sede' }}</h2>
+          <button class="close-btn" (click)="closeModal()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+
+        <form class="modal-body" (ngSubmit)="saveSede()">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nombre">Nombre de la Sede *</label>
+              <input 
+                type="text" 
+                id="nombre" 
+                [(ngModel)]="sedeForm.nombre" 
+                name="nombre"
+                placeholder="Ej: Sede Principal Bogotá"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="ciudad">Ciudad *</label>
+              <input 
+                type="text" 
+                id="ciudad" 
+                [(ngModel)]="sedeForm.ciudad" 
+                name="ciudad"
+                placeholder="Ej: Bogotá"
+                required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="direccion">Dirección *</label>
+            <input 
+              type="text" 
+              id="direccion" 
+              [(ngModel)]="sedeForm.direccion" 
+              name="direccion"
+              placeholder="Ej: Calle 100 #15-20"
+              required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="telefono">Teléfono *</label>
+              <input 
+                type="tel" 
+                id="telefono" 
+                [(ngModel)]="sedeForm.telefono" 
+                name="telefono"
+                placeholder="+57 601 234 5678"
+                required>
+            </div>
+
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="latitud">Latitud</label>
+              <input 
+                type="number" 
+                id="latitud" 
+                [(ngModel)]="sedeForm.latitud" 
+                name="latitud"
+                step="0.0001"
+                placeholder="4.7110">
+            </div>
+
+            <div class="form-group">
+              <label for="longitud">Longitud</label>
+              <input 
+                type="number" 
+                id="longitud" 
+                [(ngModel)]="sedeForm.longitud" 
+                name="longitud"
+                step="0.0001"
+                placeholder="-74.0721">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="altitud">Altitud (msnm)</label>
+              <input 
+                type="number" 
+                id="altitud" 
+                [(ngModel)]="sedeForm.altitud" 
+                name="altitud"
+                placeholder="2640">
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" (click)="closeModal()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary">
+              {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>
