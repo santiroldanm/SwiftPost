@@ -1,0 +1,329 @@
+<div class="employees-page">
+
+  <div class="page-header">
+    <div class="header-left">
+      <h2>Gestión de Empleados</h2>
+      <p class="subtitle">Administra la información del personal</p>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-primary" (click)="openNewEmployeeModal()">
+        <span class="material-icons">add</span>
+        Nuevo Empleado
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="search-box">
+      <span class="material-icons">search</span>
+      <input
+        type="text"
+        placeholder="Buscar empleados..."
+        [(ngModel)]="searchTerm"
+        class="search-input">
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-outline" (click)="toggleFiltros()">
+        <span class="material-icons">filter_list</span>
+        Filtros
+      </button>
+      <button class="btn btn-outline" (click)="exportarDatos()">
+        <span class="material-icons">download</span>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal de Filtros -->
+  @if (showFiltros) {
+    <div class="modal-overlay" (click)="toggleFiltros()">
+      <div class="modal-content filter-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Filtros Avanzados</h2>
+          <button class="close-btn" (click)="toggleFiltros()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="filtroCargo">Cargo</label>
+            <select id="filtroCargo" [(ngModel)]="filtroCargo" class="form-control">
+              <option value="todos">Todos</option>
+              <option value="Mensajero">Mensajero</option>
+              <option value="Mensajera">Mensajera</option>
+              <option value="Administradora">Administradora</option>
+              <option value="Administrador">Administrador</option>
+              <option value="Operador Logistico">Operador Logístico</option>
+              <option value="Secretaria">Secretaria</option>
+              <option value="Secretario">Secretario</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="limpiarFiltros()">
+            Limpiar
+          </button>
+          <button type="button" class="btn btn-primary" (click)="aplicarFiltros()">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Employee Cards -->
+  <div class="employees-grid">
+    @for (emp of filteredEmployees; track emp.id_empleado) {
+      <div class="employee-card card">
+
+        <div class="avatar">
+          <img src="/foto-empleado.png" alt="Foto empleado">
+        </div>
+
+        <div class="info">
+          <h3>{{ emp.primer_nombre }} {{ emp.primer_apellido }}</h3>
+          <p class="role">{{ emp.tipo_empleado }}</p>
+          <p class="email">{{ emp.documento }}</p>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn btn-sm btn-primary" (click)="openEditEmployeeModal(emp)">
+            <span class="material-icons">edit</span>
+          </button>
+          <button class="btn btn-sm btn-danger" (click)="deleteEmployee(emp.id_empleado)">
+            <span class="material-icons">delete</span>
+          </button>
+        </div>
+
+      </div>
+    }
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="pagination-btn" disabled>
+      <span class="material-icons">chevron_left</span>
+    </button>
+    <button class="pagination-btn active">1</button>
+    <button class="pagination-btn">2</button>
+    <button class="pagination-btn">3</button>
+    <button class="pagination-btn">
+      <span class="material-icons">chevron_right</span>
+    </button>
+  </div>
+
+  <!-- Modal -->
+  @if (showModal) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ isEditMode ? 'Editar Empleado' : 'Nuevo Empleado' }}</h2>
+          <button class="close-btn" (click)="closeModal()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+
+        <form class="modal-body" (ngSubmit)="saveEmployee()">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="primer_nombre">Primer Nombre *</label>
+              <input 
+                type="text" 
+                id="primer_nombre" 
+                [(ngModel)]="employeeForm.primer_nombre" 
+                name="primer_nombre"
+                placeholder="Ej: Juan"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="segundo_nombre">Segundo Nombre</label>
+              <input 
+                type="text" 
+                id="segundo_nombre" 
+                [(ngModel)]="employeeForm.segundo_nombre" 
+                name="segundo_nombre"
+                placeholder="Ej: Carlos">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="primer_apellido">Primer Apellido *</label>
+              <input 
+                type="text" 
+                id="primer_apellido" 
+                [(ngModel)]="employeeForm.primer_apellido" 
+                name="primer_apellido"
+                placeholder="Ej: Pérez"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="segundo_apellido">Segundo Apellido</label>
+              <input 
+                type="text" 
+                id="segundo_apellido" 
+                [(ngModel)]="employeeForm.segundo_apellido" 
+                name="segundo_apellido"
+                placeholder="Ej: García">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="id_tipo_documento">Tipo de Documento *</label>
+              <select 
+                id="id_tipo_documento" 
+                [(ngModel)]="employeeForm.id_tipo_documento" 
+                name="id_tipo_documento"
+                required>
+                <option value="">Seleccionar tipo</option>
+                @for (tipo of tiposDocumento; track tipo.id_tipo_documento) {
+                  <option [value]="tipo.id_tipo_documento">
+                    {{ tipo.codigo }} - {{ tipo.nombre }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="documento">Número de Documento *</label>
+              <input 
+                type="text" 
+                id="documento" 
+                [(ngModel)]="employeeForm.documento" 
+                name="documento"
+                placeholder="Ej: 1234567890"
+                required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fecha_nacimiento">Fecha de Nacimiento *</label>
+              <input 
+                type="date" 
+                id="fecha_nacimiento" 
+                [(ngModel)]="employeeForm.fecha_nacimiento" 
+                name="fecha_nacimiento"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="telefono">Teléfono *</label>
+              <input 
+                type="tel" 
+                id="telefono" 
+                [(ngModel)]="employeeForm.telefono" 
+                name="telefono"
+                placeholder="Ej: 3001234567"
+                required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="correo">Correo Electrónico *</label>
+              <input 
+                type="email" 
+                id="correo" 
+                [(ngModel)]="employeeForm.correo" 
+                name="correo"
+                placeholder="Ej: empleado@ejemplo.com"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="direccion">Dirección *</label>
+              <input 
+                type="text" 
+                id="direccion" 
+                [(ngModel)]="employeeForm.direccion" 
+                name="direccion"
+                placeholder="Ej: Calle 123 #45-67"
+                required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tipo_empleado">Tipo de Empleado *</label>
+              <select 
+                id="tipo_empleado" 
+                [(ngModel)]="employeeForm.tipo_empleado" 
+                name="tipo_empleado"
+                required>
+                <option value="">Seleccionar tipo</option>
+                <option value="mensajero">Mensajero</option>
+                <option value="logistico">Logístico</option>
+                <option value="secretario">Secretario</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="salario">Salario *</label>
+              <input 
+                type="number" 
+                id="salario" 
+                [(ngModel)]="employeeForm.salario" 
+                name="salario"
+                placeholder="Ej: 1500000"
+                min="0"
+                step="0.01"
+                required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fecha_ingreso">Fecha de Ingreso *</label>
+              <input 
+                type="date" 
+                id="fecha_ingreso" 
+                [(ngModel)]="employeeForm.fecha_ingreso" 
+                name="fecha_ingreso"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="id_sede">Sede</label>
+              <select 
+                id="id_sede" 
+                [(ngModel)]="employeeForm.id_sede" 
+                name="id_sede">
+                <option value="">Seleccionar sede (opcional)</option>
+                @for (sede of sedes; track sede.id_sede) {
+                  <option [value]="sede.id_sede">
+                    {{ sede.nombre }} - {{ sede.ciudad }}
+                  </option>
+                }
+              </select>
+            </div>
+          </div>
+
+          @if (errorMessage) {
+            <div class="error-message" style="color: red; margin: 10px 0; padding: 10px; background-color: #ffebee; border-radius: 4px;">
+              {{ errorMessage }}
+            </div>
+          }
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" (click)="closeModal()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+              {{ isLoading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Guardar') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>
+

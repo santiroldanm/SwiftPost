@@ -1,0 +1,352 @@
+<div class="transportes-page">
+
+  <div class="page-header">
+    <div class="header-left">
+      <h2>Gestión de Transportes</h2>
+      <p class="subtitle">Administra la flota de vehículos de mensajería</p>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-primary" (click)="openNewTransportModal()">
+        <span class="material-icons">add</span>
+        Nuevo Transporte
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="search-box">
+      <span class="material-icons">search</span>
+      <input
+        type="text"
+        placeholder="Buscar por tipo, marca, modelo o placa..."
+        [(ngModel)]="searchTerm"
+        class="search-input">
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-outline" (click)="toggleFiltros()">
+        <span class="material-icons">filter_list</span>
+        Filtros
+      </button>
+      <button class="btn btn-outline" (click)="exportarDatos()">
+        <span class="material-icons">download</span>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal de Filtros -->
+  @if (showFiltros) {
+    <div class="modal-overlay" (click)="toggleFiltros()">
+      <div class="modal-content filter-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Filtros Avanzados</h2>
+          <button class="close-btn" (click)="toggleFiltros()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="filtroEstado">Estado del Vehículo</label>
+            <select id="filtroEstado" [(ngModel)]="filtroEstado" class="form-control">
+              <option value="todos">Todos</option>
+              <option value="disponible">Disponible</option>
+              <option value="en_uso">En Uso</option>
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="fuera_servicio">Fuera de Servicio</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="limpiarFiltros()">
+            Limpiar
+          </button>
+          <button type="button" class="btn btn-primary" (click)="aplicarFiltros()">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Carousel -->
+  @if (filteredTransports.length > 0) {
+    <div class="carousel-container">
+      <button class="carousel-btn prev" (click)="prevSlide()">
+        <span class="material-icons">chevron_left</span>
+      </button>
+
+      <div class="carousel-wrapper">
+        <div class="carousel-track" [style.transform]="'translateX(-' + (currentSlide * 100) + '%)'">
+          @for (transport of filteredTransports; track transport.id_transporte) {
+            <div class="carousel-slide">
+              <div class="transport-card">
+                
+                <!-- Vehicle Image -->
+                <div class="vehicle-image">
+                  <span class="material-icons vehicle-icon">local_shipping</span>
+                  <div class="status-badge" [ngClass]="getStatusClass(transport.estado)">
+                    {{ transport.estado }}
+                  </div>
+                </div>
+
+                <!-- Vehicle Info -->
+                <div class="vehicle-info">
+                  <div class="info-header">
+                    <h3>{{ transport.marca }} {{ transport.modelo }}</h3>
+                    <span class="vehicle-type">{{ transport.tipo_vehiculo }}</span>
+                  </div>
+
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="material-icons">calendar_today</span>
+                      <div>
+                        <label>Año</label>
+                        <p>{{ transport['año'] }}</p>
+                      </div>
+                    </div>
+
+                    <div class="info-item">
+                      <span class="material-icons">pin</span>
+                      <div>
+                        <label>Placa</label>
+                        <p>{{ transport.placa }}</p>
+                      </div>
+                    </div>
+
+                    <div class="info-item">
+                      <span class="material-icons">scale</span>
+                      <div>
+                        <label>Capacidad</label>
+                        <p>{{ transport.capacidad_carga }} kg</p>
+                      </div>
+                    </div>
+
+                    <div class="info-item">
+                      <span class="material-icons">location_city</span>
+                      <div>
+                        <label>Sede</label>
+                        <p>{{ transport.id_sede.substring(0, 8) }}...</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="card-actions">
+                    <button class="btn btn-sm btn-outline" (click)="openEditTransportModal(transport)">
+                      <span class="material-icons">edit</span>
+                      Editar
+                    </button>
+                    <button class="btn btn-sm btn-danger" (click)="deleteTransport(transport.id_transporte)">
+                      <span class="material-icons">delete</span>
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <button class="carousel-btn next" (click)="nextSlide()">
+        <span class="material-icons">chevron_right</span>
+      </button>
+    </div>
+
+    <!-- Carousel Indicators -->
+    <div class="carousel-indicators">
+      @for (transport of filteredTransports; track transport.id_transporte; let i = $index) {
+        <button 
+          class="indicator" 
+          [class.active]="i === currentSlide"
+          (click)="goToSlide(i)">
+        </button>
+      }
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="stats-summary">
+      <div class="stat-card">
+        <span class="material-icons">local_shipping</span>
+        <div>
+          <h4>{{ transports.length }}</h4>
+          <p>Total Vehículos</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <span class="material-icons">check_circle</span>
+        <div>
+          <h4>{{ getAvailableCount() }}</h4>
+          <p>Disponibles</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <span class="material-icons">route</span>
+        <div>
+          <h4>{{ getInRouteCount() }}</h4>
+          <p>En Ruta</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <span class="material-icons">build</span>
+        <div>
+          <h4>{{ getMaintenanceCount() }}</h4>
+          <p>En Mantenimiento</p>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <span class="material-icons">local_shipping</span>
+      <h3>No se encontraron transportes</h3>
+      <p>Intenta con otros términos de búsqueda</p>
+    </div>
+  }
+
+  <!-- Modal -->
+  @if (showModal) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ isEditMode ? 'Editar Transporte' : 'Nuevo Transporte' }}</h2>
+          <button class="close-btn" (click)="closeModal()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+
+        <form class="modal-body" (ngSubmit)="saveTransport()">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tipo_vehiculo">Tipo de Vehículo *</label>
+              <select 
+                id="tipo_vehiculo" 
+                [(ngModel)]="transportForm.tipo_vehiculo" 
+                name="tipo_vehiculo"
+                required>
+                <option value="">Seleccionar tipo</option>
+                <option value="moto">Moto</option>
+                <option value="camioneta">Camioneta</option>
+                <option value="furgoneta">Furgoneta</option>
+                <option value="camión">Camión</option>
+                <option value="bicicleta">Bicicleta</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="marca">Marca *</label>
+              <input 
+                type="text" 
+                id="marca" 
+                [(ngModel)]="transportForm.marca" 
+                name="marca"
+                placeholder="Ej: Toyota"
+                required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="modelo">Modelo *</label>
+              <input 
+                type="text" 
+                id="modelo" 
+                [(ngModel)]="transportForm.modelo" 
+                name="modelo"
+                placeholder="Ej: Hilux"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="año">Año *</label>
+              <input 
+                type="number" 
+                id="año" 
+                [(ngModel)]="transportForm['año']" 
+                name="año"
+                min="2002"
+                [max]="maxYear"
+                required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="placa">Placa *</label>
+              <input 
+                type="text" 
+                id="placa" 
+                [(ngModel)]="transportForm.placa" 
+                name="placa"
+                placeholder="ABC123"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="capacidad_carga">Capacidad de Carga (kg) *</label>
+              <input 
+                type="number" 
+                id="capacidad_carga" 
+                [(ngModel)]="transportForm.capacidad_carga" 
+                name="capacidad_carga"
+                placeholder="1000"
+                min="0"
+                required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="estado">Estado *</label>
+              <select 
+                id="estado" 
+                [(ngModel)]="transportForm.estado" 
+                name="estado"
+                required>
+                <option value="disponible">Disponible</option>
+                <option value="en_uso">En Uso</option>
+                <option value="mantenimiento">Mantenimiento</option>
+                <option value="fuera_servicio">Fuera de Servicio</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="id_sede">Sede *</label>
+              <select 
+                id="id_sede" 
+                [(ngModel)]="transportForm.id_sede" 
+                name="id_sede"
+                required>
+                <option value="">Seleccionar sede</option>
+                @for (sede of sedes; track sede.id_sede) {
+                  <option [value]="sede.id_sede">
+                    {{ sede.nombre }} - {{ sede.ciudad }}
+                  </option>
+                }
+              </select>
+            </div>
+          </div>
+
+          @if (errorMessage) {
+            <div class="error-message" style="color: red; margin: 10px 0; padding: 10px; background-color: #ffebee; border-radius: 4px;">
+              {{ errorMessage }}
+            </div>
+          }
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" (click)="closeModal()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+              {{ isLoading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Guardar') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,82 @@
+<div class="dashboard">
+  <div class="dashboard-header">
+    <h2>Resumen General</h2>
+    <p class="subtitle">Bienvenido de nuevo, aquí está lo que está sucediendo hoy</p>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    @for (stat of stats; track stat.title) {
+      <div class="stat-card" [style.border-left-color]="stat.color">
+      <div class="stat-icon" [style.background]="stat.color">
+        <span class="material-icons">{{ stat.icon }}</span>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-title">{{ stat.title }}</h3>
+        <div class="stat-value">{{ stat.value }}</div>
+        <div class="stat-change" [class.positive]="stat.trend === 'up'" [class.negative]="stat.trend === 'down'">
+          <span class="material-icons">{{ stat.trend === 'up' ? 'arrow_upward' : 'arrow_downward' }}</span>
+          {{ stat.change }} desde el mes pasado
+        </div>
+      </div>
+      </div>
+    }
+  </div>
+
+
+  <div class="content-grid">
+    <div class="card activity-chart" *ngIf="isBrowser">
+      <div class="card-body">
+        <h3 class="section-title">Actividad de paquetes (30 días)</h3>
+        <canvas baseChart ngSkipHydration [type]="'line'" [data]="lineData" [options]="lineOptions"></canvas>
+      </div>
+    </div>
+
+    <div class="card" *ngIf="isBrowser">
+      <div class="card-body">
+        <h3 class="section-title">Distribución por estado</h3>
+        <canvas baseChart ngSkipHydration [type]="'pie'" [data]="pieData" [options]="pieOptions"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" *ngIf="isBrowser">
+    <div class="card-body">
+      <h3 class="section-title">Sedes más activas</h3>
+      <canvas baseChart ngSkipHydration [type]="'bar'" [data]="barData" [options]="barOptions"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-body">
+      <div class="filters-header">
+        <h3 class="section-title">Filtros</h3>
+        <button class="filter-btn primary" (click)="exportarReporte()">
+          <span class="material-icons">picture_as_pdf</span>
+          Exportar reporte
+        </button>
+      </div>
+      <div class="chart-filters">
+        <div class="filter-field">
+          <label>Últimos días (línea)</label>
+          <input type="number" min="7" max="365" [(ngModel)]="daysLine" />
+        </div>
+        <div class="filter-field">
+          <label>Últimos días (estados)</label>
+          <input type="number" min="7" max="365" [(ngModel)]="daysStates" />
+        </div>
+        <div class="filter-field">
+          <label>Últimos días (sedes top)</label>
+          <input type="number" min="7" max="365" [(ngModel)]="daysTop" />
+        </div>
+        <div class="filter-field">
+          <label>Top sedes</label>
+          <input type="number" min="1" max="20" [(ngModel)]="topLimit" />
+        </div>
+        <div class="filter-actions">
+          <button class="filter-btn" (click)="aplicarFiltros()">Aplicar filtros</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

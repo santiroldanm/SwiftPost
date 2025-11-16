@@ -1,0 +1,204 @@
+<div class="entregas-container">
+  <div class="page-header">
+    <div class="header-left">
+      <h2>Gestión de Entregas</h2>
+      <p class="subtitle">Administra los detalles de entrega</p>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-primary" (click)="abrirModalNuevo()">
+        <i class="fas fa-plus"></i> Nueva Entrega
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-section">
+    <div class="search-box">
+      <span class="material-icons">search</span>
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        placeholder="Buscar entregas..."
+        class="search-input">
+    </div>
+    <div class="action-buttons">
+      <select [(ngModel)]="filtroEstado" (ngModelChange)="onFiltroEstadoChange()" class="btn btn-outline" style="padding: 12px 16px;">
+        <option value="todos">Todos</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="En transito">En Tránsito</option>
+        <option value="Entregado">Entregado</option>
+      </select>
+      <button class="btn btn-outline" (click)="exportarDatos()">
+        <span class="material-icons">download</span>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensajes -->
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+  
+  <!-- Loading mejorado -->
+  <div *ngIf="cargando" class="card">
+    <div class="card-body" style="text-align: center; padding: 60px 20px;">
+      <div class="spinner"></div>
+      <p style="margin-top: 20px; color: #666; font-size: 16px;">Cargando entregas...</p>
+    </div>
+  </div>
+
+  <!-- Tabla de entregas -->
+  <div class="card recent-orders" *ngIf="!cargando">
+    <div class="card-header">
+      <h3>Entregas Registradas</h3>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Sede Remitente</th>
+          <th>Sede Receptora</th>
+          <th>Cliente Remitente</th>
+          <th>Cliente Receptor</th>
+          <th>Estado</th>
+          <th>Fecha Envío</th>
+          <th>Fecha Entrega</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entrega of entregasFiltradas">
+          <td>{{ entrega.id_detalle?.substring(0, 8) }}...</td>
+          <td>{{ obtenerNombreSede(entrega.id_sede_remitente) }}</td>
+          <td>{{ obtenerNombreSede(entrega.id_sede_receptora) }}</td>
+          <td>{{ obtenerNombreCliente(entrega.id_cliente_remitente) }}</td>
+          <td>{{ obtenerNombreCliente(entrega.id_cliente_receptor) }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="obtenerEstadoClase(entrega.estado_envio)">
+              {{ entrega.estado_envio }}
+            </span>
+          </td>
+          <td>{{ entrega.fecha_envio | date:'dd/MM/yyyy' }}</td>
+          <td>{{ entrega.fecha_entrega ? (entrega.fecha_entrega | date:'dd/MM/yyyy') : 'Pendiente' }}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-sm btn-outline" (click)="abrirModalEditar(entrega)" title="Editar">
+                <span class="material-icons">edit</span>
+              </button>
+              <button class="btn btn-sm btn-danger" (click)="eliminarEntrega(entrega.id_detalle)" title="Eliminar">
+                <span class="material-icons">delete</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="entregasFiltradas.length === 0">
+          <td colspan="9" class="text-center">No hay entregas registradas</td>
+        </tr>
+      </tbody>
+    </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" *ngIf="mostrarModal" (click)="cerrarModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ modoEdicion ? 'Editar Entrega' : 'Nueva Entrega' }}</h2>
+        <button class="btn-close" (click)="cerrarModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <form (ngSubmit)="guardarEntrega()">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sede Remitente *</label>
+              <select [(ngModel)]="formulario.id_sede_remitente" name="sede_remitente" class="form-control" required>
+                <option value="">Seleccione una sede</option>
+                <option *ngFor="let sede of sedesActivas" [value]="sede.id_sede">
+                  {{ sede.nombre }} - {{ sede.ciudad }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Sede Receptora *</label>
+              <select [(ngModel)]="formulario.id_sede_receptora" name="sede_receptora" class="form-control" required>
+                <option value="">Seleccione una sede</option>
+                <option *ngFor="let sede of sedesActivas" [value]="sede.id_sede">
+                  {{ sede.nombre }} - {{ sede.ciudad }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Cliente Remitente *</label>
+              <select [(ngModel)]="formulario.id_cliente_remitente" name="cliente_remitente" class="form-control" required>
+                <option value="">Seleccione un cliente</option>
+                <option *ngFor="let cliente of clientes" [value]="cliente.id_cliente">
+                  {{ cliente.primer_nombre }} {{ cliente.primer_apellido }} - {{ cliente.numero_documento }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Cliente Receptor *</label>
+              <select [(ngModel)]="formulario.id_cliente_receptor" name="cliente_receptor" class="form-control" required>
+                <option value="">Seleccione un cliente</option>
+                <option *ngFor="let cliente of clientes" [value]="cliente.id_cliente">
+                  {{ cliente.primer_nombre }} {{ cliente.primer_apellido }} - {{ cliente.numero_documento }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Paquete *</label>
+              <select [(ngModel)]="formulario.id_paquete" name="paquete" class="form-control" required>
+                <option value="">Seleccione un paquete</option>
+                <option *ngFor="let paquete of paquetes" [value]="paquete.id_paquete">
+                  {{ paquete.contenido }} - {{ paquete.peso }}kg - {{ paquete['tamaño'] }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Estado *</label>
+              <select [(ngModel)]="formulario.estado_envio" name="estado" class="form-control" required>
+                <option value="Pendiente">Pendiente</option>
+                <option value="En transito">En Tránsito</option>
+                <option value="Entregado">Entregado</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha Envío *</label>
+              <input type="date" [(ngModel)]="formulario.fecha_envio" name="fecha_envio" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>Fecha Entrega</label>
+              <input type="date" [(ngModel)]="formulario.fecha_entrega" name="fecha_entrega" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Observaciones</label>
+            <textarea [(ngModel)]="formulario.observaciones" name="observaciones" class="form-control" rows="3"></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="cerrarModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">{{ modoEdicion ? 'Actualizar' : 'Crear' }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
