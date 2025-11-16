@@ -91,9 +91,25 @@ class UsuarioCRUD(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
 
     def autenticar(self, nombre_usuario: str, contraseña: str) -> Optional[Usuario]:
         """Autentica un usuario por nombre de usuario y contraseña."""
+        nombre_usuario = nombre_usuario.strip() if nombre_usuario else ""
+        contraseña = contraseña.strip() if contraseña else ""
+        
+        if not nombre_usuario or not contraseña:
+            return None
+        
         usuario = self.obtener_por_nombre_usuario(nombre_usuario=nombre_usuario)
         if not usuario:
+            print(f"Usuario no encontrado: {nombre_usuario}")
             return None
+        
+        if usuario.password.strip() != contraseña:
+            print(f"Contraseña incorrecta para usuario: {nombre_usuario}")
+            return None
+        
+        if not usuario.activo:
+            print(f"Usuario inactivo: {nombre_usuario}")
+            return None
+        
         return usuario
 
     def crear_usuario(

@@ -39,10 +39,38 @@ class DetalleEntregaCRUD(
             print(f"Error al obtener detalle de entrega: {e}")
             return None
 
-    def obtener_todos(self, skip: int = 0, limit: int = 100) -> List[DetalleEntrega]:
-        """Obtiene todos los detalles de entrega con paginación."""
+    def obtener_todos(
+        self, 
+        skip: int = 0, 
+        limit: int = 100,
+        estado: Optional[str] = None,
+        search: Optional[str] = None
+    ) -> List[DetalleEntrega]:
+        """
+        Obtiene todos los detalles de entrega con paginación y filtros.
+        Args:
+            skip: Número de registros a omitir (paginación)
+            limit: Número máximo de registros a devolver
+            estado: Filtrar por estado de envío (opcional)
+            search: Buscar por observaciones (opcional)
+        Returns:
+            List[DetalleEntrega]: Lista de detalles de entrega
+        """
         try:
-            return self.db.query(DetalleEntrega).offset(skip).limit(limit).all()
+            query = self.db.query(DetalleEntrega)
+            
+            # Filtrar por estado
+            if estado is not None:
+                query = query.filter(DetalleEntrega.estado_envio == estado)
+            
+            # Buscar en observaciones
+            if search is not None and search.strip():
+                search_term = f"%{search.strip()}%"
+                query = query.filter(
+                    DetalleEntrega.observaciones.ilike(search_term)
+                )
+            
+            return query.offset(skip).limit(limit).all()
         except Exception as e:
             print(f"Error al obtener detalles de entrega: {e}")
             return []
@@ -108,6 +136,53 @@ class DetalleEntregaCRUD(
                 if hasattr(datos_entrada, "model_dump")
                 else datos_entrada.dict()
             )
+            
+            # Validar que las sedes existen y están activas
+            from entities.sede import Sede
+            from entities.cliente import Cliente
+            from entities.paquete import Paquete
+            
+            id_sede_remitente = datos.get("id_sede_remitente")
+            if id_sede_remitente:
+                sede_remitente = self.db.query(Sede).filter(Sede.id_sede == id_sede_remitente).first()
+                if not sede_remitente:
+                    raise ValueError(f"Sede remitente no encontrada: {id_sede_remitente}")
+                if not sede_remitente.activo:
+                    raise ValueError(f"La sede remitente no está activa: {id_sede_remitente}")
+            
+            id_sede_receptora = datos.get("id_sede_receptora")
+            if id_sede_receptora:
+                sede_receptora = self.db.query(Sede).filter(Sede.id_sede == id_sede_receptora).first()
+                if not sede_receptora:
+                    raise ValueError(f"Sede receptora no encontrada: {id_sede_receptora}")
+                if not sede_receptora.activo:
+                    raise ValueError(f"La sede receptora no está activa: {id_sede_receptora}")
+            
+            # Validar que los clientes existen y están activos
+            id_cliente_remitente = datos.get("id_cliente_remitente")
+            if id_cliente_remitente:
+                cliente_remitente = self.db.query(Cliente).filter(Cliente.id_cliente == id_cliente_remitente).first()
+                if not cliente_remitente:
+                    raise ValueError(f"Cliente remitente no encontrado: {id_cliente_remitente}")
+                if not cliente_remitente.activo:
+                    raise ValueError(f"El cliente remitente no está activo: {id_cliente_remitente}")
+            
+            id_cliente_receptor = datos.get("id_cliente_receptor")
+            if id_cliente_receptor:
+                cliente_receptor = self.db.query(Cliente).filter(Cliente.id_cliente == id_cliente_receptor).first()
+                if not cliente_receptor:
+                    raise ValueError(f"Cliente receptor no encontrado: {id_cliente_receptor}")
+                if not cliente_receptor.activo:
+                    raise ValueError(f"El cliente receptor no está activo: {id_cliente_receptor}")
+            
+            # Validar que el paquete existe y está disponible
+            id_paquete = datos.get("id_paquete")
+            if id_paquete:
+                paquete = self.db.query(Paquete).filter(Paquete.id_paquete == id_paquete).first()
+                if not paquete:
+                    raise ValueError(f"Paquete no encontrado: {id_paquete}")
+                if not paquete.activo:
+                    raise ValueError(f"El paquete no está activo: {id_paquete}")
 
             detalle = DetalleEntrega(
                 **datos,
@@ -120,10 +195,16 @@ class DetalleEntregaCRUD(
             self.db.commit()
             self.db.refresh(detalle)
             return detalle
+        except ValueError as e:
+            self.db.rollback()
+            print(f"Error de validación: {e}")
+            raise
         except Exception as e:
             self.db.rollback()
             print(f"Error al crear detalle de entrega: {e}")
-            return None
+            import traceback
+            traceback.print_exc()
+            raise
 
     def actualizar(
         self,

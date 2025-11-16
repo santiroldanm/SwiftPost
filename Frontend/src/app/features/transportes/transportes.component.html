@@ -129,7 +129,7 @@
                       <span class="material-icons">location_city</span>
                       <div>
                         <label>Sede</label>
-                        <p>{{ transport.id_sede?.substring(0, 8) }}...</p>
+                        <p>{{ transport.id_sede.substring(0, 8) }}...</p>
                       </div>
                     </div>
                   </div>
@@ -322,19 +322,27 @@
                 name="id_sede"
                 required>
                 <option value="">Seleccionar sede</option>
-                <option *ngFor="let sede of sedes" [value]="sede.id_sede">
-                  {{ sede.nombre }} - {{ sede.ciudad }}
-                </option>
+                @for (sede of sedes; track sede.id_sede) {
+                  <option [value]="sede.id_sede">
+                    {{ sede.nombre }} - {{ sede.ciudad }}
+                  </option>
+                }
               </select>
             </div>
           </div>
+
+          @if (errorMessage) {
+            <div class="error-message" style="color: red; margin: 10px 0; padding: 10px; background-color: #ffebee; border-radius: 4px;">
+              {{ errorMessage }}
+            </div>
+          }
 
           <div class="modal-footer">
             <button type="button" class="btn btn-outline" (click)="closeModal()">
               Cancelar
             </button>
-            <button type="submit" class="btn btn-primary">
-              {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+            <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+              {{ isLoading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Guardar') }}
             </button>
           </div>
         </form>

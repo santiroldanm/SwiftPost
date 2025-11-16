@@ -10,7 +10,7 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class ApiService {
-  private apiUrl = 'http://localhost:8000'; // URL base del backend
+  private apiUrl = environment.apiUrl; // URL base del backend
 
   constructor(private http: HttpClient) {}
 
@@ -30,7 +30,9 @@ export class ApiService {
   get<T>(endpoint: string, params?: any): Observable<T> {
     const url = `${this.apiUrl}${endpoint}`;
     const httpParams = this.buildParams(params);
-    
+
+    console.log('[API GET]', url, params ?? {});
+
     return this.http.get<T>(url, {
       headers: this.getHeaders(),
       params: httpParams
@@ -38,46 +40,70 @@ export class ApiService {
   }
 
   /**
+   * Realiza una petición GET para descargar un archivo (por ejemplo, PDF)
+   */
+  getFile(endpoint: string, params?: any): Observable<Blob> {
+    const url = `${this.apiUrl}${endpoint}`;
+    const httpParams = this.buildParams(params);
+
+    return this.http.get(url, {
+      headers: new HttpHeaders({
+        Accept: 'application/pdf'
+      }),
+      params: httpParams,
+      responseType: 'blob'
+    });
+  }
+
+  /**
    * Realiza una petición POST
    */
-  post<T>(endpoint: string, body: any): Observable<T> {
+  post<T>(endpoint: string, body: any, params?: any): Observable<T> {
     const url = `${this.apiUrl}${endpoint}`;
+    const httpParams = this.buildParams(params);
     
     return this.http.post<T>(url, body, {
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      params: httpParams
     });
   }
 
   /**
    * Realiza una petición PUT
    */
-  put<T>(endpoint: string, body: any): Observable<T> {
+  put<T>(endpoint: string, body: any, params?: any): Observable<T> {
     const url = `${this.apiUrl}${endpoint}`;
+    const httpParams = this.buildParams(params);
     
     return this.http.put<T>(url, body, {
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      params: httpParams
     });
   }
 
   /**
    * Realiza una petición PATCH
    */
-  patch<T>(endpoint: string, body: any): Observable<T> {
+  patch<T>(endpoint: string, body: any, params?: any): Observable<T> {
     const url = `${this.apiUrl}${endpoint}`;
+    const httpParams = this.buildParams(params);
     
     return this.http.patch<T>(url, body, {
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      params: httpParams
     });
   }
 
   /**
    * Realiza una petición DELETE
    */
-  delete<T>(endpoint: string): Observable<T> {
+  delete<T>(endpoint: string, params?: any): Observable<T> {
     const url = `${this.apiUrl}${endpoint}`;
+    const httpParams = this.buildParams(params);
     
     return this.http.delete<T>(url, {
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      params: httpParams
     });
   }
 

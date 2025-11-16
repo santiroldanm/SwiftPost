@@ -29,15 +29,26 @@ export interface Sede {
   providedIn: 'root'
 })
 export class SedeService {
-  private endpoint = '/sedes/';
+  private endpoint = '/sedes';
 
   constructor(private apiService: ApiService) {}
 
   /**
-   * Obtiene todas las sedes con paginación
+   * Obtiene todas las sedes con paginación y filtros opcionales
    */
-  obtenerSedes(skip: number = 0, limit: number = 10): Observable<Sede[]> {
-    return this.apiService.get<any>(this.endpoint, { skip, limit }).pipe(
+  obtenerSedes(skip: number = 0, limit: number = 10, filtros?: { activo?: boolean, ciudad?: string }): Observable<Sede[]> {
+    // Si hay filtro de activo, usar el endpoint específico
+    if (filtros?.activo === true) {
+      return this.obtenerSedesActivas(skip, limit);
+    }
+    
+    // Si hay filtro de ciudad, usar el endpoint específico
+    if (filtros?.ciudad) {
+      return this.obtenerSedesPorCiudad(filtros.ciudad, skip, limit);
+    }
+    
+    // Sin filtros, obtener todas
+    return this.apiService.get<any>(`${this.endpoint}/`, { skip, limit }).pipe(
       map((response: any) => Array.isArray(response) ? response : (response?.sedes || response || []))
     );
   }
@@ -68,22 +79,27 @@ export class SedeService {
   /**
    * Crea una nueva sede
    */
-  crearSede(sede: Sede): Observable<Sede> {
-    return this.apiService.post<Sede>(this.endpoint, sede);
+  crearSede(sede: Sede, creadoPor?: string): Observable<Sede> {
+    const params = creadoPor ? { creado_por: creadoPor } : {};
+    return this.apiService.post<Sede>(`${this.endpoint}/`, sede, params);
   }
 
   /**
    * Actualiza una sede existente
    */
-  actualizarSede(id: string, sede: Partial<Sede>): Observable<Sede> {
-    return this.apiService.put<Sede>(`${this.endpoint}/${id}`, sede);
+  actualizarSede(id: string, sede: Partial<Sede>, actualizadoPor?: string): Observable<Sede> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    // Remover actualizado_por del body si está presente
+    const { actualizado_por, ...body } = sede as any;
+    return this.apiService.put<Sede>(`${this.endpoint}/${id}`, body, params);
   }
 
   /**
    * Elimina (desactiva) una sede
    */
-  eliminarSede(id: string): Observable<ApiResponse> {
-    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`);
+  eliminarSede(id: string, actualizadoPor?: string): Observable<ApiResponse> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`, params);
   }
 
   /**

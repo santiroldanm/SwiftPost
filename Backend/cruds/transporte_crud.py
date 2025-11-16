@@ -87,6 +87,42 @@ class TransporteCRUD(CRUDBase[Transporte, TransporteCreate, TransporteUpdate]):
             .all()
         )
 
+    def obtener_todos(
+        self, 
+        *, 
+        skip: int = 0, 
+        limit: int = 100,
+        estado: Optional[str] = None,
+        search: Optional[str] = None
+    ) -> List[Transporte]:
+        """
+        Obtiene una lista de transportes con opciones de paginación y filtrado.
+        Args:
+            skip: Número de registros a omitir (paginación)
+            limit: Número máximo de registros a devolver
+            estado: Filtrar por estado del transporte (opcional)
+            search: Buscar por placa, marca, modelo o tipo (opcional)
+        Returns:
+            List[Transporte]: Lista de transportes que coinciden con los criterios
+        """
+        query = self.db.query(Transporte)
+        
+        # Filtrar por estado
+        if estado is not None:
+            query = query.filter(Transporte.estado == estado)
+        
+        # Buscar en múltiples campos
+        if search is not None and search.strip():
+            search_term = f"%{search.strip()}%"
+            query = query.filter(
+                (Transporte.placa.ilike(search_term)) |
+                (Transporte.marca.ilike(search_term)) |
+                (Transporte.modelo.ilike(search_term)) |
+                (Transporte.tipo_vehiculo.ilike(search_term))
+            )
+        
+        return query.offset(skip).limit(limit).all()
+
     def obtener_activos(self, skip: int = 0, limit: int = 100) -> List[Transporte]:
         """
         Obtiene una lista de transportes activos.
