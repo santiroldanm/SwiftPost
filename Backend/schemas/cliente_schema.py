@@ -208,6 +208,7 @@ class ClienteUpdate(BaseModel):
 
 class ClienteResponse(ClienteBase):
     id_cliente: uuid.UUID
+    activo: bool = True
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     actualizado_por: Optional[str] = None

@@ -1,7 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
 import { filter, map } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AuthService, UsuarioResponse } from '../../../core/services/auth.service';
+
 @Component({
   selector: 'app-header',
   standalone: true,
@@ -9,12 +12,19 @@ import { filter, map } from 'rxjs/operators';
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+  
   showNotifications = false;
   showProfile = false;
-
   title = "";
-  constructor(private router: Router, private route: ActivatedRoute) {
+  currentUser: UsuarioResponse | null = null;
+
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private authService: AuthService
+  ) {
     this.router.events
       .pipe(
         filter(event => event instanceof NavigationEnd),
@@ -24,9 +34,22 @@ export class HeaderComponent {
             current = current.firstChild;
           }
           return current.snapshot.data['title'] || 'Dashboard';
-        })
+        }),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(title => this.title = title);
+  }
+
+  ngOnInit(): void {
+    // Suscribirse a cambios en el usuario actual
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => {
+        this.currentUser = user;
+      });
+    
+    // Cargar usuario inicial
+    this.currentUser = this.authService.getCurrentUser();
   }
 
   notifications = [
@@ -35,11 +58,22 @@ export class HeaderComponent {
     { id: 3, title: 'Pago confirmado', message: 'Pago de orden #1230 confirmado', time: 'Hace 2 horas', unread: false }
   ];
 
-  user = {
-    name: 'Santiago Roldán',
-    email: 'santiago@swiftpost.com',
-    avatar: 'SR'
-  };
+  get user() {
+    if (this.currentUser) {
+      const nombre = this.currentUser.nombre_usuario;
+      const iniciales = nombre.substring(0, 2).toUpperCase();
+      return {
+        name: nombre,
+        email: this.currentUser.rol?.nombre_rol || 'Usuario',
+        avatar: iniciales
+      };
+    }
+    return {
+      name: 'Usuario',
+      email: 'No autenticado',
+      avatar: 'U'
+    };
+  }
 
   toggleNotifications(): void {
     this.showNotifications = !this.showNotifications;
@@ -49,6 +83,10 @@ export class HeaderComponent {
   toggleProfile(): void {
     this.showProfile = !this.showProfile;
     this.showNotifications = false;
+  }
+
+  logout(): void {
+    this.authService.logout();
   }
 
   get unreadCount(): number {

@@ -2,10 +2,10 @@
 API de Clientes - Endpoints para gestión de clientes
 """
 
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from database.config import get_db
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from sqlalchemy.orm import Session
 from cruds.cliente_crud import ClienteCRUD
 from cruds.tipo_documento_crud import TipoDocumentoCRUD
@@ -111,10 +111,21 @@ async def obtener_cliente_por_documento(
 async def crear_cliente(
     cliente_data: ClienteCreate,
     db: Session = Depends(get_db),
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    creado_por: Optional[UUID] = Query(None, description="UUID del usuario que crea el registro"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Crear un nuevo cliente."""
     try:
+        if creado_por:
+            usuario_id = creado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         tipo_doc_crud = TipoDocumentoCRUD(db)
         tipo_documento = tipo_doc_crud.obtener_por_codigo(
             str(cliente_data.id_tipo_documento)
@@ -145,10 +156,21 @@ async def actualizar_cliente(
     id_cliente: UUID,
     cliente_data: ClienteUpdate,
     db: Session = Depends(get_db),
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: Optional[UUID] = Query(None, description="UUID del usuario que realiza la actualización"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Actualizar un cliente existente."""
     try:
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         cliente_crud = ClienteCRUD(db)
         cliente = cliente_crud.obtener_por_id(id_cliente)
         if not cliente:
@@ -203,11 +225,22 @@ async def actualizar_cliente(
 @router.delete("/{id_cliente}", response_model=RespuestaAPI)
 async def eliminar_cliente(
     id_cliente: UUID,
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: Optional[UUID] = Query(None, description="UUID del usuario que realiza la eliminación"),
     db: Session = Depends(get_db),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Eliminar un cliente. Soft delete."""
     try:
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         cliente_crud = ClienteCRUD(db)
         cliente = cliente_crud.obtener_por_id(id_cliente)
         if not cliente:

@@ -51,7 +51,7 @@
           <div class="avatar">{{ user.avatar }}</div>
           <div class="profile-info">
             <span class="profile-name">{{ user.name }}</span>
-            <span class="profile-role">Administrador</span>
+            <span class="profile-role">{{ user.email }}</span>
           </div>
           <span class="material-icons">expand_more</span>
         </button>
@@ -79,10 +79,10 @@
               Ayuda
             </a>
             <div class="dropdown-divider"></div>
-            <a href="#" class="dropdown-item logout">
+            <button type="button" class="dropdown-item logout" (click)="logout()">
               <span class="material-icons">logout</span>
               Cerrar Sesión
-            </a>
+            </button>
           </div>
           </div>
         }

@@ -1,0 +1,85 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo">
+        <span class="material-icons">local_shipping</span>
+        <h1>SwiftPost</h1>
+      </div>
+      <p class="subtitle">Sistema de Gestión de Paquetes</p>
+    </div>
+
+    <form class="login-form" (ngSubmit)="onSubmit()" #loginFormRef="ngForm">
+      <div class="form-group">
+        <label for="nombre_usuario">
+          <span class="material-icons">person</span>
+          Nombre de Usuario
+        </label>
+        <input
+          type="text"
+          id="nombre_usuario"
+          name="nombre_usuario"
+          [(ngModel)]="loginForm.nombre_usuario"
+          placeholder="Ingrese su nombre de usuario"
+          required
+          autocomplete="username"
+          [disabled]="isLoading"
+          class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="contraseña">
+          <span class="material-icons">lock</span>
+          Contraseña
+        </label>
+        <div class="password-input-wrapper">
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            id="contraseña"
+            name="contraseña"
+            [ngModel]="loginForm['contraseña']"
+            (ngModelChange)="loginForm['contraseña'] = $event"
+            placeholder="Ingrese su contraseña"
+            required
+            autocomplete="current-password"
+            [disabled]="isLoading"
+            class="form-control">
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            [disabled]="isLoading"
+            tabindex="-1">
+            <span class="material-icons">
+              {{ showPassword ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      @if (errorMessage) {
+        <div class="error-message">
+          <span class="material-icons">error_outline</span>
+          <span>{{ errorMessage }}</span>
+        </div>
+      }
+
+      <button
+        type="submit"
+        class="btn btn-primary btn-block"
+        [disabled]="isLoading || !loginFormRef.valid">
+        @if (isLoading) {
+          <span class="spinner"></span>
+          <span>Iniciando sesión...</span>
+        } @else {
+          <span class="material-icons">login</span>
+          <span>Iniciar Sesión</span>
+        }
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p>© 2024 SwiftPost. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</div>
+

@@ -6,7 +6,7 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 from database.config import get_db
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from sqlalchemy.orm import Session
 from cruds.transporte_crud import TransporteCRUD
 from schemas.transporte_schema import (
@@ -22,12 +22,21 @@ router = APIRouter(prefix="/transportes", tags=["Transportes"])
 
 @router.get("/", response_model=TransporteListResponse)
 async def obtener_transportes(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+    skip: int = 0, 
+    limit: int = 10, 
+    estado: Optional[str] = Query(None, description="Filtrar por estado"),
+    search: Optional[str] = Query(None, description="Buscar por placa, marca, modelo o tipo"),
+    db: Session = Depends(get_db)
 ):
-    """Obtener todos los vehículos de transporte con paginación."""
+    """Obtener todos los vehículos de transporte con paginación y filtros."""
     try:
         transporte_crud = TransporteCRUD(db)
-        transportes = transporte_crud.obtener_todos(skip=skip, limit=limit)
+        transportes = transporte_crud.obtener_todos(
+            skip=skip, 
+            limit=limit,
+            estado=estado,
+            search=search
+        )
         total = transporte_crud.contar()
         return {
             "transportes": transportes,
@@ -118,10 +127,21 @@ async def obtener_transporte_por_placa(placa: str, db: Session = Depends(get_db)
 async def crear_transporte(
     transporte_data: TransporteCreate,
     db: Session = Depends(get_db),
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    creado_por: Optional[UUID] = Query(None, description="UUID del usuario que crea el registro"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Crear un nuevo vehículo de transporte."""
     try:
+        if creado_por:
+            usuario_id = creado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         transporte_crud = TransporteCRUD(db)
 
         if transporte_crud.obtener_por_placa(transporte_data.placa):
@@ -148,10 +168,21 @@ async def actualizar_transporte(
     id_transporte: UUID,
     transporte_data: TransporteUpdate,
     db: Session = Depends(get_db),
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: Optional[UUID] = Query(None, description="UUID del usuario que realiza la actualización"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Actualizar un vehículo existente."""
     try:
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         transporte_crud = TransporteCRUD(db)
         transporte = transporte_crud.obtener_por_id(id_transporte)
 
@@ -191,11 +222,22 @@ async def actualizar_transporte(
 @router.delete("/{id_transporte}", response_model=RespuestaAPI)
 async def eliminar_transporte(
     id_transporte: UUID,
-    usuario_id: UUID = "ID Usuario con la sesión activa",
+    actualizado_por: Optional[UUID] = Query(None, description="UUID del usuario que realiza la eliminación"),
     db: Session = Depends(get_db),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Eliminar un vehículo (soft delete)."""
     try:
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        else:
+            usuario_id = UUID("213dbacf-12cd-4944-9a55-2ec0d259ed31")
+        
         transporte_crud = TransporteCRUD(db)
         transporte = transporte_crud.obtener_por_id(id_transporte)
 
@@ -224,6 +266,11 @@ async def eliminar_transporte(
 
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"UUID inválido: {str(e)}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -30,16 +30,26 @@ export interface Transporte {
   providedIn: 'root'
 })
 export class TransporteService {
-  private endpoint = '/transportes/';
+  private endpoint = '/transportes';
 
   constructor(private apiService: ApiService) {}
 
   /**
-   * Obtiene todos los transportes con paginación
+   * Obtiene todos los transportes con paginación y filtros
    */
-  obtenerTransportes(skip: number = 0, limit: number = 10): Observable<Transporte[]> {
-    return this.apiService.get<any>(this.endpoint, { skip, limit }).pipe(
-      map((response: any) => Array.isArray(response) ? response : (response?.transportes || response || []))
+  obtenerTransportes(skip: number = 0, limit: number = 10, filtros?: any): Observable<Transporte[]> {
+    const params: any = { skip, limit };
+    if (filtros) {
+      Object.assign(params, filtros);
+    }
+    return this.apiService.get<any>(`${this.endpoint}/`, params).pipe(
+      map((response: any) => {
+        if (Array.isArray(response)) {
+          return response;
+        }
+        // El backend devuelve { transportes: [...], total: ..., pagina: ..., por_pagina: ... }
+        return response?.transportes || [];
+      })
     );
   }
 
@@ -90,23 +100,27 @@ export class TransporteService {
    * Busca transportes por placa
    */
   buscarPorPlaca(placa: string): Observable<Transporte[]> {
-    return this.apiService.get<any>(`${this.endpoint}/buscar/placa/${placa}`).pipe(
-      map((response: any) => Array.isArray(response) ? response : (response?.transportes || response || []))
+    return this.apiService.get<any>(`${this.endpoint}/placa/${placa}`).pipe(
+      map((response: any) => Array.isArray(response) ? response : (response ? [response] : []))
     );
   }
 
   /**
    * Crea un nuevo transporte
    */
-  crearTransporte(transporte: Transporte): Observable<Transporte> {
-    return this.apiService.post<Transporte>(this.endpoint, transporte);
+  crearTransporte(transporte: Transporte, creadoPor?: string): Observable<Transporte> {
+    const params = creadoPor ? { creado_por: creadoPor } : {};
+    return this.apiService.post<Transporte>(`${this.endpoint}/`, transporte, params);
   }
 
   /**
    * Actualiza un transporte existente
    */
-  actualizarTransporte(id: string, transporte: Partial<Transporte>): Observable<Transporte> {
-    return this.apiService.put<Transporte>(`${this.endpoint}/${id}`, transporte);
+  actualizarTransporte(id: string, transporte: Partial<Transporte>, actualizadoPor?: string): Observable<Transporte> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    // Remover actualizado_por del body si está presente
+    const { actualizado_por, ...body } = transporte as any;
+    return this.apiService.put<Transporte>(`${this.endpoint}/${id}`, body, params);
   }
 
   /**
@@ -119,8 +133,9 @@ export class TransporteService {
   /**
    * Elimina (desactiva) un transporte
    */
-  eliminarTransporte(id: string): Observable<ApiResponse> {
-    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`);
+  eliminarTransporte(id: string, actualizadoPor?: string): Observable<ApiResponse> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`, params);
   }
 
   /**

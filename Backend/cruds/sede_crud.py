@@ -273,18 +273,27 @@ class SedeCRUD(CRUDBase[Sede, SedeCreate, SedeUpdate]):
                 print(f" Advertencia: La sede ya está inactiva")
                 return False
 
+            actualizado_por_str = str(actualizado_por) if isinstance(actualizado_por, UUID) else actualizado_por
+            
+            from entities.usuario import Usuario
+            usuario = self.db.query(Usuario).filter(Usuario.id_usuario == actualizado_por_str).first()
+            if not usuario:
+                print(f" Error: Usuario con ID {actualizado_por_str} no encontrado")
+                return False
+            
             sede.activo = False
-            sede.actualizado_por = str(actualizado_por)
+            sede.actualizado_por = actualizado_por_str
             sede.fecha_actualizacion = datetime.now()
 
             self.db.commit()
+            self.db.refresh(sede)
             return True
 
         except Exception as e:
             self.db.rollback()
-            print(f" Error al desactivar sede: {str(e)}")
+            error_msg = f"Error al desactivar sede: {str(e)}"
+            print(error_msg)
             import traceback
-
             traceback.print_exc()
             return False
 

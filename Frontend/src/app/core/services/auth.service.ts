@@ -100,9 +100,25 @@ export class AuthService {
 
   /**
    * Obtiene el usuario actual
+   * Si el usuario no está en el subject, intenta cargarlo desde localStorage
    */
   getCurrentUser(): UsuarioResponse | null {
-    return this.currentUserSubject.value;
+    let user = this.currentUserSubject.value;
+    
+    // Si no hay usuario en el subject, intentar cargar desde localStorage
+    if (!user && isPlatformBrowser(this.platformId)) {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        try {
+          user = JSON.parse(userData);
+          this.currentUserSubject.next(user);
+        } catch (error) {
+          console.error('Error al cargar datos del usuario:', error);
+        }
+      }
+    }
+    
+    return user;
   }
 
   /**

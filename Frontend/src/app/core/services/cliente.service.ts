@@ -31,7 +31,7 @@ export interface Cliente {
   providedIn: 'root'
 })
 export class ClienteService {
-  private endpoint = '/clientes/';
+  private endpoint = '/clientes';
 
   constructor(private apiService: ApiService) {}
 
@@ -39,7 +39,7 @@ export class ClienteService {
    * Obtiene todos los clientes con paginación
    */
   obtenerClientes(skip: number = 0, limit: number = 10): Observable<Cliente[]> {
-    return this.apiService.get<any>(this.endpoint, { skip, limit }).pipe(
+    return this.apiService.get<any>(`${this.endpoint}/`, { skip, limit }).pipe(
       map((response: any) => Array.isArray(response) ? response : (response?.clientes || response || []))
     );
   }
@@ -88,22 +88,27 @@ export class ClienteService {
   /**
    * Crea un nuevo cliente
    */
-  crearCliente(cliente: Cliente): Observable<Cliente> {
-    return this.apiService.post<Cliente>(this.endpoint, cliente);
+  crearCliente(cliente: Cliente, creadoPor?: string): Observable<Cliente> {
+    const params = creadoPor ? { creado_por: creadoPor } : {};
+    return this.apiService.post<Cliente>(`${this.endpoint}/`, cliente, params);
   }
 
   /**
    * Actualiza un cliente existente
    */
-  actualizarCliente(id: string, cliente: Partial<Cliente>): Observable<Cliente> {
-    return this.apiService.put<Cliente>(`${this.endpoint}/${id}`, cliente);
+  actualizarCliente(id: string, cliente: Partial<Cliente>, actualizadoPor?: string): Observable<Cliente> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    // Remover actualizado_por del body si está presente
+    const { actualizado_por, ...body } = cliente as any;
+    return this.apiService.put<Cliente>(`${this.endpoint}/${id}`, body, params);
   }
 
   /**
    * Elimina (desactiva) un cliente
    */
-  eliminarCliente(id: string): Observable<ApiResponse> {
-    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`);
+  eliminarCliente(id: string, actualizadoPor?: string): Observable<ApiResponse> {
+    const params = actualizadoPor ? { actualizado_por: actualizadoPor } : {};
+    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`, params);
   }
 
   /**
