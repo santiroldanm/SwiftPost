@@ -22,12 +22,21 @@ router = APIRouter(prefix="/transportes", tags=["Transportes"])
 
 @router.get("/", response_model=TransporteListResponse)
 async def obtener_transportes(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+    skip: int = 0, 
+    limit: int = 10, 
+    estado: Optional[str] = Query(None, description="Filtrar por estado"),
+    search: Optional[str] = Query(None, description="Buscar por placa, marca, modelo o tipo"),
+    db: Session = Depends(get_db)
 ):
-    """Obtener todos los vehículos de transporte con paginación."""
+    """Obtener todos los vehículos de transporte con paginación y filtros."""
     try:
         transporte_crud = TransporteCRUD(db)
-        transportes = transporte_crud.obtener_todos(skip=skip, limit=limit)
+        transportes = transporte_crud.obtener_todos(
+            skip=skip, 
+            limit=limit,
+            estado=estado,
+            search=search
+        )
         total = transporte_crud.contar()
         return {
             "transportes": transportes,

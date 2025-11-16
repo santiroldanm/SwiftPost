@@ -22,12 +22,23 @@ router = APIRouter(prefix="/paquetes", tags=["Paquetes"])
 
 @router.get("/", response_model=PaqueteListResponse)
 async def obtener_paquetes(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+    skip: int = 0, 
+    limit: int = 10, 
+    estado: Optional[str] = Query(None, description="Filtrar por estado"),
+    fragilidad: Optional[str] = Query(None, description="Filtrar por fragilidad"),
+    search: Optional[str] = Query(None, description="Buscar por contenido o tipo"),
+    db: Session = Depends(get_db)
 ):
-    """Obtener todos los paquetes con paginación."""
+    """Obtener todos los paquetes con paginación y filtros."""
     try:
         paquete_crud = PaqueteCRUD(db)
-        paquetes = paquete_crud.obtener_todos(skip=skip, limit=limit)
+        paquetes = paquete_crud.obtener_todos(
+            skip=skip, 
+            limit=limit,
+            estado=estado,
+            fragilidad=fragilidad,
+            search=search
+        )
         return {
             "paquetes": paquetes,
             "pagina": (skip // limit) + 1,

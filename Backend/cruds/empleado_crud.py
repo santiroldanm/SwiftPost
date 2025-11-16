@@ -165,6 +165,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
         limit: int = 100,
         tipo_empleado: Optional[str] = None,
         activo: Optional[bool] = None,
+        search: Optional[str] = None,
     ) -> List[Empleado]:
         """
         Obtiene una lista de empleados con opciones de paginación y filtrado.
@@ -174,6 +175,7 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             limit: Número máximo de registros a devolver (para paginación)
             tipo_empleado: Filtrar por tipo de empleado (opcional)
             activo: Filtrar por estado activo/inactivo (opcional)
+            search: Buscar por nombre, documento o cargo (opcional)
 
         Returns:
             List[Empleado]: Lista de empleados que coinciden con los criterios
@@ -190,6 +192,17 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
 
             if activo is not None:
                 query = query.filter(Empleado.activo == activo)
+
+            if search is not None and search.strip():
+                search_term = f"%{search.strip()}%"
+                query = query.filter(
+                    (Empleado.primer_nombre.ilike(search_term)) |
+                    (Empleado.segundo_nombre.ilike(search_term)) |
+                    (Empleado.primer_apellido.ilike(search_term)) |
+                    (Empleado.segundo_apellido.ilike(search_term)) |
+                    (Empleado.documento.ilike(search_term)) |
+                    (Empleado.tipo_empleado.ilike(search_term))
+                )
 
             return query.offset(skip).limit(limit).all()
 
@@ -295,15 +308,68 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
             if self.obtener_por_correo(correo):
                 raise ValueError(f"Ya existe un empleado con correo: {correo}")
 
-            usuario_id = str(datos.get("usuario_id", ""))
             from entities.usuario import Usuario
+            from entities.sede import Sede
+            
+            usuario_id = datos.get("usuario_id")
+            
+            # Si no se proporciona usuario_id, crear un nuevo usuario automáticamente
+            if not usuario_id:
+                # Crear usuario con los datos del empleado
+                documento = str(datos.get("documento", "")).strip()
+                correo = str(datos.get("correo", "")).strip().lower()
+                
+                # Generar nombre de usuario a partir del documento
+                nombre_usuario = f"emp_{documento}"
+                
+                # Verificar si ya existe un usuario con ese nombre
+                usuario_existente = self.db.query(Usuario).filter(Usuario.nombre_usuario == nombre_usuario).first()
+                if usuario_existente:
+                    # Si existe, usar ese usuario
+                    usuario_id = str(usuario_existente.id_usuario)
+                else:
+                    # Crear nuevo usuario
+                    from cruds.usuario_crud import UsuarioCRUD
+                    from entities.rol import Rol
+                    usuario_crud = UsuarioCRUD(self.db)
+                    
+                    # Obtener rol por defecto (empleado o usuario)
+                    rol_empleado = self.db.query(Rol).filter(
+                        (Rol.nombre_rol == "empleado") | (Rol.nombre_rol == "usuario")
+                    ).first()
+                    
+                    if not rol_empleado:
+                        # Si no existe, crear rol empleado
+                        rol_empleado = Rol(
+                            nombre_rol="empleado",
+                            descripcion="Rol para empleados del sistema",
+                            activo=True
+                        )
+                        self.db.add(rol_empleado)
+                        self.db.flush()
+                    
+                    # Generar contraseña temporal (documento)
+                    nuevo_usuario = usuario_crud.crear_usuario(
+                        nombre_usuario=nombre_usuario,
+                        password=documento,  # Contraseña temporal = documento
+                        id_rol=str(rol_empleado.id_rol)
+                    )
+                    
+                    if not nuevo_usuario:
+                        raise ValueError("No se pudo crear el usuario para el empleado")
+                    
+                    usuario_id = str(nuevo_usuario.id_usuario)
+            else:
+                usuario_id = str(usuario_id)
 
+            # Verificar que el usuario existe
             usuario = (
                 self.db.query(Usuario).filter(Usuario.id_usuario == usuario_id).first()
             )
             if not usuario:
                 raise ValueError(f"Usuario no encontrado: {usuario_id}")
 
+            # Verificar que no exista otro empleado con el mismo usuario
             empleado_existente = (
                 self.db.query(Empleado)
                 .filter(Empleado.usuario_id == usuario_id)
@@ -313,6 +379,15 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
                 raise ValueError(
                     f"Ya existe un empleado asociado al usuario: {usuario_id}"
                 )
+            
+            # Validar que la sede existe y está activa
+            id_sede = datos.get("id_sede")
+            if id_sede:
+                sede = self.db.query(Sede).filter(Sede.id_sede == id_sede).first()
+                if not sede:
+                    raise ValueError(f"Sede no encontrada: {id_sede}")
+                if not sede.activo:
+                    raise ValueError(f"La sede seleccionada no está activa: {id_sede}")
 
             empleado = Empleado(
                 usuario_id=usuario_id,
@@ -343,14 +418,13 @@ class EmpleadoCRUD(CRUDBase[Empleado, EmpleadoCreate, EmpleadoUpdate]):
         except ValueError as e:
             self.db.rollback()
             print(f" Error de validación: {e}")
-            return None
+            raise
         except Exception as e:
             self.db.rollback()
             print(f" Error al crear empleado: {e}")
             import traceback
-
             traceback.print_exc()
-            return None
+            raise
 
     def actualizar_empleado(
         self,

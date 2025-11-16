@@ -21,12 +21,23 @@ router = APIRouter(prefix="/empleados", tags=["Empleados"])
 
 @router.get("/", response_model=List[EmpleadoResponse])
 async def obtener_empleados(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+    skip: int = 0, 
+    limit: int = 10, 
+    tipo_empleado: Optional[str] = Query(None, description="Filtrar por tipo de empleado"),
+    search: Optional[str] = Query(None, description="Buscar por nombre, documento o cargo"),
+    activo: Optional[bool] = Query(None, description="Filtrar por estado activo"),
+    db: Session = Depends(get_db)
 ):
-    """Obtener todos los empleados con paginación."""
+    """Obtener todos los empleados con paginación y filtros."""
     try:
         empleado_crud = EmpleadoCRUD(db)
-        empleados = empleado_crud.obtener_empleados(skip=skip, limit=limit)
+        empleados = empleado_crud.obtener_empleados(
+            skip=skip, 
+            limit=limit,
+            tipo_empleado=tipo_empleado,
+            search=search,
+            activo=activo
+        )
         return empleados
     except Exception as e:
         raise HTTPException(
@@ -163,6 +174,11 @@ async def crear_empleado(
 
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

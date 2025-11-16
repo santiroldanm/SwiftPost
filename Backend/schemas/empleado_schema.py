@@ -8,7 +8,7 @@ import uuid
 
 
 class EmpleadoBase(BaseModel):
-    usuario_id: str = Field(..., description="ID del usuario asociado al cliente")
+    usuario_id: Optional[str] = Field(None, description="ID del usuario asociado al empleado (opcional, se crea automáticamente)")
     primer_nombre: str = Field(
         ..., min_length=1, max_length=50, description="Primer nombre del empleado"
     )
