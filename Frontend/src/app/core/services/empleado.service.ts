@@ -14,7 +14,7 @@ export interface Empleado {
   segundo_apellido?: string;
   documento: string; // Cambiado de numero_documento a documento
   id_tipo_documento: string;
-  usuario_id: string;
+  usuario_id?: string; // Opcional - el backend lo crea automáticamente si no se proporciona
   tipo_empleado: string; // Cambiado de cargo a tipo_empleado (mensajero, logistico, secretario)
   salario: number;
   fecha_ingreso: string; // Cambiado de fecha_contratacion a fecha_ingreso
@@ -44,8 +44,12 @@ export class EmpleadoService {
   /**
    * Obtiene todos los empleados con paginación
    */
-  obtenerEmpleados(skip: number = 0, limit: number = 10): Observable<Empleado[]> {
-    return this.apiService.get<any>(`${this.endpoint}/`, { skip, limit }).pipe(
+  obtenerEmpleados(skip: number = 0, limit: number = 10, filtros?: any): Observable<Empleado[]> {
+    const params: any = { skip, limit };
+    if (filtros) {
+      Object.assign(params, filtros); 
+    }
+    return this.apiService.get<any>(`${this.endpoint}/`, params).pipe(
       map((response: any) => Array.isArray(response) ? response : (response?.empleados || response || []))
     );
   }

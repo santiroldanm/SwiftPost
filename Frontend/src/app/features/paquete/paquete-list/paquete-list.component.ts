@@ -79,12 +79,27 @@ export class PaqueteListComponent implements OnInit, AfterViewInit {
     this.isLoading = true;
     this.errorMessage = '';
     
-    this.paqueteService.obtenerPaquetes(0, 50)
+    // Construir filtros para el backend
+    const filtros: any = {};
+    if (this.filtroEstado !== 'todos') {
+      filtros.estado = this.filtroEstado;
+    }
+    if (this.filtroFragilidad !== 'todos') {
+      filtros.fragilidad = this.filtroFragilidad;
+    }
+    if (this.searchTerm.trim()) {
+      filtros.search = this.searchTerm.trim();
+    }
+    
+    console.log('Cargando paquetes con filtros:', filtros);
+    
+    this.paqueteService.obtenerPaquetes(0, 50, filtros)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (paquetes) => {
           this.paquetes = paquetes;
           this.isLoading = false;
+          console.log('Paquetes cargados desde backend:', this.paquetes.length, 'registros');
         },
         error: (error) => {
           console.error('Error al cargar paquetes:', error);
@@ -313,29 +328,9 @@ export class PaqueteListComponent implements OnInit, AfterViewInit {
     return [headers, ...rows].map(row => row.join(',')).join('\n');
   }
 
-  get filteredPaquetes() {
-    let filtered = this.paquetes;
-    
-    // Filtrar por búsqueda
-    if (this.searchTerm.trim()) {
-      filtered = filtered.filter(p =>
-        p.contenido?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        p.tipo?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        p.estado?.toLowerCase().includes(this.searchTerm.toLowerCase())
-      );
-    }
-    
-    // Filtrar por estado
-    if (this.filtroEstado !== 'todos') {
-      filtered = filtered.filter(p => p.estado === this.filtroEstado);
-    }
-    
-    // Filtrar por fragilidad
-    if (this.filtroFragilidad !== 'todos') {
-      filtered = filtered.filter(p => p.fragilidad === this.filtroFragilidad);
-    }
-    
-    return filtered;
+  get filteredPaquetes(): Paquete[] {
+    // La filtración ahora se hace en el backend
+    return this.paquetes;
   }
 
   toggleFiltros(): void {
@@ -344,12 +339,18 @@ export class PaqueteListComponent implements OnInit, AfterViewInit {
 
   aplicarFiltros(): void {
     this.showFiltros = false;
+    // Recargar datos con los nuevos filtros
+    console.log('Aplicando filtros, recargando desde backend...');
+    this.cargarPaquetes();
   }
 
   limpiarFiltros(): void {
     this.filtroEstado = 'todos';
     this.filtroFragilidad = 'todos';
     this.searchTerm = '';
+    // Recargar datos sin filtros
+    console.log('Limpiando filtros, recargando desde backend...');
+    this.cargarPaquetes();
   }
 
   private getErrorMessage(error: any): string {

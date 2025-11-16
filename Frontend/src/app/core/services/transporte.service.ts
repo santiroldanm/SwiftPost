@@ -35,10 +35,14 @@ export class TransporteService {
   constructor(private apiService: ApiService) {}
 
   /**
-   * Obtiene todos los transportes con paginación
+   * Obtiene todos los transportes con paginación y filtros
    */
-  obtenerTransportes(skip: number = 0, limit: number = 10): Observable<Transporte[]> {
-    return this.apiService.get<any>(`${this.endpoint}/`, { skip, limit }).pipe(
+  obtenerTransportes(skip: number = 0, limit: number = 10, filtros?: any): Observable<Transporte[]> {
+    const params: any = { skip, limit };
+    if (filtros) {
+      Object.assign(params, filtros);
+    }
+    return this.apiService.get<any>(`${this.endpoint}/`, params).pipe(
       map((response: any) => {
         if (Array.isArray(response)) {
           return response;

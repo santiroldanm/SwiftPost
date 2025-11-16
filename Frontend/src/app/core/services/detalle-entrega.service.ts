@@ -88,8 +88,11 @@ export class DetalleEntregaService {
   /**
    * Crea un nuevo detalle de entrega
    */
-  crearDetalleEntrega(detalleEntrega: DetalleEntrega): Observable<DetalleEntrega> {
-    return this.apiService.post<DetalleEntrega>(this.endpoint, detalleEntrega);
+  crearDetalleEntrega(detalleEntrega: DetalleEntrega, creadoPor: string): Observable<DetalleEntrega> {
+    return this.apiService.post<DetalleEntrega>(
+      `${this.endpoint}/?creado_por=${creadoPor}`, 
+      detalleEntrega
+    );
   }
 
   /**
@@ -103,7 +106,7 @@ export class DetalleEntregaService {
   /**
    * Elimina (desactiva) un detalle de entrega
    */
-  eliminarDetalleEntrega(id: string): Observable<ApiResponse> {
-    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}`);
+  eliminarDetalleEntrega(id: string, actualizadoPor: string): Observable<ApiResponse> {
+    return this.apiService.delete<ApiResponse>(`${this.endpoint}/${id}?actualizado_por=${actualizadoPor}`);
   }
 }

@@ -116,7 +116,7 @@
               <label>Sede Remitente *</label>
               <select [(ngModel)]="formulario.id_sede_remitente" name="sede_remitente" class="form-control" required>
                 <option value="">Seleccione una sede</option>
-                <option *ngFor="let sede of sedes" [value]="sede.id_sede">
+                <option *ngFor="let sede of sedesActivas" [value]="sede.id_sede">
                   {{ sede.nombre }} - {{ sede.ciudad }}
                 </option>
               </select>
@@ -126,7 +126,7 @@
               <label>Sede Receptora *</label>
               <select [(ngModel)]="formulario.id_sede_receptora" name="sede_receptora" class="form-control" required>
                 <option value="">Seleccione una sede</option>
-                <option *ngFor="let sede of sedes" [value]="sede.id_sede">
+                <option *ngFor="let sede of sedesActivas" [value]="sede.id_sede">
                   {{ sede.nombre }} - {{ sede.ciudad }}
                 </option>
               </select>

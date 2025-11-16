@@ -66,14 +66,25 @@ export class TransportesComponent implements OnInit, AfterViewInit {
     this.isLoading = true;
     this.errorMessage = '';
     
-    this.transporteService.obtenerTransportes(0, 100)
+    // Construir filtros para el backend
+    const filtros: any = {};
+    if (this.filtroEstado !== 'todos') {
+      filtros.estado = this.filtroEstado;
+    }
+    if (this.searchTerm.trim()) {
+      filtros.search = this.searchTerm.trim();
+    }
+    
+    console.log('Cargando transportes con filtros:', filtros);
+    
+    this.transporteService.obtenerTransportes(0, 100, filtros)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (transportes) => {
           // Filtrar solo transportes activos
           this.transports = transportes.filter(t => t.activo !== false);
           this.isLoading = false;
-          console.log('Transportes activos cargados:', this.transports.length);
+          console.log('Transportes activos cargados:', this.transports.length, 'registros');
         },
         error: (error) => {
           console.error('Error al cargar transportes:', error);
@@ -95,25 +106,10 @@ export class TransportesComponent implements OnInit, AfterViewInit {
   }
 
 
-  get filteredTransports() {
-    let filtered = this.transports;
-    
-    // Filtrar por búsqueda
-    if (this.searchTerm.trim()) {
-      filtered = filtered.filter(t =>
-        t.tipo_vehiculo.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        t.placa.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        t.marca.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        t.modelo.toLowerCase().includes(this.searchTerm.toLowerCase())
-      );
-    }
-    
-    // Filtrar por estado
-    if (this.filtroEstado !== 'todos') {
-      filtered = filtered.filter(t => t.estado === this.filtroEstado);
-    }
-    
-    return filtered;
+  get filteredTransports(): Transporte[] {
+    // La filtración se hace en el backend y además filtramos por activo en el frontend
+    // Solo mostramos transportes activos
+    return this.transports.filter(t => t.activo !== false);
   }
 
   get totalSlides() {
@@ -327,11 +323,17 @@ export class TransportesComponent implements OnInit, AfterViewInit {
 
   aplicarFiltros(): void {
     this.showFiltros = false;
+    // Recargar datos con los nuevos filtros
+    console.log('Aplicando filtros, recargando desde backend...');
+    this.cargarTransportes();
   }
 
   limpiarFiltros(): void {
     this.filtroEstado = 'todos';
     this.searchTerm = '';
+    // Recargar datos sin filtros
+    console.log('Limpiando filtros, recargando desde backend...');
+    this.cargarTransportes();
   }
 
   private getErrorMessage(error: any): string {

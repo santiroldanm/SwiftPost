@@ -8,6 +8,16 @@ import { TipoDocumentoService, TipoDocumento } from '../../core/services/tipo-do
 import { SedeService, Sede } from '../../core/services/sede.service';
 import { FormStorageService } from '../../core/services/form-storage.service';
 
+const tipoEmpleadoMap: { [key: string]: string } = {
+  'Mensajero': 'mensajero',
+  'Mensajera': 'mensajero',
+  'Administrador': 'logistico',
+  'Administradora': 'logistico',
+  'Operador Logistico': 'logistico',
+  'Secretario': 'secretario',
+  'Secretaria': 'secretario'
+};
+
 @Component({
   selector: 'app-empleados',
   standalone: true,
@@ -63,14 +73,26 @@ export class EmpleadosComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
     
-    this.empleadoService.obtenerEmpleados(0, 100)
+    // Construir filtros para el backend
+    const filtros: any = {};
+    if (this.filtroCargo !== 'todos') {
+      const tipoEmpleado = tipoEmpleadoMap[this.filtroCargo] || this.filtroCargo.toLowerCase();
+      filtros.tipo_empleado = tipoEmpleado;
+    }
+    if (this.searchTerm.trim()) {
+      filtros.search = this.searchTerm.trim();
+    }
+    
+    console.log('Cargando empleados con filtros:', filtros);
+    
+    this.empleadoService.obtenerEmpleados(0, 100, filtros)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (empleados) => {
-          // Filtrar solo empleados activos
-          this.employees = empleados.filter(e => e.activo !== false);
+          // El backend ahora devuelve correctamente el campo activo
+          this.employees = empleados;
           this.isLoading = false;
-          console.log('Empleados activos cargados:', this.employees.length);
+          console.log('Empleados cargados desde backend:', this.employees.length, 'registros');
         },
         error: (error) => {
           console.error('Error al cargar empleados:', error);
@@ -92,46 +114,22 @@ export class EmpleadosComponent implements OnInit {
   }
 
   cargarSedes(): void {
-    this.sedeService.obtenerSedes(0, 100)
+    // Cargar solo sedes activas
+    const filtros = { activo: true };
+    this.sedeService.obtenerSedes(0, 100, filtros)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (sedes) => {
-          this.sedes = Array.isArray(sedes) ? sedes : [];
+          this.sedes = Array.isArray(sedes) ? sedes.filter(s => s.activo !== false) : [];
+          console.log('Sedes activas cargadas:', this.sedes.length);
         },
         error: (error) => console.error('Error al cargar sedes:', error)
       });
   }
 
-  get filteredEmployees() {
-    let filtered = this.employees;
-    
-    // Filtrar por búsqueda
-    if (this.searchTerm.trim()) {
-      filtered = filtered.filter(e => {
-        const nombreCompleto = `${e.primer_nombre} ${e.segundo_nombre || ''} ${e.primer_apellido} ${e.segundo_apellido || ''}`.toLowerCase();
-        return nombreCompleto.includes(this.searchTerm.toLowerCase()) ||
-               e.documento?.includes(this.searchTerm) ||
-               e.tipo_empleado?.toLowerCase().includes(this.searchTerm.toLowerCase());
-      });
-    }
-    
-    // Filtrar por tipo de empleado
-    if (this.filtroCargo !== 'todos') {
-      // Mapear valores del filtro a los valores del backend
-      const tipoEmpleadoMap: { [key: string]: string } = {
-        'Mensajero': 'mensajero',
-        'Mensajera': 'mensajero',
-        'Administrador': 'logistico',
-        'Administradora': 'logistico',
-        'Operador Logistico': 'logistico',
-        'Secretario': 'secretario',
-        'Secretaria': 'secretario'
-      };
-      const tipoEmpleado = tipoEmpleadoMap[this.filtroCargo] || this.filtroCargo.toLowerCase();
-      filtered = filtered.filter(e => e.tipo_empleado?.toLowerCase() === tipoEmpleado);
-    }
-    
-    return filtered;
+  get filteredEmployees(): Empleado[] {
+    // La filtración ahora se hace en el backend, así que simplemente devolvemos los empleados
+    return this.employees;
   }
 
   getNombreCompleto(empleado: Empleado): string {
@@ -157,7 +155,6 @@ export class EmpleadosComponent implements OnInit {
         segundo_apellido: '',
         documento: '',
         id_tipo_documento: '',
-        usuario_id: currentUser?.id_usuario || '',
         tipo_empleado: '',
         salario: 0,
         fecha_ingreso: today,
@@ -241,7 +238,8 @@ export class EmpleadosComponent implements OnInit {
       }
 
       // Limpiar datos: remover campos que no deben enviarse en creación
-      const { id_empleado, fecha_creacion, fecha_actualizacion, actualizado_por, creado_por, ...newEmployee } = this.employeeForm as any;
+      // No enviar usuario_id, el backend lo creará automáticamente
+      const { id_empleado, fecha_creacion, fecha_actualizacion, actualizado_por, creado_por, usuario_id, ...newEmployee } = this.employeeForm as any;
       
       this.empleadoService.crearEmpleado(newEmployee, currentUser.id_usuario)
         .pipe(takeUntilDestroyed(this.destroyRef))
@@ -325,11 +323,17 @@ export class EmpleadosComponent implements OnInit {
 
   aplicarFiltros(): void {
     this.showFiltros = false;
+    // Recargar datos con los nuevos filtros
+    console.log('Aplicando filtros, recargando desde backend...');
+    this.cargarEmpleados();
   }
 
   limpiarFiltros(): void {
     this.filtroCargo = 'todos';
     this.searchTerm = '';
+    // Recargar datos sin filtros
+    console.log('Limpiando filtros, recargando desde backend...');
+    this.cargarEmpleados();
   }
 
   private getErrorMessage(error: any): string {

@@ -33,10 +33,14 @@ export class PaqueteService {
   constructor(private apiService: ApiService) {}
 
   /**
-   * Obtiene todos los paquetes con paginación
+   * Obtiene todos los paquetes con paginación y filtros
    */
-  obtenerPaquetes(skip: number = 0, limit: number = 10): Observable<Paquete[]> {
-    return this.apiService.get<any>(`${this.endpoint}/`, { skip, limit }).pipe(
+  obtenerPaquetes(skip: number = 0, limit: number = 10, filtros?: any): Observable<Paquete[]> {
+    const params: any = { skip, limit };
+    if (filtros) {
+      Object.assign(params, filtros);
+    }
+    return this.apiService.get<any>(`${this.endpoint}/`, params).pipe(
       map(response => {
         // El backend devuelve { paquetes: [...], pagina: ..., por_pagina: ... }
         if (response?.paquetes) {
