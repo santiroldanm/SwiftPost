@@ -6,7 +6,7 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 from database.config import get_db
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from sqlalchemy.orm import Session
 from cruds.detalle_entrega_crud import DetalleEntregaCRUD
 from schemas.detalle_entrega_schema import (
@@ -22,12 +22,21 @@ router = APIRouter(prefix="/detalles-entrega", tags=["Detalles de Entrega"])
 
 @router.get("/", response_model=DetalleEntregaListResponse)
 async def obtener_detalles_entrega(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+    skip: int = 0, 
+    limit: int = 10, 
+    estado: Optional[str] = Query(None, description="Filtrar por estado de envío"),
+    search: Optional[str] = Query(None, description="Buscar por observaciones"),
+    db: Session = Depends(get_db)
 ):
-    """Obtener todos los detalles de entrega con paginación."""
+    """Obtener todos los detalles de entrega con paginación y filtros."""
     try:
         detalle_crud = DetalleEntregaCRUD(db)
-        detalles = detalle_crud.obtener_todos(skip=skip, limit=limit)
+        detalles = detalle_crud.obtener_todos(
+            skip=skip, 
+            limit=limit,
+            estado=estado,
+            search=search
+        )
         return {
             "detalles": detalles,
             "pagina": (skip // limit) + 1,
@@ -59,6 +68,28 @@ async def obtener_entregas_pendientes(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al obtener entregas pendientes: {str(e)}",
+        )
+
+
+@router.get("/estado/{estado}", response_model=DetalleEntregaListResponse)
+async def obtener_entregas_por_estado(
+    estado: str, skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+):
+    """Obtener entregas por estado con paginación."""
+    try:
+        detalle_crud = DetalleEntregaCRUD(db)
+        detalles = detalle_crud.obtener_por_estado(
+            estado=estado, skip=skip, limit=limit
+        )
+        return {
+            "detalles": detalles,
+            "pagina": (skip // limit) + 1,
+            "por_pagina": limit,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener entregas por estado: {str(e)}",
         )
 
 
@@ -143,18 +174,30 @@ async def obtener_entrega_por_paquete(id_paquete: UUID, db: Session = Depends(ge
 async def crear_detalle_entrega(
     detalle_data: DetalleEntregaCreate,
     db: Session = Depends(get_db),
-    creado_por: Optional[UUID] = None,
+    creado_por: Optional[UUID] = Query(None, description="UUID del usuario que crea el registro"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Crear un nuevo detalle de entrega."""
     try:
-        if not creado_por:
+        # Obtener el ID del usuario que crea el registro
+        if creado_por:
+            usuario_id = creado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="X-User-ID debe ser un UUID válido",
+                )
+        else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="creado_por es obligatorio",
+                detail="creado_por o X-User-ID es obligatorio",
             )
 
         detalle_crud = DetalleEntregaCRUD(db)
-        detalle = detalle_crud.crear(datos_entrada=detalle_data, creado_por=creado_por)
+        detalle = detalle_crud.crear(datos_entrada=detalle_data, creado_por=usuario_id)
 
         if not detalle:
             raise HTTPException(
@@ -165,6 +208,11 @@ async def crear_detalle_entrega(
         return detalle
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -177,14 +225,26 @@ async def actualizar_detalle_entrega(
     id_detalle: UUID,
     detalle_data: DetalleEntregaUpdate,
     db: Session = Depends(get_db),
-    actualizado_por: Optional[UUID] = None,
+    actualizado_por: Optional[UUID] = Query(None, description="UUID del usuario que actualiza el registro"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Actualizar un detalle de entrega existente."""
     try:
-        if not actualizado_por:
+        # Obtener el ID del usuario que actualiza el registro
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="X-User-ID debe ser un UUID válido",
+                )
+        else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="actualizado_por es obligatorio",
+                detail="actualizado_por o X-User-ID es obligatorio",
             )
 
         detalle_crud = DetalleEntregaCRUD(db)
@@ -199,7 +259,7 @@ async def actualizar_detalle_entrega(
         detalle_actualizado = detalle_crud.actualizar(
             objeto_db=detalle,
             datos_entrada=detalle_data,
-            actualizado_por=actualizado_por,
+            actualizado_por=usuario_id,
         )
 
         if not detalle_actualizado:
@@ -212,6 +272,11 @@ async def actualizar_detalle_entrega(
 
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -222,15 +287,27 @@ async def actualizar_detalle_entrega(
 @router.delete("/{id_detalle}", response_model=RespuestaAPI)
 async def eliminar_detalle_entrega(
     id_detalle: UUID,
-    actualizado_por: Optional[UUID] = None,
     db: Session = Depends(get_db),
+    actualizado_por: Optional[UUID] = Query(None, description="UUID del usuario que elimina el registro"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     """Eliminar un detalle de entrega (soft delete)"""
     try:
-        if not actualizado_por:
+        # Obtener el ID del usuario que elimina el registro
+        if actualizado_por:
+            usuario_id = actualizado_por
+        elif x_user_id:
+            try:
+                usuario_id = UUID(x_user_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="X-User-ID debe ser un UUID válido",
+                )
+        else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="actualizado_por es obligatorio",
+                detail="actualizado_por o X-User-ID es obligatorio",
             )
 
         detalle_crud = DetalleEntregaCRUD(db)
@@ -249,7 +326,7 @@ async def eliminar_detalle_entrega(
             )
 
         eliminado = detalle_crud.desactivar(
-            id_detalle=id_detalle, actualizado_por=actualizado_por
+            id_detalle=id_detalle, actualizado_por=usuario_id
         )
 
         if eliminado:

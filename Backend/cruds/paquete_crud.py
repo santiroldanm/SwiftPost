@@ -37,6 +37,8 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
         id_destinatario: Optional[UUID] = None,
         estado: Optional[str] = None,
         tipo: Optional[str] = None,
+        fragilidad: Optional[str] = None,
+        search: Optional[str] = None,
     ) -> List[Paquete]:
         """
         Obtiene todos los paquetes con filtros opcionales.
@@ -50,6 +52,8 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
             id_destinatario: Filtrar por ID del destinatario
             estado: Filtrar por estado del paquete
             tipo: Filtrar por tipo de envío (normal/express)
+            fragilidad: Filtrar por fragilidad del paquete
+            search: Buscar por contenido o tipo
 
         Returns:
             Lista de objetos Paquete que coinciden con los criterios
@@ -70,6 +74,16 @@ class PaqueteCRUD(CRUDBase[Paquete, PaqueteCreate, PaqueteUpdate]):
 
         if tipo:
             query = query.filter(Paquete.tipo == tipo.lower())
+        
+        if fragilidad:
+            query = query.filter(Paquete.fragilidad == fragilidad.lower())
+        
+        if search is not None and search.strip():
+            search_term = f"%{search.strip()}%"
+            query = query.filter(
+                (Paquete.contenido.ilike(search_term)) |
+                (Paquete.tipo.ilike(search_term))
+            )
 
         return query.offset(skip).limit(limit).all()
 

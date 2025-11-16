@@ -8,7 +8,7 @@ import uuid
 
 
 class EmpleadoBase(BaseModel):
-    usuario_id: str = Field(..., description="ID del usuario asociado al cliente")
+    usuario_id: Optional[str] = Field(None, description="ID del usuario asociado al empleado (opcional, se crea automáticamente)")
     primer_nombre: str = Field(
         ..., min_length=1, max_length=50, description="Primer nombre del empleado"
     )
@@ -57,13 +57,11 @@ class EmpleadoBase(BaseModel):
 
     @validator("segundo_nombre")
     def validar_segundo_nombre(cls, v):
-        if v is not None:
-            if not v.strip():
-                raise ValueError("El segundo nombre no puede estar vacío")
+        if v is not None and v.strip():
             if not v.replace(" ", "").isalpha():
                 raise ValueError("El segundo nombre solo puede contener letras")
             return v.strip().title()
-        return v
+        return None
 
     @validator("primer_apellido")
     def validar_primer_apellido(cls, v):
@@ -75,13 +73,11 @@ class EmpleadoBase(BaseModel):
 
     @validator("segundo_apellido")
     def validar_segundo_apellido(cls, v):
-        if v is not None:
-            if not v.strip():
-                raise ValueError("El segundo apellido no puede estar vacío")
+        if v is not None and v.strip():
             if not v.replace(" ", "").isalpha():
                 raise ValueError("El segundo apellido solo puede contener letras")
             return v.strip().title()
-        return v
+        return None
 
     @validator("fecha_nacimiento")
     def validar_fecha_nacimiento(cls, v):
@@ -200,13 +196,11 @@ class EmpleadoUpdate(BaseModel):
 
     @validator("segundo_nombre")
     def validar_segundo_nombre(cls, v):
-        if v is not None:
-            if not v.strip():
-                raise ValueError("El segundo nombre no puede estar vacío")
+        if v is not None and v.strip():
             if not v.replace(" ", "").isalpha():
                 raise ValueError("El segundo nombre solo puede contener letras")
             return v.strip().title()
-        return v
+        return None
 
     @validator("primer_apellido")
     def validar_primer_apellido(cls, v):
@@ -220,13 +214,11 @@ class EmpleadoUpdate(BaseModel):
 
     @validator("segundo_apellido")
     def validar_segundo_apellido(cls, v):
-        if v is not None:
-            if not v.strip():
-                raise ValueError("El segundo apellido no puede estar vacío")
+        if v is not None and v.strip():
             if not v.replace(" ", "").isalpha():
                 raise ValueError("El segundo apellido solo puede contener letras")
             return v.strip().title()
-        return v
+        return None
 
     @validator("numero_documento")
     def validar_numero_documento(cls, v):
@@ -320,6 +312,7 @@ class EmpleadoUpdate(BaseModel):
 
 class EmpleadoResponse(EmpleadoBase):
     id_empleado: uuid.UUID
+    activo: bool = True
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     actualizado_por: Optional[str] = None

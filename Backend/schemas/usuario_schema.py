@@ -52,6 +52,7 @@ class UsuarioCreate(UsuarioBase):
 class UsuarioUpdate(BaseModel):
     nombre_usuario: Optional[str] = Field(None, min_length=4, max_length=50)
     id_rol: Optional[str] = Field(None, min_length=1)
+    activo: Optional[bool] = Field(None, description="Estado activo/inactivo del usuario")
 
     @validator("nombre_usuario")
     def validar_nombre_usuario(cls, v):
@@ -74,10 +75,14 @@ class UsuarioUpdate(BaseModel):
         return v
 
 
-class UsuarioResponse(UsuarioBase):
+class UsuarioResponse(BaseModel):
     id_usuario: uuid.UUID
+    nombre_usuario: str
+    id_rol: str
+    activo: bool
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
+    rol: Optional[dict] = None
 
     class Config:
         from_attributes = True

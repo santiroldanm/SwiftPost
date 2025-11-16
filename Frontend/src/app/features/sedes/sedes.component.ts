@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SedeService, Sede } from '../../core/services/sede.service';
 import { AuthService } from '../../core/services/auth.service';
+import { FormStorageService } from '../../core/services/form-storage.service';
 
 @Component({
   selector: 'app-sedes',
@@ -12,6 +14,7 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrls: ['./sedes.component.scss']
 })
 export class SedesComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   searchTerm = '';
   showModal = false;
   showFiltros = false;
@@ -33,7 +36,8 @@ export class SedesComponent implements OnInit {
 
   constructor(
     private sedeService: SedeService,
-    private authService: AuthService
+    private authService: AuthService,
+    private formStorage: FormStorageService
   ) {}
 
   ngOnInit(): void {
@@ -44,29 +48,36 @@ export class SedesComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
     
-    this.sedeService.obtenerSedes(0, 100).subscribe({
-      next: (sedes) => {
-        // Asegurar que todas las sedes tengan el campo activo definido
-        this.sedes = sedes.map(sede => ({
-          ...sede,
-          activo: sede.activo !== undefined ? sede.activo : true
-        }));
-        console.log('Sedes cargadas:', this.sedes); // Debug
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error al cargar sedes:', error);
-        this.errorMessage = 'Error al cargar las sedes';
-        this.isLoading = false;
-      }
-    });
+    // Construir filtros para el backend
+    const filtros: any = {};
+    if (this.filtroEstado === 'activas') {
+      filtros.activo = true;
+    }
+    
+    console.log('Cargando sedes con filtros:', filtros);
+    
+    this.sedeService.obtenerSedes(0, 100, filtros)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (sedes) => {
+          // El backend ahora devuelve correctamente el campo activo
+          this.sedes = sedes;
+          this.isLoading = false;
+          console.log('Sedes cargadas desde backend:', this.sedes.length, 'registros');
+        },
+        error: (error) => {
+          console.error('Error al cargar sedes:', error);
+          this.errorMessage = this.getErrorMessage(error) || 'Error al cargar las sedes';
+          this.isLoading = false;
+        }
+      });
   }
 
 
   get filteredSedes() {
     let filtered = this.sedes;
     
-    // Filtrar por búsqueda
+    // Filtrar por búsqueda (solo en frontend para búsqueda en tiempo real)
     if (this.searchTerm.trim()) {
       filtered = filtered.filter(s =>
         s.nombre.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
@@ -75,10 +86,9 @@ export class SedesComponent implements OnInit {
       );
     }
     
-    // Filtrar por estado
-    if (this.filtroEstado === 'activas') {
-      filtered = filtered.filter(s => s.activo);
-    } else if (this.filtroEstado === 'inactivas') {
+    // El filtro por estado ahora se hace en el backend al cargar
+    // Pero mantenemos filtro local para inactivas
+    if (this.filtroEstado === 'inactivas') {
       filtered = filtered.filter(s => !s.activo);
     }
     
@@ -109,14 +119,24 @@ export class SedesComponent implements OnInit {
     this.hoveredSede = sede;
   }
 
-  openNewSedeModal() {
+  openNewSedeModal(): void {
     this.isEditMode = false;
-    this.sedeForm = {
-      nombre: '',
-      ciudad: '',
-      direccion: '',
-      telefono: ''
-    };
+    this.selectedSede = null;
+    
+    // Intentar recuperar datos guardados
+    const savedData = this.formStorage.getFormData('sede_nueva');
+    
+    if (savedData) {
+      this.sedeForm = savedData;
+      console.log('Datos del formulario de sede recuperados');
+    } else {
+      this.sedeForm = {
+        nombre: '',
+        ciudad: '',
+        direccion: '',
+        telefono: ''
+      };
+    }
     this.showModal = true;
   }
 
@@ -126,49 +146,71 @@ export class SedesComponent implements OnInit {
     this.showModal = true;
   }
 
-  closeModal() {
+  closeModal(): void {
+    // Guardar datos del formulario antes de cerrar si no está en modo edición
+    if (!this.isEditMode) {
+      this.formStorage.saveFormData('sede_nueva', this.sedeForm);
+    }
     this.showModal = false;
+    this.selectedSede = null;
   }
 
   saveSede() {
     this.isLoading = true;
+    this.errorMessage = '';
     const currentUser = this.authService.getCurrentUser();
     
     if (this.isEditMode && this.sedeForm.id_sede) {
       // Actualizar sede existente
-      const updateData = {
-        ...this.sedeForm,
-        actualizado_por: currentUser?.id_usuario
-      };
+      if (!currentUser?.id_usuario) {
+        this.errorMessage = 'Usuario no autenticado';
+        this.isLoading = false;
+        return;
+      }
+
+      // Limpiar datos: remover campos que no deben enviarse
+      const { id_sede, fecha_creacion, fecha_actualizacion, creado_por, ...updateData } = this.sedeForm;
       
-      this.sedeService.actualizarSede(this.sedeForm.id_sede, updateData).subscribe({
+      this.sedeService.actualizarSede(this.sedeForm.id_sede, updateData, currentUser.id_usuario)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: () => {
           this.cargarSedes();
           this.closeModal();
           this.isLoading = false;
+          this.errorMessage = '';
         },
         error: (error) => {
           console.error('Error al actualizar sede:', error);
-          this.errorMessage = 'Error al actualizar la sede';
+          this.errorMessage = this.getErrorMessage(error) || 'Error al actualizar la sede';
           this.isLoading = false;
         }
       });
     } else {
       // Crear nueva sede
-      const newSede = {
-        ...this.sedeForm,
-        creado_por: currentUser?.id_usuario
-      };
+      if (!currentUser?.id_usuario) {
+        this.errorMessage = 'Usuario no autenticado';
+        this.isLoading = false;
+        return;
+      }
+
+      // Limpiar datos: remover campos que no deben enviarse en creación
+      const { id_sede, fecha_creacion, fecha_actualizacion, actualizado_por, creado_por, ...newSede } = this.sedeForm as any;
       
-      this.sedeService.crearSede(newSede).subscribe({
+      this.sedeService.crearSede(newSede, currentUser.id_usuario)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: () => {
+          // Limpiar datos guardados después de guardar exitosamente
+          this.formStorage.clearFormData('sede_nueva');
           this.cargarSedes();
           this.closeModal();
           this.isLoading = false;
+          this.errorMessage = '';
         },
         error: (error) => {
           console.error('Error al crear sede:', error);
-          this.errorMessage = 'Error al crear la sede';
+          this.errorMessage = this.getErrorMessage(error) || 'Error al crear la sede';
           this.isLoading = false;
         }
       });
@@ -178,18 +220,30 @@ export class SedesComponent implements OnInit {
   deleteSede(id: string | undefined) {
     if (!id) return;
     
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id_usuario) {
+      this.errorMessage = 'Usuario no autenticado';
+      return;
+    }
+    
     if (confirm('¿Estás seguro de eliminar esta sede?')) {
-      this.sedeService.eliminarSede(id).subscribe({
+      this.isLoading = true;
+      this.sedeService.eliminarSede(id, currentUser.id_usuario)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: () => {
           this.cargarSedes();
           const selectedId = this.selectedSede?.id_sede;
           if (selectedId === id) {
             this.selectedSede = null;
           }
+          this.errorMessage = '';
+          this.isLoading = false;
         },
         error: (error) => {
           console.error('Error al eliminar sede:', error);
-          this.errorMessage = 'Error al eliminar la sede';
+          this.errorMessage = this.getErrorMessage(error) || 'Error al eliminar la sede';
+          this.isLoading = false;
         }
       });
     }
@@ -230,10 +284,29 @@ export class SedesComponent implements OnInit {
 
   aplicarFiltros(): void {
     this.showFiltros = false;
+    // Recargar datos con los nuevos filtros
+    console.log('Aplicando filtros, recargando desde backend...');
+    this.cargarSedes();
   }
 
   limpiarFiltros(): void {
     this.filtroEstado = 'todos';
     this.searchTerm = '';
+    // Recargar datos sin filtros
+    console.log('Limpiando filtros, recargando desde backend...');
+    this.cargarSedes();
+  }
+
+  private getErrorMessage(error: any): string {
+    const errorDetail = error?.error?.detail || error?.error?.message || error?.message;
+    if (typeof errorDetail === 'string') {
+      return errorDetail;
+    } else if (errorDetail && typeof errorDetail === 'object') {
+      if (Array.isArray(errorDetail)) {
+        return errorDetail.join(', ');
+      }
+      return JSON.stringify(errorDetail);
+    }
+    return 'Error desconocido';
   }
 }

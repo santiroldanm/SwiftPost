@@ -34,6 +34,22 @@ async def obtener_tipos_documento(
         )
 
 
+@router.get("/activos", response_model=List[TipoDocumentoResponse])
+async def obtener_tipos_documento_activos(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+):
+    """Obtener tipos de documento activos."""
+    try:
+        tipo_doc_crud = TipoDocumentoCRUD(db)
+        tipos = tipo_doc_crud.obtener_activos(skip=skip, limit=limit)
+        return tipos
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener tipos de documento activos: {str(e)}",
+        )
+
+
 @router.get("/{id_tipo_documento}", response_model=TipoDocumentoResponse)
 async def obtener_tipo_documento_por_id(
     id_tipo_documento: UUID, db: Session = Depends(get_db)

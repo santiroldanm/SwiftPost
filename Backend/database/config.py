@@ -39,9 +39,12 @@ def get_engine():
         pool_recycle=300,
     )
 
-    with engine.connect() as conn:
-        conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
-        conn.commit()
+    try:
+        with engine.connect() as conn:
+            conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+            conn.commit()
+    except Exception:
+        pass
 
     return engine
 

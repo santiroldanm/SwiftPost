@@ -344,6 +344,17 @@
 
   &.logout {
     color: #f44336;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    
+    &:hover {
+      background-color: #fed7d7;
+    }
 
     .material-icons {
       color: #f44336;
